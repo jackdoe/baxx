@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/satori/go.uuid"
@@ -14,8 +15,11 @@ import (
    send data to to baxx.xyz
 */
 
-func verify(client string) {
-	return client == "4c41a98a-915a-4a07-bf0c-901ee78bc594"
+func verify(client string) error {
+	if client == "4c41a98a-915a-4a07-bf0c-901ee78bc594" {
+		return nil
+	}
+	return errors.New("bad client")
 }
 
 type BackupsConfig struct {
@@ -106,10 +110,8 @@ func main() {
 
 	r.GET("/api/v1/config/:client", func(c *gin.Context) {
 		client := c.Param("client")
-		if !verify(client) {
-			c.JSON(400, gin.H{
-				"error": "bad client",
-			})
+		if err := verify(client); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		json := &Backups{}
@@ -124,10 +126,8 @@ func main() {
 	// list all files in the backup
 	r.GET("/api/v1/list/:client/*path", func(c *gin.Context) {
 		client := c.Param("client")
-		if !verify(client) {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "bad client",
-			})
+		if err := verify(client); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -138,13 +138,10 @@ func main() {
 	r.GET("/api/v1/download/:client/:id", func(c *gin.Context) {
 		client := c.Param("client")
 		token := c.Param("token")
-		if !verify(client, token) {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "bad client",
-			})
+		if err := verify(client); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-
 		//
 	})
 
@@ -152,10 +149,8 @@ func main() {
 	r.GET("/api/v1/upload/:client/*path", func(c *gin.Context) {
 		client := c.Param("client")
 		path := c.Param("path")
-		if !verify(client) {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "bad client",
-			})
+		if err := verify(client); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -167,8 +162,9 @@ func main() {
 			return
 		}
 
-		files := form.File["files[]"]
 		out := &ListOutput{Files: []*FileMetadata{}}
+
+		files := form.File["files[]"]
 		for _, file := range files {
 			fo, err := addToClientMetadata(client, path, file)
 			if err != nil {
@@ -181,7 +177,9 @@ func main() {
 			out.Files = append(out.Files, fo)
 		}
 
+		// delete the temp files
 		form.RemoveAll()
+
 		c.JSON(http.StatusOk, out)
 	})
 
