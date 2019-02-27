@@ -14,6 +14,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -97,9 +98,18 @@ Encryption:
 
 */
 
+type ActionLog struct {
+	ID         uint64 `gorm:"primary_key"`
+	ClientID   string `gorm:"not null"`
+	ActionType string `gorm:"not null"`
+	Action     string `gorm:"not null"`
+	Log        string `gorm:"type:text"`
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
+
 type Client struct {
 	ID        string `gorm:"primary_key"`
-	Log       string `gorm:"type:text"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -107,7 +117,14 @@ type Client struct {
 type Token struct {
 	ID        string `gorm:"primary_key"`
 	ClientID  string `gorm:"not null"`
-	Log       string `gorm:"type:text"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type Notification struct {
+	ID       string `gorm:"primary_key"`
+	ClientID string `gorm:"not null"`
+
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -135,7 +152,6 @@ type FileMetadata struct {
 type FileVersion struct {
 	ID             uint64    `gorm:"primary_key"`
 	FileMetadataID uint64    `gorm:"not null" json:"-"`
-	Log            string    `gorm:"type:text" json:"-"`
 	FileOriginID   uint64    `gorm:"not null" json:"-"`
 	CreatedAt      time.Time `json:"-"`
 	UpdatedAt      time.Time `json:"-"`
@@ -167,7 +183,7 @@ func locate(f string) string {
 
 func extractLogFromRequest(req *http.Request) (string, error) {
 	l, err := httputil.DumpRequest(req, false)
-	return string(l), err
+	return fmt.Sprintf("%sRemoteAddr: %s\nURL: %s", string(l), req.RemoteAddr, req.URL), err
 }
 
 func saveUploadedFile(body io.Reader) (string, int64, error) {
@@ -197,6 +213,18 @@ func saveUploadedFile(body io.Reader) (string, int64, error) {
 	return shasum, size, nil
 }
 
+func actionLog(db *gorm.DB, clientID, actionType, action string, req *http.Request, extra ...string) {
+	rlog, _ := extractLogFromRequest(req)
+
+	al := &ActionLog{
+		ClientID:   clientID,
+		ActionType: actionType,
+		Action:     action,
+		Log:        fmt.Sprintf("%s\n%s", rlog, strings.Join(extra, "\n")),
+	}
+	db.Create(al)
+}
+
 func main() {
 	r := gin.Default()
 
@@ -207,7 +235,7 @@ func main() {
 	db.LogMode(true)
 	defer db.Close()
 
-	db.AutoMigrate(&Client{}, &Token{}, &FileOrigin{}, &FileMetadata{}, &FileVersion{})
+	db.AutoMigrate(&Client{}, &Token{}, &FileOrigin{}, &FileMetadata{}, &FileVersion{}, &ActionLog{})
 	db.Model(&Token{}).AddIndex("idx_token_client_id", "client_id")
 
 	db.Model(&FileOrigin{}).AddUniqueIndex("idx_sha", "sha256")
@@ -216,30 +244,17 @@ func main() {
 	db.Model(&FileVersion{}).AddUniqueIndex("idx_fv_version_origin", "file_metadata_id", "file_origin_id")
 
 	r.POST("/v1/create/client", func(c *gin.Context) {
-		rlog, err := extractLogFromRequest(c.Request)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		client := &Client{
-			Log: rlog,
-		}
+		client := &Client{}
 
 		if err := db.Create(client).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-
+		actionLog(db, client.ID, "create/client", "create", c.Request)
 		c.JSON(http.StatusOK, client)
 	})
 
 	r.POST("/v1/create/token/:client", func(c *gin.Context) {
-		rlog, err := extractLogFromRequest(c.Request)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
 		client := &Client{}
 		query := db.Where("id = ?", c.Param("client")).Take(client)
 		if query.RecordNotFound() {
@@ -247,12 +262,12 @@ func main() {
 			return
 		}
 
-		token := &Token{ClientID: client.ID, Log: rlog}
+		token := &Token{ClientID: client.ID}
 		if err := db.Create(token).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-
+		actionLog(db, client.ID, "create/token", "create", c.Request)
 		c.JSON(http.StatusOK, token)
 	})
 
@@ -294,12 +309,6 @@ func main() {
 			return
 		}
 
-		rlog, err := extractLogFromRequest(c.Request)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
 		dir, name := split(c.Param("path"))
 		body := c.Request.Body
 		defer body.Close()
@@ -336,7 +345,7 @@ func main() {
 
 		// create the version
 		fv := &FileVersion{}
-		if err := tx.Where(FileVersion{FileMetadataID: fm.ID, FileOriginID: fo.ID}).Attrs(FileVersion{Log: rlog}).FirstOrCreate(&fv).Error; err != nil {
+		if err := tx.Where(FileVersion{FileMetadataID: fm.ID, FileOriginID: fo.ID}).FirstOrCreate(&fv).Error; err != nil {
 			tx.Rollback()
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -348,9 +357,7 @@ func main() {
 			return
 		}
 
-		// FIXME: can create file and then nobody points to it
-		// in case of rollback
-
+		actionLog(db, client, "file", "upload", c.Request, fmt.Sprintf("SHA256: %s", sha), fmt.Sprintf("FileSize: %d", size))
 		c.JSON(http.StatusOK, fv)
 	})
 
