@@ -112,15 +112,6 @@ type Token struct {
 	UpdatedAt time.Time
 }
 
-/*
-uuid is base64 en
-store the files in /baxx/client/token/uuid/1.bin
-store the files in /baxx/client/token/uuid/2.bin
-by default keep 7 replicas, so just delete now - 7
-
-if sha is the same, dont update the version
-*/
-
 type FileOrigin struct {
 	ID        uint64 `gorm:"primary_key"`
 	Size      uint64 `gorm:"not null"`
