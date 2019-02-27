@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"github.com/pierrec/lz4"
 	"github.com/satori/go.uuid"
 	"io"
 	"log"
@@ -69,19 +70,6 @@ Pricing
           . when new files are smaller than old files
 
 
-  * services
-
-    * notifications only 0.99C per month
-      still have local client but use baxx.dev for notifications
-      this requires the baxx daemon to send metadata to baxx.dev
-      tokens have to be created there as well (though they should be
-      unique enough, so probably can just be added)
-      config has to be uploaded as well (the notifications config)
-
-
-    * storage + notification 0.99 + some buckets
-      same as notification but you directly send the files to us and we upload it to s3
-      costs same as notification plus s3 cost
 
 
   api:
@@ -120,6 +108,7 @@ type Client struct {
 
 type Token struct {
 	ID        string    `gorm:"primary_key"`
+	STRINGalt string    `gorm:"not null"`
 	ClientID  string    `gorm:"not null"`
 	CreatedAt time.Time `json:"-"`
 	UpdatedAt time.Time `json:"-"`
@@ -132,6 +121,7 @@ type NotificationQueue struct {
 	ID                        uint64 `gorm:"primary_key"`
 	NotificationDestinationID uint64 `gorm:"not null"`
 	Value                     string `gorm:"type:text";"not null"`
+	Sent                      bool   `gorm:"not null"`
 
 	CreatedAt time.Time `json:"-"`
 	UpdatedAt time.Time `json:"-"`
@@ -215,7 +205,9 @@ func split(s string) (string, string) {
 
 func (token *Token) BeforeCreate(scope *gorm.Scope) error {
 	id := uuid.Must(uuid.NewV4())
+	salt := uuid.Must(uuid.NewV4())
 	scope.SetColumn("ID", fmt.Sprintf("%s", id))
+	scope.SetColumn("Salt", fmt.Sprintf("%s", salt))
 	return nil
 }
 
@@ -245,12 +237,14 @@ func saveUploadedFile(body io.Reader) (string, int64, error) {
 		return "", 0, err
 	}
 
-	size, err := io.Copy(dest, tee)
+	lz4Writer := lz4.NewWriter(dest)
+	size, err := io.Copy(lz4Writer, tee)
 	if err != nil {
 		dest.Close()
 		os.Remove(temporary)
 		return "", 0, err
 	}
+	lz4Writer.Close()
 	dest.Close()
 
 	shasum := fmt.Sprintf("%x", sha.Sum(nil))
@@ -485,7 +479,16 @@ func main() {
 		c.Header("Content-Transfer-Encoding", "binary")
 		c.Header("Content-Disposition", "attachment; filename="+fm.Filename)
 		c.Header("Content-Type", "application/octet-stream")
-		c.File(locate(fo.SHA256))
+		file, err := os.Open(locate(fo.SHA256))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		defer file.Close()
+
+		lz4Reader := lz4.NewReader(file)
+
+		c.DataFromReader(http.StatusOK, int64(fo.Size), "octet/stream", lz4Reader, map[string]string{})
 	})
 
 	r.POST("/v1/upload/:client/:token/*path", func(c *gin.Context) {
@@ -551,3 +554,10 @@ func main() {
 
 	r.Run()
 }
+
+/*
+TODO:
+   * add sha check endpoint
+   * encrypt everything with a salt
+
+*/
