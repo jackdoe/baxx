@@ -104,37 +104,72 @@ type ActionLog struct {
 	ActionType string `gorm:"not null"`
 	Action     string `gorm:"not null"`
 	Log        string `gorm:"type:text"`
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+
+	CreatedAt time.Time `json:"-"`
+	UpdatedAt time.Time `json:"-"`
 }
 
 type Client struct {
-	ID        string `gorm:"primary_key"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID string `gorm:"primary_key"`
+
+	CreatedAt time.Time `json:"-"`
+	UpdatedAt time.Time `json:"-"`
 }
 
 type Token struct {
-	ID        string `gorm:"primary_key"`
-	ClientID  string `gorm:"not null"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID                 string    `gorm:"primary_key"`
+	ClientID           string    `gorm:"not null"`
+	ConfigKeepVersions uint64    `gorm:"not null"`
+	CreatedAt          time.Time `json:"-"`
+	UpdatedAt          time.Time `json:"-"`
 }
 
-type Notification struct {
-	ID       string `gorm:"primary_key"`
-	ClientID string `gorm:"not null"`
+/*
+notify [x,y,z] when backups(matching pattern) are old
+notify [x,y,z] when backups(matching pattern) are with weird delta% (can be 100%)
+*/
 
-	CreatedAt time.Time
-	UpdatedAt time.Time
+type NotificationDestination struct {
+	ID        uint64    `gorm:"primary_key"`
+	ClientID  string    `gorm:"not null"`
+	Type      string    `gorm:"not null"` // sms, email etc
+	Value     string    `gorm:"not null"`
+	Verified  bool      `gorm:"not null"`
+	CreatedAt time.Time `json:"-"`
+	UpdatedAt time.Time `json:"-"`
+}
+
+type NotificationConfiguration struct {
+	ID           uint64                    `gorm:"primary_key"`
+	ClientID     string                    `gorm:"not null"`
+	TokenID      string                    `gorm:"not null"`
+	Destinations []NotificationDestination `gorm:"many2many:notification_destination_notification_configuration;"`
+
+	// e.g.
+	// match *.sql
+	// type delta%
+	// value -10
+
+	// e.g.
+	// match *.sql
+	// type age
+	// value (86400+3600) 1 day + 1 hour
+
+	Match string
+	Type  string
+	Value int64
+
+	CreatedAt time.Time `json:"-"`
+	UpdatedAt time.Time `json:"-"`
 }
 
 type FileOrigin struct {
-	ID        uint64 `gorm:"primary_key"`
-	Size      uint64 `gorm:"not null"`
-	SHA256    string `gorm:"not null"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID     uint64 `gorm:"primary_key"`
+	Size   uint64 `gorm:"not null"`
+	SHA256 string `gorm:"not null"`
+
+	CreatedAt time.Time `json:"-"`
+	UpdatedAt time.Time `json:"-"`
 }
 
 type FileMetadata struct {
@@ -145,16 +180,17 @@ type FileMetadata struct {
 	Path     string `gorm:"not null"`
 	Filename string `gorm:"not null"`
 
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	CreatedAt time.Time `json:"-"`
+	UpdatedAt time.Time `json:"-"`
 }
 
 type FileVersion struct {
-	ID             uint64    `gorm:"primary_key"`
-	FileMetadataID uint64    `gorm:"not null" json:"-"`
-	FileOriginID   uint64    `gorm:"not null" json:"-"`
-	CreatedAt      time.Time `json:"-"`
-	UpdatedAt      time.Time `json:"-"`
+	ID             uint64 `gorm:"primary_key"`
+	FileMetadataID uint64 `gorm:"not null" json:"-"`
+	FileOriginID   uint64 `gorm:"not null" json:"-"`
+
+	CreatedAt time.Time `json:"-"`
+	UpdatedAt time.Time `json:"-"`
 }
 
 func split(s string) (string, string) {
@@ -235,8 +271,12 @@ func main() {
 	db.LogMode(true)
 	defer db.Close()
 
-	db.AutoMigrate(&Client{}, &Token{}, &FileOrigin{}, &FileMetadata{}, &FileVersion{}, &ActionLog{})
+	db.AutoMigrate(&Client{}, &Token{}, &FileOrigin{}, &FileMetadata{}, &FileVersion{}, &ActionLog{}, &NotificationDestination{}, &NotificationConfiguration{})
 	db.Model(&Token{}).AddIndex("idx_token_client_id", "client_id")
+	db.Model(&NotificationDestination{}).AddIndex("idx_nd_client_id", "client_id")
+	db.Model(&NotificationDestination{}).AddUniqueIndex("idx_nd_client_id_type_value", "client_id", "type", "value")
+
+	db.Model(&NotificationConfiguration{}).AddIndex("idx_nd_client_id_token_id", "client_id", "token_id")
 
 	db.Model(&FileOrigin{}).AddUniqueIndex("idx_sha", "sha256")
 
@@ -250,8 +290,32 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		actionLog(db, client.ID, "create/client", "create", c.Request)
+		actionLog(db, client.ID, "client", "create", c.Request)
 		c.JSON(http.StatusOK, client)
+	})
+
+	r.POST("/v1/create/destination/:client/:type/:value", func(c *gin.Context) {
+		client := &Client{}
+		query := db.Where("id = ?", c.Param("client")).Take(client)
+		if query.RecordNotFound() {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "client not found"})
+			return
+		}
+		t := c.Param("type")
+		v := c.Param("value")
+		if t != "email" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "only email is supported"})
+			return
+
+		}
+		nd := &NotificationDestination{ClientID: client.ID, Type: t, Value: v}
+		if err := db.Create(nd).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		actionLog(db, client.ID, "destination", "create", c.Request)
+		c.JSON(http.StatusOK, nd)
 	})
 
 	r.POST("/v1/create/token/:client", func(c *gin.Context) {
@@ -267,7 +331,7 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		actionLog(db, client.ID, "create/token", "create", c.Request)
+		actionLog(db, client.ID, "token", "create", c.Request)
 		c.JSON(http.StatusOK, token)
 	})
 
