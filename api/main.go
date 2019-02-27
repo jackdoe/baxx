@@ -306,7 +306,6 @@ func main() {
 		if t != "email" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "only email is supported"})
 			return
-
 		}
 		nd := &NotificationDestination{ClientID: client.ID, Type: t, Value: v}
 		if err := db.Create(nd).Error; err != nil {
