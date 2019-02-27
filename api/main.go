@@ -141,10 +141,12 @@ func (client *Client) BeforeCreate(scope *gorm.Scope) error {
 func locate(f string) string {
 	return path.Join("/", "tmp", "baxx", f)
 }
+
 func extractLogFromRequest(req *http.Request) (string, error) {
 	l, err := httputil.DumpRequest(req, false)
 	return string(l), err
 }
+
 func main() {
 	r := gin.Default()
 
@@ -261,14 +263,15 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		defer dest.Close()
 
 		size, err := io.Copy(dest, tee)
 		if err != nil {
+			dest.Close()
 			os.Remove(fn)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		dest.Close()
 
 		shasum := fmt.Sprintf("%x", sha.Sum(nil))
 		tx := db.Begin()
