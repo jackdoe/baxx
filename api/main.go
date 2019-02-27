@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/sha256"
 	"fmt"
 	"github.com/badoux/checkmail"
@@ -80,12 +82,6 @@ Pricing
     set config for token
 
 
-Encryption:
-
-* the files are supposed to be encrypted on input, so the service does
-  not handle that
-
-
 */
 
 type ActionLog struct {
@@ -108,7 +104,7 @@ type Client struct {
 
 type Token struct {
 	ID        string    `gorm:"primary_key"`
-	STRINGalt string    `gorm:"not null"`
+	Salt      string    `gorm:"not null";type:varchar(32)`
 	ClientID  string    `gorm:"not null"`
 	CreatedAt time.Time `json:"-"`
 	UpdatedAt time.Time `json:"-"`
@@ -205,9 +201,8 @@ func split(s string) (string, string) {
 
 func (token *Token) BeforeCreate(scope *gorm.Scope) error {
 	id := uuid.Must(uuid.NewV4())
-	salt := uuid.Must(uuid.NewV4())
+
 	scope.SetColumn("ID", fmt.Sprintf("%s", id))
-	scope.SetColumn("Salt", fmt.Sprintf("%s", salt))
 	return nil
 }
 
@@ -227,24 +222,37 @@ func extractLogFromRequest(req *http.Request) (string, error) {
 	return fmt.Sprintf("%sRemoteAddr: %s\nURL: %s", string(l), req.RemoteAddr, req.URL), err
 }
 
-func saveUploadedFile(body io.Reader) (string, int64, error) {
+func saveUploadedFile(key string, body io.Reader) (string, int64, error) {
 	sha := sha256.New()
 	tee := io.TeeReader(body, sha)
+	block, err := aes.NewCipher([]byte(key))
+	if err != nil {
+		return "", 0, err
+	}
 
 	temporary := locate(fmt.Sprintf("%d.%s", time.Now().UnixNano(), uuid.Must(uuid.NewV4())))
 	dest, err := os.Create(temporary)
 	if err != nil {
 		return "", 0, err
 	}
+	var iv [aes.BlockSize]byte
 
-	lz4Writer := lz4.NewWriter(dest)
+	stream := cipher.NewOFB(block, iv[:])
+	encryptedWriter := &cipher.StreamWriter{S: stream, W: dest}
+	// compress -> encrypt
+	lz4Writer := lz4.NewWriter(encryptedWriter)
 	size, err := io.Copy(lz4Writer, tee)
 	if err != nil {
 		dest.Close()
 		os.Remove(temporary)
 		return "", 0, err
 	}
+	// XXX: not to be trusted, attacker can flip bits
+	// the only reason we encrypt is so we dont accidentally receive unencrypted data
+	// or if someone steals the data
+
 	lz4Writer.Close()
+	encryptedWriter.Close()
 	dest.Close()
 
 	shasum := fmt.Sprintf("%x", sha.Sum(nil))
@@ -444,7 +452,7 @@ func main() {
 			return
 		}
 
-		token := &Token{ClientID: client.ID}
+		token := &Token{ClientID: client.ID, Salt: strings.Replace(fmt.Sprintf("%s", uuid.Must(uuid.NewV4())), "-", "", -1)}
 		if err := db.Create(token).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -457,6 +465,12 @@ func main() {
 		client := c.Param("client")
 		token := c.Param("token")
 		dir, name := split(c.Param("path"))
+		t := &Token{}
+		query := db.Where("client_id = ? AND id = ?", client, token).Take(t)
+		if query.RecordNotFound() {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "client/token not found"})
+			return
+		}
 
 		fm := &FileMetadata{}
 		if err := db.Where("client_id = ? AND token_id = ? AND filename = ? AND path = ?", client, token, name, dir).Take(fm).Error; err != nil {
@@ -486,7 +500,20 @@ func main() {
 		}
 		defer file.Close()
 
-		lz4Reader := lz4.NewReader(file)
+		block, err := aes.NewCipher([]byte(t.Salt))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		var iv [aes.BlockSize]byte
+		stream := cipher.NewOFB(block, iv[:])
+		// compress -> encrypt -> decrypt -> decompress
+		decryptReader := &cipher.StreamReader{S: stream, R: file}
+		lz4Reader := lz4.NewReader(decryptReader)
+
+		// XXX: not to be trusted, attacker can flip bits
+		// the only reason we encrypt is so we dont accidentally receive unencrypted data
+		// or if someone steals the data
 
 		c.DataFromReader(http.StatusOK, int64(fo.Size), "octet/stream", lz4Reader, map[string]string{})
 	})
@@ -494,7 +521,8 @@ func main() {
 	r.POST("/v1/upload/:client/:token/*path", func(c *gin.Context) {
 		client := c.Param("client")
 		token := c.Param("token")
-		query := db.Where("client_id = ? AND id = ?", client, token)
+		t := &Token{}
+		query := db.Where("client_id = ? AND id = ?", client, token).Take(t)
 		if query.RecordNotFound() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "client/token not found"})
 			return
@@ -504,7 +532,7 @@ func main() {
 		body := c.Request.Body
 		defer body.Close()
 
-		sha, size, err := saveUploadedFile(body)
+		sha, size, err := saveUploadedFile(t.Salt, body)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -558,6 +586,7 @@ func main() {
 /*
 TODO:
    * add sha check endpoint
-   * encrypt everything with a salt
-
+   * encrypt everything with a salt [done]
+   * compress [done]
+   * send notifications
 */
