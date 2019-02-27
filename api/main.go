@@ -15,6 +15,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -125,9 +126,16 @@ type Token struct {
 }
 
 /*
-notify [x,y,z] when backups(matching pattern) are old
-notify [x,y,z] when backups(matching pattern) are with weird delta% (can be 100%)
+send when possible, group things if possible
 */
+type NotificationQueue struct {
+	ID                        uint64 `gorm:"primary_key"`
+	NotificationDestinationID uint64 `gorm:"not null"`
+	Value                     string `gorm:"type:text";"not null"`
+
+	CreatedAt time.Time `json:"-"`
+	UpdatedAt time.Time `json:"-"`
+}
 
 type NotificationDestination struct {
 	ID        uint64    `gorm:"primary_key"`
@@ -138,6 +146,11 @@ type NotificationDestination struct {
 	CreatedAt time.Time `json:"-"`
 	UpdatedAt time.Time `json:"-"`
 }
+
+/*
+notify [x,y,z] when backups(matching pattern) are old
+notify [x,y,z] when backups(matching pattern) are with weird delta% (can be 100%)
+*/
 
 type NotificationConfiguration struct {
 	ID           uint64                    `gorm:"primary_key"`
@@ -282,6 +295,7 @@ type CreateDestinationInput struct {
 }
 
 type CreateNotificationInput struct {
+	Match        string `binding:"required"`
 	Type         string `binding:"required"`
 	Value        int64  `binding:"required"`
 	Destinations []struct {
@@ -300,7 +314,7 @@ func main() {
 	db.LogMode(true)
 	defer db.Close()
 
-	db.AutoMigrate(&Client{}, &Token{}, &FileOrigin{}, &FileMetadata{}, &FileVersion{}, &ActionLog{}, &NotificationDestination{}, &NotificationConfiguration{})
+	db.AutoMigrate(&Client{}, &Token{}, &FileOrigin{}, &FileMetadata{}, &FileVersion{}, &ActionLog{}, &NotificationDestination{}, &NotificationConfiguration{}, &NotificationQueue{})
 	db.Model(&Token{}).AddIndex("idx_token_client_id", "client_id")
 	db.Model(&NotificationDestination{}).AddIndex("idx_nd_client_id", "client_id")
 	db.Model(&NotificationDestination{}).AddUniqueIndex("idx_nd_client_id_type_value", "client_id", "type", "value")
@@ -384,8 +398,20 @@ func main() {
 			return
 		}
 
+		if json.Type != "delta%" && json.Type != "age" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "only 'delta%' and 'age' is supported"})
+			return
+		}
+
+		_, err = regexp.Compile(json.Match)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
 		tx := db.Begin()
-		nc := &NotificationConfiguration{ClientID: client, TokenID: token, Type: json.Type, Value: json.Value}
+
+		nc := &NotificationConfiguration{ClientID: client, TokenID: token, Type: json.Type, Value: json.Value, Match: json.Match}
 		if err := tx.Create(nc).Error; err != nil {
 			tx.Rollback()
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
