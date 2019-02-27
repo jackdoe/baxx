@@ -179,7 +179,7 @@ func extractLogFromRequest(req *http.Request) (string, error) {
 	return string(l), err
 }
 
-func download(body io.Reader) (string, int64, error) {
+func saveUploadedFile(body io.Reader) (string, int64, error) {
 	sha := sha256.New()
 	tee := io.TeeReader(body, sha)
 
@@ -313,7 +313,7 @@ func main() {
 		body := c.Request.Body
 		defer body.Close()
 
-		sha, size, err := download(body)
+		sha, size, err := saveUploadedFile(body)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
