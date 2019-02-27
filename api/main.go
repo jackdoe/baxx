@@ -42,15 +42,21 @@ Pricing
           install baxx
           baxx -conf /etc/baxx.conf
 
-      the baxx daemon needs sql (pg, mysql, sqlite to store the metadata
+      the baxx daemon needs sql (pg, mysql, sqlite) to store the metadata
 
 
     on other servers you simply do
-      mysqldump | [encrypt -p passfile] | curl -F 'file=@-;filename=mysql.gz' -k https://baxIP.IP.IP.IP/api/v1/upload/clientID/tokenID
+      mysqldump | [encrypt -p passfile] | curl -' -k https://baxIP.IP.IP.IP/v1/upload/$CLIENT/$TOKEN/mysql.gz
       (encrypt is optional, and you might want to ignore it, you might also want to have SSL properly)
 
     another example upload everything, only different files will be added
-     find . -type f -exec url -f -F"file=@{}" https://baxx.dev/api/v1/upload/clientID/tokenID \;
+     find . -type f -exec curl --binary-data @{} https://baxx.dev/v1/upload/$CLIENT/$TOKEN/{} \;
+
+     for i in $(find . -type f); do
+        curl -f https://baxx.dev/v1/diff/$CLIENT/$TOKEN/$(shasum $i | cut -f 1 -d ' ') \
+        && curl --binary-data @$i https://baxx.dev/v1/upload/$CLIENT/$TOKEN
+     done
+
     FIXME: find more efficient 1 liner
 
     - notifications
@@ -106,24 +112,49 @@ type Token struct {
 	UpdatedAt time.Time
 }
 
+/*
+uuid is base64 en
+store the files in /baxx/client/token/uuid/1.bin
+store the files in /baxx/client/token/uuid/2.bin
+by default keep 7 replicas, so just delete now - 7
+
+if sha is the same, dont update the version
+*/
+
+type FileOrigin struct {
+	ID        uint64 `gorm:"primary_key"`
+	Size      uint64 `gorm:"not null"`
+	SHA256    string `gorm:"not null"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
 type FileMetadata struct {
-	ID       string `gorm:"primary_key"`
+	ID uint64 `gorm:"primary_key"`
+
 	ClientID string `gorm:"not null"`
 	TokenID  string `gorm:"not null"`
 	Path     string `gorm:"not null"`
 	Filename string `gorm:"not null"`
-	Log      string `gorm:"type:text"`
-	Size     uint64 `gorm:"not null"`
-	SHA256   string `gorm:"not null"`
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
 
-func (fm *FileMetadata) BeforeCreate(scope *gorm.Scope) error {
-	id := uuid.Must(uuid.NewV4())
-	scope.SetColumn("ID", fmt.Sprintf("%s", id))
-	return nil
+type FileVersion struct {
+	ID             uint64    `gorm:"primary_key"`
+	FileMetadataID uint64    `gorm:"not null" json:"-"`
+	Log            string    `gorm:"type:text" json:"-"`
+	FileOriginID   uint64    `gorm:"not null" json:"-"`
+	CreatedAt      time.Time `json:"-"`
+	UpdatedAt      time.Time `json:"-"`
+}
+
+func split(s string) (string, string) {
+	s = filepath.Clean(s)
+	name := filepath.Base(s)
+	dir := filepath.Dir(s)
+	return dir, name
 }
 
 func (token *Token) BeforeCreate(scope *gorm.Scope) error {
@@ -139,12 +170,40 @@ func (client *Client) BeforeCreate(scope *gorm.Scope) error {
 }
 
 func locate(f string) string {
-	return path.Join("/", "tmp", "baxx", f)
+	dir := path.Join("/", "tmp", "baxx")
+	return path.Join(dir, f)
 }
 
 func extractLogFromRequest(req *http.Request) (string, error) {
 	l, err := httputil.DumpRequest(req, false)
 	return string(l), err
+}
+
+func download(body io.Reader) (string, int64, error) {
+	sha := sha256.New()
+	tee := io.TeeReader(body, sha)
+
+	temporary := locate(fmt.Sprintf("%d.%s", time.Now().UnixNano(), uuid.Must(uuid.NewV4())))
+	dest, err := os.Create(temporary)
+	if err != nil {
+		return "", 0, err
+	}
+
+	size, err := io.Copy(dest, tee)
+	if err != nil {
+		dest.Close()
+		os.Remove(temporary)
+		return "", 0, err
+	}
+	dest.Close()
+
+	shasum := fmt.Sprintf("%x", sha.Sum(nil))
+	err = os.Rename(temporary, locate(shasum))
+	if err != nil {
+		os.Remove(temporary)
+		return "", 0, err
+	}
+	return shasum, size, nil
 }
 
 func main() {
@@ -157,10 +216,13 @@ func main() {
 	db.LogMode(true)
 	defer db.Close()
 
-	db.AutoMigrate(&Client{}, &Token{}, &FileMetadata{})
+	db.AutoMigrate(&Client{}, &Token{}, &FileOrigin{}, &FileMetadata{}, &FileVersion{})
 	db.Model(&Token{}).AddIndex("idx_token_client_id", "client_id")
-	db.Model(&FileMetadata{}).AddIndex("idx_fm_client_id_token_id_sha256", "client_id", "token_id", "sha256")
-	db.Model(&FileMetadata{}).AddUniqueIndex("idx_fm_client_id_token_id_sha_name", "client_id", "token_id", "sha256", "path", "filename")
+
+	db.Model(&FileOrigin{}).AddUniqueIndex("idx_sha", "sha256")
+
+	db.Model(&FileMetadata{}).AddUniqueIndex("idx_fm_client_id_token_id_path", "client_id", "token_id", "path", "filename")
+	db.Model(&FileVersion{}).AddUniqueIndex("idx_fv_version_origin", "file_metadata_id", "file_origin_id")
 
 	r.POST("/v1/create/client", func(c *gin.Context) {
 		rlog, err := extractLogFromRequest(c.Request)
@@ -206,112 +268,99 @@ func main() {
 	r.GET("/v1/download/:client/:token/*path", func(c *gin.Context) {
 		client := c.Param("client")
 		token := c.Param("token")
+		dir, name := split(c.Param("path"))
 
-		name := filepath.Base(c.Param("path"))
-		dir := filepath.Dir(c.Param("path"))
-		fo := &FileMetadata{}
-		if err := db.Where("client_id = ? AND token_id = ? AND filename = ? AND path = ?", client, token, name, dir).Take(fo).Error; err != nil {
+		fm := &FileMetadata{}
+		if err := db.Where("client_id = ? AND token_id = ? AND filename = ? AND path = ?", client, token, name, dir).Take(fm).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		fv := &FileVersion{}
+		if err := db.Where("file_metadata_id = ?", fm.ID).Last(fv).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		fo := &FileOrigin{}
+		if err := db.Where("id = ?", fv.FileOriginID).Take(fo).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
 		c.Header("Content-Description", "File Transfer")
 		c.Header("Content-Transfer-Encoding", "binary")
-		c.Header("Content-Disposition", "attachment; filename="+fo.Filename)
+		c.Header("Content-Disposition", "attachment; filename="+fm.Filename)
 		c.Header("Content-Type", "application/octet-stream")
-		c.File(locate(fo.ID))
+		c.File(locate(fo.SHA256))
 	})
 
-	// upload a bunch of files
 	r.POST("/v1/upload/:client/:token/*path", func(c *gin.Context) {
+		client := c.Param("client")
+		token := c.Param("token")
+		query := db.Where("client_id = ? AND id = ?", client, token)
+		if query.RecordNotFound() {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "client/token not found"})
+			return
+		}
+
 		rlog, err := extractLogFromRequest(c.Request)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		client := c.Param("client")
-		token := c.Param("token")
-
-		query := db.Where("client_id = ? AND id = ?", client, token)
-		if query.RecordNotFound() {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "client/token not found"})
-			return
-		}
-		name := filepath.Base(c.Param("path"))
-		dir := filepath.Dir(c.Param("path"))
-
+		dir, name := split(c.Param("path"))
 		body := c.Request.Body
 		defer body.Close()
 
-		fo := &FileMetadata{}
-		id := fmt.Sprintf("%s", uuid.Must(uuid.NewV4()))
-		insert := true
-		db.Where("client_id = ? AND token_id = ? AND filename = ? AND path = ?", client, token, name, dir).Take(fo)
-		if fo.ID != "" {
-			id = fo.ID
-			insert = false
-		}
-
-		sha := sha256.New()
-
-		tee := io.TeeReader(body, sha)
-		fn := locate(id)
-		temporary := fmt.Sprintf("%s.%d.%s", locate(id), time.Now().UnixNano(), uuid.Must(uuid.NewV4()))
-		dest, err := os.Create(temporary)
+		sha, size, err := download(body)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		size, err := io.Copy(dest, tee)
-		if err != nil {
-			dest.Close()
-			os.Remove(fn)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		dest.Close()
-
-		shasum := fmt.Sprintf("%x", sha.Sum(nil))
+		// create file origin
+		fo := &FileOrigin{}
 		tx := db.Begin()
-		fo.ClientID = client
-		fo.TokenID = token
-		fo.SHA256 = shasum
-		fo.Size = uint64(size)
-		fo.Path = dir
-		fo.Filename = name
-		fo.ID = id
-		fo.Log = rlog
-
-		if insert {
+		res := tx.Where("sha256 = ?", sha).Take(fo)
+		if res.RecordNotFound() {
+			// create new one
+			fo.SHA256 = sha
+			fo.Size = uint64(size)
 			if err := tx.Save(fo).Error; err != nil {
 				tx.Rollback()
-				os.Remove(temporary)
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
 			}
-		} else {
-			if err := tx.Model(fo).Update(fo).Error; err != nil {
-				tx.Rollback()
-				os.Remove(temporary)
-				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-				return
-			}
+
 		}
 
-		err = os.Rename(temporary, fn)
-		if err != nil {
+		// create file metadata
+		fm := &FileMetadata{}
+		if err := tx.FirstOrCreate(&fm, FileMetadata{ClientID: client, TokenID: token, Path: dir, Filename: name}).Error; err != nil {
 			tx.Rollback()
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+
+		// create the version
+		fv := &FileVersion{}
+		if err := tx.Where(FileVersion{FileMetadataID: fm.ID, FileOriginID: fo.ID}).Attrs(FileVersion{Log: rlog}).FirstOrCreate(&fv).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		// goooo
 		if err := tx.Commit().Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		c.JSON(http.StatusOK, fo)
+		// FIXME: can create file and then nobody points to it
+		// in case of rollback
+
+		c.JSON(http.StatusOK, fv)
 	})
 
 	r.Run()
