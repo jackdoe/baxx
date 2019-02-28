@@ -11,7 +11,7 @@ import (
 
 type ActionLog struct {
 	ID         uint64 `gorm:"primary_key"`
-	UserID     string `gorm:"not null"`
+	UserID     uint64 `gorm:"not null"`
 	ActionType string `gorm:"not null"`
 	Action     string `gorm:"not null"`
 	Log        string `gorm:"type:text"`
@@ -20,7 +20,7 @@ type ActionLog struct {
 	UpdatedAt time.Time `json:"-"`
 }
 
-func actionLog(db *gorm.DB, user, actionType, action string, req *http.Request, extra ...string) {
+func actionLog(db *gorm.DB, user uint64, actionType, action string, req *http.Request, extra ...string) {
 	return
 	// rlog, _ := extractLogFromRequest(req)
 

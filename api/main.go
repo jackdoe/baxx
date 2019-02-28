@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	. "github.com/jackdoe/baxx/file"
 	. "github.com/jackdoe/baxx/user"
+	auth "github.com/jackdoe/gin-basic-auth-dynamic"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/satori/go.uuid"
@@ -14,12 +15,21 @@ import (
 )
 
 type CreateTokenInput struct {
-	WriteOnly        bool
-	NumberOfArchives uint64
+	WriteOnly        bool   `json:"writeonly"`
+	NumberOfArchives uint64 `json:"number_of_archives"`
+}
+
+type CreateUserInput struct {
+	Email    string `binding:"required" json:"email"`
+	Password string `binding:"required" json:"password"`
 }
 
 func initDatabase(db *gorm.DB) {
 	if err := db.AutoMigrate(&User{}, &Token{}, &FileOrigin{}, &FileMetadata{}, &FileVersion{}, &ActionLog{}).Error; err != nil {
+		log.Fatal(err)
+	}
+
+	if err := db.Model(&User{}).AddUniqueIndex("idx_email", "email").Error; err != nil {
 		log.Fatal(err)
 	}
 
@@ -51,8 +61,33 @@ func main() {
 	defer db.Close()
 
 	initDatabase(db)
-	r.POST("/v1/create/user", func(c *gin.Context) {
-		user := &User{}
+
+	authorized := r.Group("/v1/protected")
+	authorized.Use(auth.BasicAuth(func(context *gin.Context, realm, user, pass string) auth.AuthResult {
+		u, err := FindUser(db, user, pass)
+		if err != nil {
+			return auth.AuthResult{Success: false, Text: "not authorized"}
+		}
+		context.Set("user", u)
+		return auth.AuthResult{Success: true}
+	}))
+
+	r.POST("/v1/register", func(c *gin.Context) {
+		var json CreateUserInput
+		if err := c.ShouldBindJSON(&json); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		// if the user is created again with current password just return it
+		u, err := FindUser(db, json.Email, json.Password)
+		if err == nil {
+			c.JSON(http.StatusOK, u)
+			return
+		}
+
+		user := &User{Email: json.Email}
+		user.SetPassword(json.Password)
 		if err := db.Create(user).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -61,13 +96,8 @@ func main() {
 		c.JSON(http.StatusOK, user)
 	})
 
-	r.POST("/v1/create/token/:user", func(c *gin.Context) {
-		user := &User{}
-		query := db.Where("id = ?", c.Param("user")).Take(user)
-		if query.RecordNotFound() {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "user not found"})
-			return
-		}
+	authorized.POST("/create/token", func(c *gin.Context) {
+		user := c.MustGet("user").(*User)
 
 		var json CreateTokenInput
 		if err := c.ShouldBindJSON(&json); err != nil {
@@ -96,8 +126,8 @@ func main() {
 		c.JSON(http.StatusOK, token)
 	})
 
-	r.GET("/v1/download/:user/:token/*path", func(c *gin.Context) {
-		user := c.Param("user")
+	r.GET("/v1/download/:user_semi_secret_id/:token/*path", func(c *gin.Context) {
+		user := c.Param("user_semi_secret_id")
 		token := c.Param("token")
 
 		t, err := FindToken(db, user, token)
@@ -135,7 +165,7 @@ func main() {
 			return
 		}
 
-		actionLog(db, user, "file", "upload", c.Request, fmt.Sprintf("FileVersion: %d/%d/%d", fv.ID, fv.FileMetadataID, fv.FileOriginID))
+		actionLog(db, t.UserID, "file", "upload", c.Request, fmt.Sprintf("FileVersion: %d/%d/%d", fv.ID, fv.FileMetadataID, fv.FileOriginID))
 		c.JSON(http.StatusOK, fv)
 	})
 

@@ -33,7 +33,7 @@ func (fo *FileOrigin) FSPath() string {
 type FileMetadata struct {
 	ID uint64 `gorm:"primary_key"`
 
-	UserID   string `gorm:"not null"`
+	UserID   uint64 `gorm:"not null"`
 	TokenID  string `gorm:"not null"`
 	Path     string `gorm:"not null"`
 	Filename string `gorm:"not null"`
