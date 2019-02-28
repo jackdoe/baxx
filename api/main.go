@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	. "github.com/jackdoe/baxx/file"
@@ -126,7 +127,7 @@ func main() {
 		c.JSON(http.StatusOK, token)
 	})
 
-	download := func(c *gin.Context) {
+	getViewTokenLoggedOrNot := func(c *gin.Context) (*Token, error) {
 		user := c.Param("user_semi_secret_id")
 		x, isLoggedIn := c.Get("user")
 		if isLoggedIn {
@@ -137,15 +138,22 @@ func main() {
 
 		t, err := FindToken(db, user, token)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
+			return nil, err
 		}
 
 		if !isLoggedIn {
 			if t.WriteOnly {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "write only token, use /v1/protected/download/:secret/:token/*path"})
-				return
+				return nil, errors.New("write only token, use /v1/protected/{list,download}/:secret/:token/*path")
 			}
+		}
+		return t, nil
+
+	}
+	download := func(c *gin.Context) {
+		t, err := getViewTokenLoggedOrNot(c)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
 		}
 
 		fo, file, reader, err := FindAndOpenFile(db, t, c.Param("path"))
