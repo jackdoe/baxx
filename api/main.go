@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	. "github.com/jackdoe/baxx/common"
 	. "github.com/jackdoe/baxx/file"
 	. "github.com/jackdoe/baxx/user"
 	auth "github.com/jackdoe/gin-basic-auth-dynamic"
@@ -14,16 +15,6 @@ import (
 	"net/http"
 	"strings"
 )
-
-type CreateTokenInput struct {
-	WriteOnly        bool   `json:"writeonly"`
-	NumberOfArchives uint64 `json:"number_of_archives"`
-}
-
-type CreateUserInput struct {
-	Email    string `binding:"required" json:"email"`
-	Password string `binding:"required" json:"password"`
-}
 
 func initDatabase(db *gorm.DB) {
 	if err := db.AutoMigrate(&User{}, &Token{}, &FileOrigin{}, &FileMetadata{}, &FileVersion{}, &ActionLog{}).Error; err != nil {
@@ -82,6 +73,7 @@ func main() {
 
 		// if the user is created again with current password just return it
 		u, err := FindUser(db, json.Email, json.Password)
+
 		if err == nil {
 			c.JSON(http.StatusOK, u)
 			return

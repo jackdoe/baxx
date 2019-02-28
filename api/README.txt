@@ -1,5 +1,19 @@
 /*
 
+TODO
+
+* list files
+* list versions
+* compare sha
+* payments
+* buy machine
+
+
+
+
+
+
+
 goal of the service is to help developers trust that they have backups
 use some machine learning to predict backup size and report when abnormal
 
