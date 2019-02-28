@@ -126,29 +126,13 @@ func main() {
 		c.JSON(http.StatusOK, token)
 	})
 
-	authorized.GET("/download/:user_semi_secret_id/:token/*path", func(c *gin.Context) {
-		user := c.MustGet("user").(*User)
-		token := c.Param("token")
-
-		t, err := FindToken(db, user.SemiSecretID, token)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		fo, file, reader, err := FindAndOpenFile(db, t, c.Param("path"))
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		defer file.Close()
-		c.Header("Content-Transfer-Encoding", "binary")
-		c.Header("Content-Type", "application/octet-stream")
-		c.DataFromReader(http.StatusOK, int64(fo.Size), "octet/stream", reader, map[string]string{})
-	})
-
-	r.GET("/v1/download/:user_semi_secret_id/:token/*path", func(c *gin.Context) {
+	download := func(c *gin.Context) {
 		user := c.Param("user_semi_secret_id")
+		x, isLoggedIn := c.Get("user")
+		if isLoggedIn {
+			user = x.(*User).SemiSecretID
+		}
+
 		token := c.Param("token")
 
 		t, err := FindToken(db, user, token)
@@ -157,9 +141,11 @@ func main() {
 			return
 		}
 
-		if t.WriteOnly {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "write only token, use /v1/protected/download/:secret/:token/*path"})
-			return
+		if !isLoggedIn {
+			if t.WriteOnly {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "write only token, use /v1/protected/download/:secret/:token/*path"})
+				return
+			}
 		}
 
 		fo, file, reader, err := FindAndOpenFile(db, t, c.Param("path"))
@@ -171,7 +157,10 @@ func main() {
 		c.Header("Content-Transfer-Encoding", "binary")
 		c.Header("Content-Type", "application/octet-stream")
 		c.DataFromReader(http.StatusOK, int64(fo.Size), "octet/stream", reader, map[string]string{})
-	})
+	}
+
+	authorized.GET("/download/:user_semi_secret_id/:token/*path", download)
+	r.GET("/v1/download/:user_semi_secret_id/:token/*path", download)
 
 	r.POST("/v1/upload/:user_semi_secret_id/:token/*path", func(c *gin.Context) {
 		user := c.Param("user_semi_secret_id")
