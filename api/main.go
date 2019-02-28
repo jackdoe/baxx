@@ -126,11 +126,11 @@ func main() {
 		c.JSON(http.StatusOK, token)
 	})
 
-	r.GET("/v1/download/:user_semi_secret_id/:token/*path", func(c *gin.Context) {
-		user := c.Param("user_semi_secret_id")
+	authorized.GET("/download/:user_semi_secret_id/:token/*path", func(c *gin.Context) {
+		user := c.MustGet("user").(*User)
 		token := c.Param("token")
 
-		t, err := FindToken(db, user, token)
+		t, err := FindToken(db, user.SemiSecretID, token)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -142,14 +142,39 @@ func main() {
 			return
 		}
 		defer file.Close()
-		c.Header("Content-Description", "File Transfer")
 		c.Header("Content-Transfer-Encoding", "binary")
 		c.Header("Content-Type", "application/octet-stream")
 		c.DataFromReader(http.StatusOK, int64(fo.Size), "octet/stream", reader, map[string]string{})
 	})
 
-	r.POST("/v1/upload/:user/:token/*path", func(c *gin.Context) {
-		user := c.Param("user")
+	r.GET("/v1/download/:user_semi_secret_id/:token/*path", func(c *gin.Context) {
+		user := c.Param("user_semi_secret_id")
+		token := c.Param("token")
+
+		t, err := FindToken(db, user, token)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if t.WriteOnly {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "write only token, use /v1/protected/download/:secret/:token/*path"})
+			return
+		}
+
+		fo, file, reader, err := FindAndOpenFile(db, t, c.Param("path"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		defer file.Close()
+		c.Header("Content-Transfer-Encoding", "binary")
+		c.Header("Content-Type", "application/octet-stream")
+		c.DataFromReader(http.StatusOK, int64(fo.Size), "octet/stream", reader, map[string]string{})
+	})
+
+	r.POST("/v1/upload/:user_semi_secret_id/:token/*path", func(c *gin.Context) {
+		user := c.Param("user_semi_secret_id")
 		token := c.Param("token")
 		t, err := FindToken(db, user, token)
 		if err != nil {

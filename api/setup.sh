@@ -11,3 +11,9 @@ echo 125 | curl -XPOST --data-binary @- localhost:8080/v1/upload/$CLIENT/$TOKEN/
 echo 125 | curl -XPOST --data-binary @- localhost:8080/v1/upload/$CLIENT/$TOKEN/todzzsz | jq
 echo 126 | curl -XPOST --data-binary @- localhost:8080/v1/upload/$CLIENT/$TOKEN/todzzsz | jq
 curl localhost:8080/v1/download/$CLIENT/$TOKEN/todzzsz
+
+
+export TOKEN=$(curl -ujack@prymr.nl:asd -s -d '{"WriteOnly":true, "NumberOfArchives":0}' -XPOST -d '{}' localhost:8080/v1/protected/create/token | jq .token | sed -e 's/"//g')
+echo 123 | curl -XPOST --data-binary @- localhost:8080/v1/upload/$CLIENT/$TOKEN/todzzsz | jq
+curl localhost:8080/v1/download/$CLIENT/$TOKEN/todzzsz | jq
+curl -ujack@prymr.nl:asd localhost:8080/v1/protected/download/$CLIENT/$TOKEN/todzzsz
