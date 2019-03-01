@@ -54,7 +54,7 @@ func main() {
 
 	initDatabase(db)
 
-	authorized := r.Group("/v1/protected")
+	authorized := r.Group("/protected")
 	authorized.Use(auth.BasicAuth(func(context *gin.Context, realm, user, pass string) auth.AuthResult {
 		u, err := FindUser(db, user, pass)
 		if err != nil {
@@ -112,7 +112,7 @@ func main() {
 		c.JSON(http.StatusOK, &CreateUserOutput{Secret: user.SemiSecretID, TokenWO: tokenWO.ID, TokenRW: tokenRW.ID})
 	})
 
-	authorized.POST("/create/token", func(c *gin.Context) {
+	authorized.POST("/v1/create/token", func(c *gin.Context) {
 		user := c.MustGet("user").(*User)
 
 		var json CreateTokenInput
@@ -158,7 +158,7 @@ func main() {
 
 		if !isLoggedIn {
 			if t.WriteOnly {
-				return nil, errors.New("write only token, use /v1/protected/{list,download}/:secret/:token/*path")
+				return nil, errors.New("write only token, use /v1/protected/io/:secret/:token/*path")
 			}
 		}
 		return t, nil
@@ -182,10 +182,7 @@ func main() {
 		c.DataFromReader(http.StatusOK, int64(fo.Size), "octet/stream", reader, map[string]string{})
 	}
 
-	authorized.GET("/download/:user_semi_secret_id/:token/*path", download)
-	r.GET("/v1/download/:user_semi_secret_id/:token/*path", download)
-
-	r.POST("/v1/upload/:user_semi_secret_id/:token/*path", func(c *gin.Context) {
+	upload := func(c *gin.Context) {
 		user := c.Param("user_semi_secret_id")
 		token := c.Param("token")
 		t, err := FindToken(db, user, token)
@@ -204,7 +201,15 @@ func main() {
 
 		actionLog(db, t.UserID, "file", "upload", c.Request, fmt.Sprintf("FileVersion: %d/%d/%d", fv.ID, fv.FileMetadataID, fv.FileOriginID))
 		c.JSON(http.StatusOK, fv)
-	})
+	}
+
+	mutatePATH := "/v1/io/:user_semi_secret_id/:token/*path"
+
+	authorized.GET(mutatePATH, download)
+	r.GET(mutatePATH, download)
+
+	authorized.POST(mutatePATH, upload)
+	r.POST(mutatePATH, upload)
 
 	r.Run()
 }
