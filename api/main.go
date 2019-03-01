@@ -2,17 +2,22 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
+	"github.com/badoux/checkmail"
 	"github.com/gin-gonic/gin"
 	. "github.com/jackdoe/baxx/common"
 	. "github.com/jackdoe/baxx/file"
+	"github.com/jackdoe/baxx/help"
 	. "github.com/jackdoe/baxx/user"
 	auth "github.com/jackdoe/gin-basic-auth-dynamic"
 	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/satori/go.uuid"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -43,13 +48,29 @@ func initDatabase(db *gorm.DB) {
 }
 
 func main() {
+	var pbind = flag.String("bind", "127.0.0.1:9123", "bind")
+	var proot = flag.String("root", "/tmp", "root")
+	flag.Parse()
+
 	r := gin.Default()
 
-	db, err := gorm.Open("sqlite3", "/tmp/gorm.db")
+	dbType := os.Getenv("BAXX_DB")
+	dbURL := os.Getenv("BAXX_DB_URL")
+	debug := true
+	ROOT = *proot
+	if dbType == "" {
+		dbType = "sqlite3"
+		dbURL = "/tmp/gorm.db"
+	} else {
+		debug = false
+		gin.SetMode(gin.ReleaseMode)
+	}
+
+	db, err := gorm.Open(dbType, dbURL)
 	if err != nil {
 		log.Fatal(err)
 	}
-	db.LogMode(true)
+	db.LogMode(debug)
 	defer db.Close()
 
 	initDatabase(db)
@@ -68,6 +89,15 @@ func main() {
 		var json CreateUserInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		err := checkmail.ValidateFormat(json.Email)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid email address (%s)", err.Error())})
+			return
+		}
+		if len(json.Password) < 8 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "password is too short, refer to https://www.xkcd.com/936/"})
 			return
 		}
 
@@ -114,7 +144,12 @@ func main() {
 			return
 		}
 
-		c.JSON(http.StatusOK, &CreateUserOutput{Secret: user.SemiSecretID, TokenWO: tokenWO.ID, TokenRW: tokenRW.ID})
+		c.JSON(http.StatusOK, &CreateUserOutput{
+			Secret:  user.SemiSecretID,
+			TokenWO: tokenWO.ID,
+			TokenRW: tokenRW.ID,
+			Help:    help.AfterRegistration(user.SemiSecretID, tokenRW.ID, tokenWO.ID),
+		})
 	})
 
 	authorized.POST("/v1/create/token", func(c *gin.Context) {
@@ -216,5 +251,5 @@ func main() {
 	authorized.POST(mutatePATH, upload)
 	r.POST(mutatePATH, upload)
 
-	r.Run()
+	r.Run(*pbind)
 }

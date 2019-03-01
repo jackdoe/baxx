@@ -58,8 +58,11 @@ func split(s string) (string, string) {
 	return dir, name
 }
 
+var ROOT = "/tmp"
+
 func locate(f string) string {
-	dir := path.Join("/", "tmp", "baxx")
+	dir := path.Join(ROOT, "baxx", f[0:2], f[2:4])
+	os.MkdirAll(dir, 0700)
 	return path.Join(dir, f)
 }
 

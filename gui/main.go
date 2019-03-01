@@ -4,8 +4,10 @@ import (
 	"fmt"
 	baxx "github.com/jackdoe/baxx/client"
 	bcommon "github.com/jackdoe/baxx/common"
+	bhelp "github.com/jackdoe/baxx/help"
 	"github.com/marcusolsson/tui-go"
 	"log"
+	"strings"
 )
 
 var logo = `
@@ -72,9 +74,10 @@ func main() {
 	register := tui.NewButton("[Register]")
 
 	quit := tui.NewButton("[Quit]")
-
+	help := tui.NewButton("[Help]")
 	buttons := tui.NewHBox(
 		tui.NewSpacer(),
+		tui.NewPadder(1, 0, help),
 		tui.NewPadder(1, 0, register),
 		tui.NewPadder(1, 0, quit),
 	)
@@ -100,7 +103,7 @@ func main() {
 		status,
 	)
 
-	tui.DefaultFocusChain.Set(user, password, confirmPassword, register, quit)
+	tui.DefaultFocusChain.Set(user, password, confirmPassword, help, register, quit)
 
 	ui, err := tui.New(root)
 	if err != nil {
@@ -111,7 +114,9 @@ func main() {
 		text := tui.NewVBox()
 
 		for _, m := range msg {
-			text.Append(tui.NewLabel(m))
+			for _, s := range strings.Split(m, "\n") {
+				text.Append(tui.NewLabel(s))
+			}
 		}
 
 		scroll := tui.NewScrollArea(text)
@@ -153,6 +158,9 @@ func main() {
 	quit.OnActivated(func(b *tui.Button) {
 		ui.Quit()
 	})
+	help.OnActivated(func(b *tui.Button) {
+		popup("SUCCESS", "[Back]", bhelp.GenericHelp())
+	})
 
 	register.OnActivated(func(b *tui.Button) {
 		p1 := password.Text()
@@ -160,66 +168,46 @@ func main() {
 		email := user.Text()
 
 		if p1 != p2 {
-			popup("ERROR", "[Close]", "passwords must match")
+			popup("ERROR", "[Back]", "passwords must match")
 			return
 		}
 
 		if p1 == "" {
-			popup("ERROR", "[Close]", "Password is required.",
-				"",
-				"If you are not using a password manager,",
-				"please use good passwords, such as: 'mickey mouse and metallica'",
-				"",
-				"https://www.xkcd.com/936/")
+			popup("ERROR", "[Back]", `
+Password is required.
+
+If you are not using a password manager
+please use good passwords, such as: 
+
+  'mickey mouse and metallica'
+
+https://www.xkcd.com/936/`)
 			return
 		}
 		if email == "" {
-			popup("ERROR", "[Close]", "Email is required.", "", "It we will not send you any marketing messages,", "it will be used just for business.")
+			popup("ERROR", "[Back]", `
+Email is required.
+
+It we will not send you any marketing messages,
+it will be used just for business, such as:
+ * sending notifications when backups are
+   delayed, smaller than normal
+ * payment is received
+ * payment is not received
+`)
 			return
 		}
 
 		u, err := bc.Register(&bcommon.CreateUserInput{Email: email, Password: p1})
 		if err != nil {
-			popup("ERROR", "[Close]", "Comminucation Error:", err.Error(), "", "please contact help@baxx.dev if it persists")
+			popup("ERROR", "[Back]", fmt.Sprintf(`
+API Error:
+
+  %s
+
+please contact help@baxx.dev if it persists`, err.Error()))
 		} else {
-			popup("SUCCESS",
-				"[Exit]",
-				"Secret : "+u.Secret,
-				"",
-				"ReadWrite Token: "+u.TokenRW,
-				"WriteOnly Token: "+u.TokenWO,
-				"(they will be sent to your email as well).",
-				"",
-				"Backup: ",
-				" cat path/to/file | curl --data-binary @- \\",
-				" https://baxx.dev/v1/io/$SECRET/$TOKEN/path/to/file",
-				"",
-				"Restore: ",
-				" curl https://baxx.dev/v1/io/$SECRET/$TOKEN/path/to/file > file",
-				"",
-				"Restore from WriteOnly token: ",
-				" curl -u email \\",
-				" https://baxx.dev/protected/v1/io/$SECRET/$TOKEN/path/to/file",
-				"",
-				"You can create new tokens at:",
-				` curl -u email -d '{"WriteOnly":false, "NumberOfArchives":7}' \`,
-				" -XPOST https://baxx.dev/protected/v1/create/token",
-				"",
-				"WriteOnly: ",
-				" tokens can only add but not get files (without password)",
-				"NumberOfArchives: ",
-				" how many versions per file (with different sha256) to keep",
-				"",
-				"Useful for things like:",
-				" mysqldump | curl curl --data-binary @- \\",
-				" https://baxx.dev/v1/io/$SECRET/$TOKEN/mysql.gz",
-				"",
-				"Help: ",
-				" curl https://baxx.dev/v1/help",
-				" ssh help@baxx.dev",
-				" email help@baxx.dev",
-				"",
-			)
+			popup("SUCCESS", "[Exit]", u.Help)
 		}
 	})
 
