@@ -1,0 +1,12 @@
+[Unit]
+Requires=mysql.service
+After=mysql.service
+
+[Service]
+Type=simple
+User=baxx
+ExecStart=/home/baxx/run.sh
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

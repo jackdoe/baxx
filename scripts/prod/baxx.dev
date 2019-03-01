@@ -1,0 +1,46 @@
+upstream backendbaxx {
+    server localhost:9123;
+}
+
+server {
+	root /var/www/baxx.dev;
+
+	index index.html;
+
+	server_name baxx.dev www.baxx.dev; 
+
+        try_files $uri $uri/index.html @proxy;
+        location @proxy {
+                proxy_pass http://backendbaxx;
+        }
+
+    listen [::]:443 ssl; # managed by Certbot
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/baxx.dev/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/baxx.dev/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+}
+
+
+server {
+    if ($host = www.baxx.dev) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+    if ($host = www.baxx.dev) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+    if ($host = baxx.dev) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+	listen 80;
+	listen [::]:80;
+	server_name baxx.dev www.baxx.dev;
+        return 404; # managed by Certbot
+}
