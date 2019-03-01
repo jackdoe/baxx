@@ -104,7 +104,7 @@ func (token *Token) BeforeCreate(scope *gorm.Scope) error {
 func FindToken(db *gorm.DB, userSemiSecretId string, token string) (*Token, error) {
 	t := &Token{}
 	u := &User{}
-	query := db.Where("semi_secret_id = ?", userSemiSecretId, token).Take(u)
+	query := db.Where("semi_secret_id = ?", userSemiSecretId).Take(u)
 	if query.RecordNotFound() {
 		return nil, query.Error
 	}
