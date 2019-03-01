@@ -43,7 +43,7 @@ b::::::b
 
 func main() {
 	statusUpdate := make(chan string)
-	bc := baxx.NewClient(nil, "http://localhost:8080", statusUpdate)
+	bc := baxx.NewClient(nil, "https://bax.dev", statusUpdate)
 
 	user := tui.NewEntry()
 	user.SetFocused(true)
