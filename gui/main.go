@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	baxx "github.com/jackdoe/baxx/client"
 	bcommon "github.com/jackdoe/baxx/common"
 	"github.com/marcusolsson/tui-go"
@@ -47,8 +48,7 @@ func main() {
 
 	password := tui.NewEntry()
 	password.SetEchoMode(tui.EchoModePassword)
-	result := tui.NewVBox(tui.NewEntry())
-	result.SetSizePolicy(tui.Preferred, tui.Maximum)
+
 	confirmPassword := tui.NewEntry()
 	confirmPassword.SetEchoMode(tui.EchoModePassword)
 
@@ -58,9 +58,10 @@ func main() {
 	form.AppendRow(tui.NewSpacer())
 	form.AppendRow(tui.NewLabel("Password"))
 	form.AppendRow(password)
+	form.AppendRow(tui.NewSpacer())
 	form.AppendRow(tui.NewLabel("Confirm Password"))
 	form.AppendRow(confirmPassword)
-	status := tui.NewStatusBar("Ready.")
+	status := tui.NewStatusBar("")
 	go func() {
 		for {
 			s := <-statusUpdate
@@ -74,8 +75,8 @@ func main() {
 
 	buttons := tui.NewHBox(
 		tui.NewSpacer(),
-		tui.NewPadder(1, 0, quit),
 		tui.NewPadder(1, 0, register),
+		tui.NewPadder(1, 0, quit),
 	)
 
 	window := tui.NewVBox(
@@ -96,7 +97,6 @@ func main() {
 
 	root := tui.NewVBox(
 		content,
-		result,
 		status,
 	)
 
@@ -105,6 +105,49 @@ func main() {
 	ui, err := tui.New(root)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	popup := func(title string, buttonLabel string, msg ...string) {
+		text := tui.NewVBox()
+
+		for _, m := range msg {
+			text.Append(tui.NewLabel(m))
+		}
+
+		scroll := tui.NewScrollArea(text)
+		close := tui.NewButton(buttonLabel)
+		close.SetFocused(true)
+		p := tui.NewVBox(
+			tui.NewPadder(1, 1, scroll),
+			close,
+		)
+
+		p.SetBorder(true)
+		close.SetSizePolicy(tui.Preferred, tui.Maximum)
+		p.SetTitle(fmt.Sprintf("baxx.dev - %s", title))
+		p.SetSizePolicy(tui.Expanding, tui.Minimum)
+		bye := func() {
+			if buttonLabel == "[Exit]" {
+				ui.Quit()
+			} else {
+				ui.ClearKeybindings()
+				ui.SetKeybinding("Esc", func() { ui.Quit() })
+				ui.SetWidget(root)
+			}
+		}
+
+		close.OnActivated(func(b *tui.Button) {
+			bye()
+		})
+
+		ui.ClearKeybindings()
+		ui.SetKeybinding("Up", func() { scroll.Scroll(0, -1) })
+		ui.SetKeybinding("Down", func() { scroll.Scroll(0, 1) })
+		ui.SetKeybinding("k", func() { scroll.Scroll(0, -1) })
+		ui.SetKeybinding("j", func() { scroll.Scroll(0, 1) })
+		ui.SetKeybinding("Esc", func() { bye() })
+
+		ui.SetWidget(tui.NewPadder(5, 5, p))
 	}
 
 	quit.OnActivated(func(b *tui.Button) {
@@ -117,31 +160,65 @@ func main() {
 		email := user.Text()
 
 		if p1 != p2 {
-			status.SetText("--> passwords must match <--")
+			popup("ERROR", "[Close]", "passwords must match")
 			return
 		}
 		if p1 == "" {
-			status.SetText("--> password is required <--")
+			popup("ERROR", "[Close]", "Password is required.",
+				"",
+				"If you are not using a password manager,",
+				"please use good passwords, such as: 'mickey mouse and metallica'",
+				"",
+				"https://www.xkcd.com/936/")
 			return
 		}
 		if email == "" {
-			status.SetText("--> email is required <--")
+			popup("ERROR", "[Close]", "Email is required.", "", "It we will not send you any marketing messages,", "it will be used just for business.")
 			return
 		}
 
 		u, err := bc.Register(&bcommon.CreateUserInput{Email: email, Password: p1})
-		for i := 1; i < result.Length()+1; i++ {
-			result.Remove(i)
-		}
-
 		if err != nil {
-			result.SetTitle("ERROR")
-			result.Append(tui.NewLabel(err.Error()))
-			result.SetBorder(true)
+			popup("ERROR", "[Close]", "Comminucation Error:", err.Error(), "", "please contact help@baxx.dev if it persists")
 		} else {
-			result.SetTitle("SUCCESS")
-			result.Append(tui.NewLabel("Semi Secret ID " + u.SemiSecretID + "\nMore information coming to your email\nThanks for using baxx.dev!"))
-			result.SetBorder(true)
+			popup("SUCCESS",
+				"[Exit]",
+				"Secret : "+u.Secret,
+				"",
+				"ReadWrite Token: "+u.TokenRW,
+				"WriteOnly Token: "+u.TokenWO,
+				"(they will be sent to your email as well).",
+				"",
+				"Backup: ",
+				" cat path/to/file | curl --data-binary @- \\",
+				" https://baxx.dev/v1/upload/$SECRET/$TOKEN/path/to/file",
+				"",
+				"Restore: ",
+				" curl https://baxx.dev/v1/download/$SECRET/$TOKEN/path/to/file > file",
+				"",
+				"Restore from WriteOnly token: ",
+				" curl -u email \\",
+				" https://baxx.dev/v1/protected/download/$SECRET/$TOKEN/path/to/file",
+				"",
+				"You can create new tokens at:",
+				` curl -u email -d '{"WriteOnly":false, "NumberOfArchives":7}' \`,
+				" -XPOST https://baxx.dev/v1/protected/create/token",
+				"",
+				"WriteOnly: ",
+				" tokens can only add but not get files (without password)",
+				"NumberOfArchives: ",
+				" how many versions per file (with different sha256) to keep",
+				"",
+				"Useful for things like:",
+				" mysqldump | curl curl --data-binary @- \\",
+				" https://baxx.dev/v1/upload/$SECRET/$TOKEN/mysql.gz",
+				"",
+				"Help: ",
+				" curl https://baxx.dev/v1/help",
+				" ssh help@baxx.dev",
+				" email help@baxx.dev",
+				"",
+			)
 		}
 	})
 

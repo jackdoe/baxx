@@ -75,7 +75,7 @@ func main() {
 		u, err := FindUser(db, json.Email, json.Password)
 
 		if err == nil {
-			c.JSON(http.StatusOK, u)
+			c.JSON(http.StatusOK, &CreateUserOutput{Secret: u.SemiSecretID, TokenWO: "", TokenRW: ""})
 			return
 		}
 
@@ -86,7 +86,30 @@ func main() {
 			return
 		}
 		actionLog(db, user.ID, "user", "create", c.Request)
-		c.JSON(http.StatusOK, user)
+
+		tokenWO := &Token{
+			UserID:           user.ID,
+			Salt:             strings.Replace(fmt.Sprintf("%s", uuid.Must(uuid.NewV4())), "-", "", -1),
+			NumberOfArchives: 7,
+			WriteOnly:        true,
+		}
+		if err := db.Create(tokenWO).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		tokenRW := &Token{
+			UserID:           user.ID,
+			Salt:             strings.Replace(fmt.Sprintf("%s", uuid.Must(uuid.NewV4())), "-", "", -1),
+			NumberOfArchives: 7,
+			WriteOnly:        false,
+		}
+		if err := db.Create(tokenRW).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, &CreateUserOutput{Secret: user.SemiSecretID, TokenWO: tokenWO.ID, TokenRW: tokenRW.ID})
 	})
 
 	authorized.POST("/create/token", func(c *gin.Context) {

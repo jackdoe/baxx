@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	. "github.com/jackdoe/baxx/common"
-	. "github.com/jackdoe/baxx/user"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -77,8 +76,8 @@ func (c *Client) query(path string, req interface{}, dest interface{}) error {
 	return nil
 }
 
-func (c *Client) Register(input *CreateUserInput) (*User, error) {
-	user := &User{}
-	err := c.query("v1/register", input, user)
-	return user, err
+func (c *Client) Register(input *CreateUserInput) (*CreateUserOutput, error) {
+	out := &CreateUserOutput{}
+	err := c.query("v1/register", input, out)
+	return out, err
 }

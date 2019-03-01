@@ -10,6 +10,12 @@ type CreateUserInput struct {
 	Password string `binding:"required" json:"password"`
 }
 
+type CreateUserOutput struct {
+	Secret  string `json:"secret"`
+	TokenWO string `json:"token_wo"`
+	TokenRW string `json:"token_rw"`
+}
+
 type QueryError struct {
 	Error string `json:"error"`
 }
