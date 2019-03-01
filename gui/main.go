@@ -159,7 +159,7 @@ func main() {
 		ui.Quit()
 	})
 	help.OnActivated(func(b *tui.Button) {
-		popup("SUCCESS", "[Back]", bhelp.GenericHelp())
+		popup("HELP", "[Back]", bhelp.GenericHelp())
 	})
 
 	register.OnActivated(func(b *tui.Button) {
