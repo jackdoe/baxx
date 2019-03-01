@@ -116,16 +116,16 @@ func FindToken(db *gorm.DB, userSemiSecretId string, token string) (*Token, erro
 	return t, nil
 }
 
-func FindUser(db *gorm.DB, user string, pass string) (*User, error) {
+func FindUser(db *gorm.DB, user string, pass string) (*User, bool, error) {
 	u := &User{}
 	query := db.Where("email = ?", user).Take(u)
 	if query.RecordNotFound() {
-		return nil, query.Error
+		return nil, false, query.Error
 	}
 
 	if u.MatchPassword(pass) {
-		return u, nil
+		return u, true, nil
 	}
-	return nil, errors.New("wrong password")
+	return nil, true, errors.New("wrong password")
 
 }

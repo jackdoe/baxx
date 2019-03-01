@@ -163,6 +163,7 @@ func main() {
 			popup("ERROR", "[Close]", "passwords must match")
 			return
 		}
+
 		if p1 == "" {
 			popup("ERROR", "[Close]", "Password is required.",
 				"",

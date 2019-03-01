@@ -56,7 +56,7 @@ func main() {
 
 	authorized := r.Group("/protected")
 	authorized.Use(auth.BasicAuth(func(context *gin.Context, realm, user, pass string) auth.AuthResult {
-		u, err := FindUser(db, user, pass)
+		u, _, err := FindUser(db, user, pass)
 		if err != nil {
 			return auth.AuthResult{Success: false, Text: "not authorized"}
 		}
@@ -72,10 +72,15 @@ func main() {
 		}
 
 		// if the user is created again with current password just return it
-		u, err := FindUser(db, json.Email, json.Password)
+		u, exists, err := FindUser(db, json.Email, json.Password)
 
 		if err == nil {
 			c.JSON(http.StatusOK, &CreateUserOutput{Secret: u.SemiSecretID, TokenWO: "", TokenRW: ""})
+			return
+		}
+
+		if exists {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "user already exists"})
 			return
 		}
 
@@ -157,7 +162,7 @@ func main() {
 		}
 
 		if !isLoggedIn {
-			if t.WriteOnly {
+			if t.WriteOnly && c.Request.Method != "POST" {
 				return nil, errors.New("write only token, use /v1/protected/io/:secret/:token/*path")
 			}
 		}
@@ -183,9 +188,7 @@ func main() {
 	}
 
 	upload := func(c *gin.Context) {
-		user := c.Param("user_semi_secret_id")
-		token := c.Param("token")
-		t, err := FindToken(db, user, token)
+		t, err := getViewTokenLoggedOrNot(c)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
