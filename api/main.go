@@ -52,8 +52,6 @@ func main() {
 	var proot = flag.String("root", "/tmp", "root")
 	flag.Parse()
 
-	r := gin.Default()
-
 	dbType := os.Getenv("BAXX_DB")
 	dbURL := os.Getenv("BAXX_DB_URL")
 	debug := true
@@ -74,6 +72,8 @@ func main() {
 	defer db.Close()
 
 	initDatabase(db)
+
+	r := gin.Default()
 
 	authorized := r.Group("/protected")
 	authorized.Use(auth.BasicAuth(func(context *gin.Context, realm, user, pass string) auth.AuthResult {
