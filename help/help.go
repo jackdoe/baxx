@@ -50,6 +50,9 @@ ReadWrite Token: %s
 WriteOnly Token: %s
 (they will be sent to your email as well).
 
+[at the moment the email sending is not implemented]
+[so copy paste the screen; move fast break things]
+
 Backup: 
  cat path/to/file | curl --data-binary @- \
  https://baxx.dev/v1/io/$SECRET/$TOKEN/path/to/file
@@ -72,7 +75,7 @@ NumberOfArchives:
 
 Useful for things like:
  mysqldump | curl curl --data-binary @- \\
- htptps://baxx.dev/v1/io/$SECRET/$TOKEN/mysql.gz
+ https://baxx.dev/v1/io/$SECRET/$TOKEN/mysql.gz
 
 Help: 
  curl https://baxx.dev/v1/help
