@@ -151,7 +151,9 @@ func main() {
 		user := c.Param("user_semi_secret_id")
 		x, isLoggedIn := c.Get("user")
 		if isLoggedIn {
-			user = x.(*User).SemiSecretID
+			if user != x.(*User).SemiSecretID {
+				return nil, errors.New("wrong token/user combination")
+			}
 		}
 
 		token := c.Param("token")
@@ -167,8 +169,8 @@ func main() {
 			}
 		}
 		return t, nil
-
 	}
+
 	download := func(c *gin.Context) {
 		t, err := getViewTokenLoggedOrNot(c)
 		if err != nil {
