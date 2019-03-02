@@ -22,11 +22,6 @@ type ActionLog struct {
 
 func actionLog(db *gorm.DB, user uint64, actionType, action string, req *http.Request, extra ...string) {
 	rlog, _ := extractLogFromRequest(req)
-	for k, h := range req.Header {
-		for _, v := range h {
-			extra = append(extra, fmt.Sprintf("%s: %s", k, v))
-		}
-	}
 	al := &ActionLog{
 		UserID:     user,
 		ActionType: actionType,

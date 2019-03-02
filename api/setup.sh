@@ -15,7 +15,7 @@ export TOKEN=$(curl -ujack@prymr.nl:asdasdasd -s -d '{"WriteOnly":true, "NumberO
 echo secret was $CLIENT
 export CLIENT=$(curl -ujack@prymr.nl:asdasdasd  -XPOST localhost:9123/protected/v1/replace/secret | jq .secret | sed -e 's/"//g')
 echo secret IS NOW $CLIENT
-echo 123 | curl -s --data-binary @- localhost:9123/v1/io/$CLIENT/$TOKEN/todzzsz | jq
+echo 123 | curl -H "ASDASDASD: 123" -s --data-binary @- localhost:9123/v1/io/$CLIENT/$TOKEN/todzzsz | jq
 echo
 
 
