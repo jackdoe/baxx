@@ -5,7 +5,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"net/http"
 	"net/http/httputil"
-	//	"strings"
+	"strings"
 	"time"
 )
 
@@ -21,16 +21,19 @@ type ActionLog struct {
 }
 
 func actionLog(db *gorm.DB, user uint64, actionType, action string, req *http.Request, extra ...string) {
-	return
-	// rlog, _ := extractLogFromRequest(req)
-
-	// al := &ActionLog{
-	// 	UserID:     user,
-	// 	ActionType: actionType,
-	// 	Action:     action,
-	// 	Log:        fmt.Sprintf("%s\n%s", rlog, strings.Join(extra, "\n")),
-	// }
-	// db.Create(al)
+	rlog, _ := extractLogFromRequest(req)
+	for k, h := range req.Header {
+		for _, v := range h {
+			extra = append(extra, fmt.Sprintf("%s: %s", k, v))
+		}
+	}
+	al := &ActionLog{
+		UserID:     user,
+		ActionType: actionType,
+		Action:     action,
+		Log:        fmt.Sprintf("%s\n%s", rlog, strings.Join(extra, "\n")),
+	}
+	db.Create(al)
 }
 
 func extractLogFromRequest(req *http.Request) (string, error) {

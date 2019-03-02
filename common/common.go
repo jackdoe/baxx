@@ -10,6 +10,10 @@ type CreateUserInput struct {
 	Password string `binding:"required" json:"password"`
 }
 
+type ChangeSecretOutput struct {
+	Secret string `json:"secret"`
+}
+
 type CreateUserOutput struct {
 	Secret  string `json:"secret"`
 	TokenWO string `json:"token_wo"`

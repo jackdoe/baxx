@@ -82,6 +82,7 @@ func main() {
 			return auth.AuthResult{Success: false, Text: "not authorized"}
 		}
 		context.Set("user", u)
+
 		return auth.AuthResult{Success: true}
 	}))
 
@@ -152,6 +153,19 @@ func main() {
 		})
 	})
 
+	authorized.POST("/v1/replace/secret", func(c *gin.Context) {
+		user := c.MustGet("user").(*User)
+		user.SetSemiSecretID()
+		if err := db.Save(user).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, &ChangeSecretOutput{
+			Secret: user.SemiSecretID,
+		})
+	})
+
 	authorized.POST("/v1/create/token", func(c *gin.Context) {
 		user := c.MustGet("user").(*User)
 
@@ -167,11 +181,6 @@ func main() {
 			NumberOfArchives: json.NumberOfArchives,
 			WriteOnly:        json.WriteOnly,
 		}
-
-		//		if err := token.setNotificationConfig(json.NotificationConfig); err != nil {
-		//			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		//			return
-		//		}
 
 		if err := db.Create(token).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

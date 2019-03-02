@@ -26,12 +26,13 @@ func comparePasswords(hashedPwd string, plainPwd string) bool {
 }
 
 type User struct {
-	ID             uint64    `gorm:"primary_key" json:"-"`
-	SemiSecretID   string    `gorm:"not null" json:"secret"`
-	Email          string    `gorm:"not null" json:"-"`
-	HashedPassword string    `gorm:"not null" json:"-"`
-	CreatedAt      time.Time `json:"-"`
-	UpdatedAt      time.Time `json:"-"`
+	ID             uint64     `gorm:"primary_key" json:"-"`
+	SemiSecretID   string     `gorm:"not null" json:"secret"`
+	Email          string     `gorm:"not null" json:"-"`
+	EmailVerified  *time.Time `json:"-"`
+	HashedPassword string     `gorm:"not null" json:"-"`
+	CreatedAt      time.Time  `json:"-"`
+	UpdatedAt      time.Time  `json:"-"`
 }
 
 func (user *User) MatchPassword(p string) bool {
@@ -40,6 +41,10 @@ func (user *User) MatchPassword(p string) bool {
 
 func (user *User) SetPassword(p string) {
 	user.HashedPassword = hashAndSalt(p)
+}
+
+func (user *User) SetSemiSecretID() {
+	user.SemiSecretID = fmt.Sprintf("%s", uuid.Must(uuid.NewV4()))
 }
 
 func (user *User) BeforeCreate(scope *gorm.Scope) error {
