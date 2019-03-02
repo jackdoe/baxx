@@ -62,6 +62,7 @@ WriteOnly Token: %s
 [at the moment the email sending is not implemented]
 [so copy paste the screen; move fast break things]
 
+
 Backup: 
  cat path/to/file | curl --data-binary @- \
    https://baxx.dev/v1/io/$SECRET/$TOKEN/path/to/file
@@ -73,18 +74,24 @@ Restore from WriteOnly token:
  curl -u email \
    https://baxx.dev/protected/v1/io/$SECRET/$TOKEN/path/to/file
 
-You can create new tokens at:
+
+Create new tokens:
  curl -u email -d '{"WriteOnly":false, "NumberOfArchives":7}' \
    https://baxx.dev/protected/v1/create/token
 
 WriteOnly: 
  tokens can only add but not get files (without password)
 NumberOfArchives: 
- how many versions per file (with different sha256) to keep
-
-Useful for things like:
+ How many versions per file (with different sha256) to keep.
+ Useful for database or modified files archives like, e.g:
  mysqldump | curl curl --data-binary @- \
-   https://baxx.dev/v1/io/$SECRET/$TOKEN/mysql.gz
+  https://baxx.dev/v1/io/$SECRET/$TOKEN/mysql.gz
+
+
+Register:
+  curl -d "{"email":"jack@example.com", "password":"mickey mouse"}" \
+     https://baxx.dev/v1/register
+
 
 Help: 
  curl https://baxx.dev/v1/help [ not ready yet ]
