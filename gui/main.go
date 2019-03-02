@@ -7,7 +7,6 @@ import (
 	bhelp "github.com/jackdoe/baxx/help"
 	"github.com/marcusolsson/tui-go"
 	"log"
-	"strings"
 )
 
 var logo = `
@@ -44,6 +43,7 @@ b::::::b
 func main() {
 	statusUpdate := make(chan string)
 	bc := baxx.NewClient(nil, "https://baxx.dev", statusUpdate)
+	//	bc := baxx.NewClient(nil, "http://localhost:9123", statusUpdate)
 
 	user := tui.NewEntry()
 	user.SetFocused(true)
@@ -113,24 +113,18 @@ func main() {
 	popup := func(title string, buttonLabel string, msg ...string) {
 		text := tui.NewVBox()
 
-		for _, m := range msg {
-			for _, s := range strings.Split(m, "\n") {
-				text.Append(tui.NewLabel(s))
-			}
-		}
-
 		scroll := tui.NewScrollArea(text)
 		close := tui.NewButton(buttonLabel)
 		close.SetFocused(true)
+		close.SetSizePolicy(tui.Preferred, tui.Maximum)
+		padder := tui.NewPadder(1, 1, scroll)
 		p := tui.NewVBox(
-			tui.NewPadder(1, 1, scroll),
+			padder,
 			close,
 		)
-
 		p.SetBorder(true)
-		close.SetSizePolicy(tui.Preferred, tui.Maximum)
 		p.SetTitle(fmt.Sprintf("baxx.dev - %s", title))
-		p.SetSizePolicy(tui.Expanding, tui.Minimum)
+		p.SetSizePolicy(tui.Maximum, tui.Maximum)
 		bye := func() {
 			if buttonLabel == "[Exit]" {
 				ui.Quit()
@@ -151,8 +145,20 @@ func main() {
 		ui.SetKeybinding("k", func() { scroll.Scroll(0, -1) })
 		ui.SetKeybinding("j", func() { scroll.Scroll(0, 1) })
 		ui.SetKeybinding("Esc", func() { bye() })
+		ui.SetWidget(p)
 
-		ui.SetWidget(tui.NewPadder(5, 5, p))
+		//text.Append(tui.NewLabel(fmt.Sprintf("%#v %#v ", text.SizeHint(), text.Size())))
+		//text.Append(tui.NewLabel(fmt.Sprintf("%#v %#v", p.SizeHint(), p.Size())))
+		//text.Append(tui.NewLabel(fmt.Sprintf("%#v %#v", scroll.SizeHint(), scroll.Size())))
+		//text.Append(tui.NewLabel(fmt.Sprintf("%#v %#v", padder.SizeHint(), padder.Size())))
+
+		for _, m := range msg {
+			l := tui.NewLabel(m)
+			l.SetSizePolicy(tui.Maximum, tui.Minimum)
+			l.SetWordWrap(true)
+			text.Append(l)
+		}
+
 	}
 
 	quit.OnActivated(func(b *tui.Button) {
