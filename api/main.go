@@ -440,7 +440,7 @@ func main() {
 	r.GET("/v1/verify/:id", func(c *gin.Context) {
 		v := &VerificationLink{}
 		now := time.Now()
-		v.VerifiedAt = &now
+
 		wrong := func(err error) {
 			c.String(http.StatusInternalServerError, fmt.Sprintf("Oops, something went wrong!\n%s\n\n, if persists please send it to help@baxx.dev\n", err.Error()))
 		}
@@ -453,6 +453,7 @@ func main() {
 			c.String(http.StatusNotFound, "Oops, verification link not found!\n")
 			return
 		}
+		v.VerifiedAt = &now
 		if err := tx.Save(v).Error; err != nil {
 			tx.Rollback()
 			warnErr(c, err)
