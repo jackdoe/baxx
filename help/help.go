@@ -90,7 +90,7 @@ NumberOfArchives:
 
 Register:
   curl -d '{"email":"jack@example.com", "password":"mickey mouse"}' \
-     https://baxx.dev/v1/register
+     https://baxx.dev/v1/register | jq
 
 
 Help: 
