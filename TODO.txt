@@ -1,16 +1,9 @@
-[Sat  2 Mar 10:07:43 CET 2019]
-  + setup paypal
-  + setup email sending
-  
-    
-
----
 * payments
  + setup paypal
- 
+
 * send emails
- + after registration
- + setup mail verification
+ + after registration [ done Sat  2 Mar 23:11:08 CET 2019 ]
+ + setup mail verification [ done Sat  2 Mar 23:11:08 CET 2019 ]
 
 * files
  + delete api
@@ -41,14 +34,14 @@
    - activity info
  + generate new secret [ done Sat  2 Mar 16:02:37 CET 2019]
    (add support for multiple secrets?) [ not now ]
- 
+
 * gui (can make it like midnight commander)
- + manage tokens 
+ + manage tokens
    + list files
    + delete files
  + change password
  + email
- 
+
 * help
   + baxx.dev/help/v1/register*
   + baxx.dev/help/v1/io*
@@ -57,4 +50,3 @@
 
 * tests
   there are zero tests at the moment
-  
