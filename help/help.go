@@ -189,24 +189,29 @@ func Register(email string) string {
 	return fmt.Sprintf(`
 
 Register:
-  curl -d '{"email":"%s", "password":"mickey mouse"}' \
-    https://baxx.dev/v1/register | json_pp
+ curl -d '{"email":"%s", "password":"mickey mouse"}' \
+  https://baxx.dev/v1/register | json_pp
 
 Change Password
-  curl -u %s -d'{"new_password": "donald mouse"}' \
-    https://baxx.dev/protected/v1/replace/password | json_pp
+ curl -u %s -d'{"new_password": "donald mouse"}' \
+  https://baxx.dev/protected/v1/replace/password | json_pp
 
 Change Email
+ curl -u %s -d'{"new_email": "x@example.com"}' \
+  https://baxx.dev/protected/v1/replace/email | json_pp
 
-  curl -u %s -d'{"new_email": "x@example.com"}' \
-    https://baxx.dev/protected/v1/replace/email | json_pp
+ It will also send new verification email, you can
+ also use the replace/email endpoint to resend the
+ verification email.
 
-It will also send new verification email, you can
-also use the replace/email endpoint to resend the
-verification email
+User Status
+ curl -u %s -XPOST https://baxx.dev/protected/v1/status
 
+ Check the user status such as:
+  * is the email verified
+  * is subscription active [ not done yet ]
 
-`, email, email, email)
+`, email, email, email, email)
 }
 
 func AfterRegistration(email, secret, tokenrw, tokenwo string) string {
