@@ -35,6 +35,7 @@ curl -s -ujack@prymr.nl:asdasdasd  -XPOST -d'{"new_email": "jack@sofialondonmosk
 curl -s -ujack@prymr.nl:asdasdasd localhost:9123/protected/v1/io/$CLIENT/$TOKEN/todzzsz
 curl -s -ujack@sofialondonmoskva.com:asdasdasd localhost:9123/protected/v1/io/$CLIENT/$TOKEN/todzzsz
 curl -s -ujack@sofialondonmoskva.com:asdasdasd  -XPOST -d'{"new_email": "jack@prymr.nl"}' localhost:9123/protected/v1/replace/email | jq
+curl -s -ujack@prymr.nl:asdasdasd  -XPOST  localhost:9123/protected/v1/status | jq
 
 
 

@@ -165,7 +165,13 @@ func main() {
 			Secret: user.SemiSecretID,
 		})
 	})
+	authorized.POST("/v1/status", func(c *gin.Context) {
+		user := c.MustGet("user").(*User)
+		c.JSON(http.StatusOK, &UserStatusOutput{
+			EmailVerified: user.EmailVerified,
+		})
 
+	})
 	authorized.POST("/v1/replace/password", func(c *gin.Context) {
 		user := c.MustGet("user").(*User)
 		var json ChangePasswordInput

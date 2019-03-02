@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/badoux/checkmail"
+	"time"
 )
 
 type CreateTokenInput struct {
@@ -44,6 +45,10 @@ func ValidatePassword(p string) error {
 
 type ChangeSecretOutput struct {
 	Secret string `json:"secret"`
+}
+
+type UserStatusOutput struct {
+	EmailVerified *time.Time `json:"email_verified"`
 }
 
 type CreateUserOutput struct {
