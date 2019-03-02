@@ -107,17 +107,19 @@ func sendRegistrationHelp(email, secret, tokenrw, tokenwo string) error {
 func main() {
 	var pbind = flag.String("bind", "127.0.0.1:9123", "bind")
 	var proot = flag.String("root", "/tmp", "root")
+	var pdebug = flag.Bool("debug", true, "debug")
+	var prelease = flag.Bool("release", false, "release")
 	flag.Parse()
 
 	dbType := os.Getenv("BAXX_DB")
 	dbURL := os.Getenv("BAXX_DB_URL")
-	debug := true
 	ROOT = *proot
 	if dbType == "" {
 		dbType = "sqlite3"
 		dbURL = "/tmp/gorm.db"
-	} else {
-		debug = false
+	}
+
+	if *prelease {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
@@ -125,7 +127,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	db.LogMode(debug)
+	db.LogMode(*pdebug)
 	defer db.Close()
 
 	initDatabase(db)
