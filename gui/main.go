@@ -9,14 +9,12 @@ import (
 	"log"
 )
 
-var logo = `
-██████╗  █████╗ ██╗  ██╗██╗  ██╗
+var logo = `██████╗  █████╗ ██╗  ██╗██╗  ██╗
 ██╔══██╗██╔══██╗╚██╗██╔╝╚██╗██╔╝
 ██████╔╝███████║ ╚███╔╝  ╚███╔╝
 ██╔══██╗██╔══██║ ██╔██╗  ██╔██╗
 ██████╔╝██║  ██║██╔╝ ██╗██╔╝ ██╗
-╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝
-`
+╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝`
 
 /*
 var logo = `
@@ -84,7 +82,6 @@ func main() {
 
 	window := tui.NewVBox(
 		tui.NewPadder(10, 1, tui.NewLabel(logo)),
-		tui.NewPadder(12, 0, tui.NewLabel("Welcome to baxx.dev!")),
 		tui.NewPadder(1, 1, form),
 		buttons,
 	)
@@ -165,7 +162,7 @@ func main() {
 		ui.Quit()
 	})
 	help.OnActivated(func(b *tui.Button) {
-		popup("HELP", "[Back]", bhelp.GenericHelp())
+		popup("HELP", "[Back]", bhelp.GenericHelp(), "", "API", bhelp.AfterRegistration("SECRET", "TOKEN-RW", "TOKEN-WO"))
 	})
 
 	register.OnActivated(func(b *tui.Button) {
