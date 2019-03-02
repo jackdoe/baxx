@@ -25,9 +25,20 @@ func comparePasswords(hashedPwd string, plainPwd string) bool {
 	return true
 }
 
+type VerificationLink struct {
+	ID         string     `gorm:"primary_key" json:"-"`
+	UserID     uint64     `gorm:"not null" json:"-"`
+	Email      string     `gorm:"not null" json:"-"`
+	VerifiedAt *time.Time `gorm:"null" json:"-"`
+	SentAt     uint64     `gorm:"not null" json:"-"`
+	UpdatedAt  time.Time  `json:"-"`
+	CreatedAt  time.Time  `json:"-"`
+}
+
 type User struct {
 	ID             uint64     `gorm:"primary_key" json:"-"`
 	SemiSecretID   string     `gorm:"not null" json:"secret"`
+	Seed           string     `gorm:"not null" json:"-"`
 	Email          string     `gorm:"not null" json:"-"`
 	EmailVerified  *time.Time `json:"-"`
 	HashedPassword string     `gorm:"not null" json:"-"`
@@ -35,6 +46,13 @@ type User struct {
 	UpdatedAt      time.Time  `json:"-"`
 }
 
+func (user *User) GenerateVerificationLink() *VerificationLink {
+	return &VerificationLink{
+		ID:     getUUID(),
+		UserID: user.ID,
+		Email:  user.Email,
+	}
+}
 func (user *User) MatchPassword(p string) bool {
 	return comparePasswords(user.HashedPassword, p)
 }
@@ -43,12 +61,22 @@ func (user *User) SetPassword(p string) {
 	user.HashedPassword = hashAndSalt(p)
 }
 
+func getUUID() string {
+	return fmt.Sprintf("%s", uuid.Must(uuid.NewV4()))
+}
+
 func (user *User) SetSemiSecretID() {
-	user.SemiSecretID = fmt.Sprintf("%s", uuid.Must(uuid.NewV4()))
+	user.SemiSecretID = getUUID()
+}
+
+func (user *User) BeforeSave(scope *gorm.Scope) error {
+	scope.SetColumn("Seed", getUUID())
+	return nil
 }
 
 func (user *User) BeforeCreate(scope *gorm.Scope) error {
-	scope.SetColumn("SemiSecretID", fmt.Sprintf("%s", uuid.Must(uuid.NewV4())))
+	scope.SetColumn("SemiSecretID", getUUID())
+	scope.SetColumn("Seed", getUUID())
 	return nil
 }
 

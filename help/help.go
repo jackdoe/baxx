@@ -59,10 +59,6 @@ ReadWrite Token: %s
 WriteOnly Token: %s
 (they will be sent to your email as well).
 
-[at the moment the email sending is not implemented]
-[so copy paste the screen; move fast break things]
-
-
 Backup: 
  cat path/to/file | curl --data-binary @- \
    https://baxx.dev/v1/io/$SECRET/$TOKEN/path/to/file
