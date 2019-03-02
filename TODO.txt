@@ -1,0 +1,54 @@
+[Sat  2 Mar 10:07:43 CET 2019]
+  + setup paypal
+  + setup email sending
+  
+    
+
+---
+* payments
+ + setup paypal
+ 
+* send emails
+ + after registration
+ + setup mail verification
+
+* files
+ + delete api
+ + list api [paginated]
+ + search api
+ + rename api
+ + quota
+
+* tokens
+ + list api
+ + delete api
+   - with support to move files
+     to another token
+
+* notifications
+ + destinations
+ + configure
+ + send email when rule matches
+
+* users
+ + change password
+ + change email
+ + generate new secret
+   (add support for multiple secrets?)
+ 
+* gui (can make it like midnight commander)
+ + manage tokens 
+   + list files
+   + delete files
+ + change password
+ + email
+ 
+* help
+  + baxx.dev/help/v1/register*
+  + baxx.dev/help/v1/io*
+  + baxx.dev/help/v1/create/token*
+  + baxx.dev/help
+
+* tests
+  there are zero tests at the moment
+  
