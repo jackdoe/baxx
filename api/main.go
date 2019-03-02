@@ -107,7 +107,7 @@ func sendRegistrationHelp(email, secret, tokenrw, tokenwo string) error {
 func main() {
 	var pbind = flag.String("bind", "127.0.0.1:9123", "bind")
 	var proot = flag.String("root", "/tmp", "root")
-	var pdebug = flag.Bool("debug", true, "debug")
+	var pdebug = flag.Bool("debug", false, "debug")
 	var prelease = flag.Bool("release", false, "release")
 	flag.Parse()
 
@@ -511,7 +511,7 @@ If you don't receive new link please contact me at help@baxx.dev!
 		}
 
 		u.EmailVerified = v.VerifiedAt
-		if err := tx.Save(v).Error; err != nil {
+		if err := tx.Save(u).Error; err != nil {
 			tx.Rollback()
 			warnErr(c, err)
 			wrong(err)
