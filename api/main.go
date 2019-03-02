@@ -4,7 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/badoux/checkmail"
+
 	"github.com/gin-gonic/gin"
 	. "github.com/jackdoe/baxx/common"
 	. "github.com/jackdoe/baxx/file"
@@ -79,7 +79,7 @@ func main() {
 	authorized.Use(auth.BasicAuth(func(context *gin.Context, realm, user, pass string) auth.AuthResult {
 		u, _, err := FindUser(db, user, pass)
 		if err != nil {
-			return auth.AuthResult{Success: false, Text: "not authorized"}
+			return auth.AuthResult{Success: false, Text: `{"error":"not authorized"}`}
 		}
 		context.Set("user", u)
 
@@ -92,13 +92,13 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		err := checkmail.ValidateFormat(json.Email)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid email address (%s)", err.Error())})
+		if err := ValidatePassword(json.Password); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		if len(json.Password) < 8 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "password is too short, refer to https://www.xkcd.com/936/"})
+
+		if err := ValidateEmail(json.Email); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -164,6 +164,51 @@ func main() {
 		c.JSON(http.StatusOK, &ChangeSecretOutput{
 			Secret: user.SemiSecretID,
 		})
+	})
+
+	authorized.POST("/v1/replace/password", func(c *gin.Context) {
+		user := c.MustGet("user").(*User)
+		var json ChangePasswordInput
+		if err := c.ShouldBindJSON(&json); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if err != ValidatePassword(json.NewPassword) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		user.SetPassword(json.NewPassword)
+		if err := db.Save(user).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, &Success{true})
+	})
+
+	authorized.POST("/v1/replace/email", func(c *gin.Context) {
+		user := c.MustGet("user").(*User)
+		var json ChangeEmailInput
+		if err := c.ShouldBindJSON(&json); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if err != ValidateEmail(json.NewEmail) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if json.NewEmail != user.Email {
+			user.Email = json.NewEmail
+			user.EmailVerified = nil
+		}
+
+		if err := db.Save(user).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, &Success{true})
 	})
 
 	authorized.POST("/v1/create/token", func(c *gin.Context) {
