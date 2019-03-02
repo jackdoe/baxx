@@ -61,6 +61,7 @@ func main() {
 	form.AppendRow(tui.NewSpacer())
 	form.AppendRow(tui.NewLabel("Confirm Password"))
 	form.AppendRow(confirmPassword)
+
 	status := tui.NewStatusBar("")
 	go func() {
 		for {
@@ -73,17 +74,27 @@ func main() {
 
 	quit := tui.NewButton("[Quit]")
 	help := tui.NewButton("[Help]")
-	buttons := tui.NewHBox(
-		tui.NewSpacer(),
+	tos := tui.NewButton("[Terms Of Service]")
+	buttonsTop := tui.NewHBox(
 		tui.NewPadder(1, 0, help),
+		tui.NewPadder(1, 0, tos),
+		//		tui.NewSpacer(),
+	)
+
+	buttonsBottom := tui.NewHBox(
 		tui.NewPadder(1, 0, register),
 		tui.NewPadder(1, 0, quit),
+		//		tui.NewSpacer(),
 	)
 
 	window := tui.NewVBox(
 		tui.NewPadder(10, 1, tui.NewLabel(logo)),
 		tui.NewPadder(1, 1, form),
-		buttons,
+		tui.NewPadder(1, 0, tui.NewLabel("Registering means you agree with\nthe terms of service!")),
+		tui.NewPadder(1, 0, tui.NewLabel("")),
+		buttonsTop,
+		tui.NewPadder(1, 0, tui.NewLabel("")),
+		buttonsBottom,
 	)
 	window.SetBorder(true)
 
@@ -100,7 +111,7 @@ func main() {
 		status,
 	)
 
-	tui.DefaultFocusChain.Set(user, password, confirmPassword, help, register, quit)
+	tui.DefaultFocusChain.Set(user, password, confirmPassword, help, tos, register, quit)
 
 	ui, err := tui.New(root)
 	if err != nil {
@@ -152,7 +163,7 @@ func main() {
 		for _, m := range msg {
 			l := tui.NewLabel(m)
 			l.SetSizePolicy(tui.Maximum, tui.Minimum)
-			l.SetWordWrap(true)
+			l.SetWordWrap(false)
 			text.Append(l)
 		}
 
@@ -162,7 +173,11 @@ func main() {
 		ui.Quit()
 	})
 	help.OnActivated(func(b *tui.Button) {
-		popup("HELP", "[Back]", bhelp.GenericHelp(), "", "API", bhelp.AfterRegistration("SECRET", "TOKEN-RW", "TOKEN-WO"))
+		popup("HELP", "[Back]", bhelp.GenericHelp(), "", "API", bhelp.AfterRegistration("your.email@example.com", "SECRET", "TOKEN-RW", "TOKEN-WO"))
+	})
+
+	tos.OnActivated(func(b *tui.Button) {
+		popup("Terms Of Service", "[Back]", bhelp.TermsAndConditions())
 	})
 
 	register.OnActivated(func(b *tui.Button) {

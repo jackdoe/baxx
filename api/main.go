@@ -99,7 +99,7 @@ func sendRegistrationHelp(email, secret, tokenrw, tokenwo string) error {
 		from:    "info@baxx.dev",
 		to:      []string{email},
 		subject: "Welcome to baxx.dev!",
-		body:    help.AfterRegistration(secret, tokenrw, tokenwo),
+		body:    help.AfterRegistration(email, secret, tokenrw, tokenwo),
 	})
 	return err
 }
@@ -226,7 +226,7 @@ func main() {
 			Secret:  user.SemiSecretID,
 			TokenWO: tokenWO.ID,
 			TokenRW: tokenRW.ID,
-			Help:    help.AfterRegistration(user.SemiSecretID, tokenRW.ID, tokenWO.ID),
+			Help:    help.AfterRegistration(user.Email, user.SemiSecretID, tokenRW.ID, tokenWO.ID),
 		})
 	})
 

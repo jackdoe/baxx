@@ -2,6 +2,96 @@ package help
 
 import "fmt"
 
+func TermsAndConditions() string {
+	return `
+By purchasing, registering for, or using the “Baxx” services (the
+  “Services”) you ("referred in the document as "you", "customer",
+  "subscriber", "client") enter into a contract with Prymr
+  B.V. Amsterdam, The Netherlands (also referred in the document as
+  "baxx", "we"), registered with logo Kamer van Koophandelnumber:
+  857632991, and you accept and agree to the following terms (the
+  “Contract”). The Contract shall apply to the supply of the Services,
+  use of the Services after purchase or after registering for limited
+  free use where such offer has been made available.
+
+Services:
+  We provide the service of storing your data, with specific retention
+  rate, depending on the the offer you have registered the scope of
+  this service might vary.
+
+Acceptable Conduct:
+  You are responsible for the actions of all users of your account and
+  any data that is created, stored, displayed by, or transmitted by
+  your account while using Baxx. You will not engage in any activity
+  that interferes with or disrupts Baxx's services or networks
+  connected to Baxx.
+
+
+Contract Duration
+  You agree that any malicious activities are considered prohibited
+  usage and will result in immediate account suspension or
+  cancellation without a refund and the possibility that we will
+  impose fees; and/or pursue civil remedies without providing advance
+  notice.
+
+  You agree that Baxx shall be permitted to charge your credit card on
+  a monthly, annual, or other agreed upon basis in advance of
+  providing services. Payment is due upon invoicing. Service may be
+  interrupted on accounts that reach 15 days past due.
+
+Backup
+  Subscriber is solely responsible for the preservation of
+  Subscriber's data which Subscriber saves onto its Baxx account (the
+  “Data”). Even with respect to Data as to which Subscriber contracts
+  for backup services provided by Baxx, We shall have no
+  responsibility to preserve Data. We shall have no liability for any
+  Data that may be lost.
+
+  The data must dome *encrypted* to to Baxx, and can not be read by
+  Baxx employees or third parties.
+
+
+Use of the service is at your own risk.
+
+THE SERVICE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL I BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
+TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
+USE OF THIS SERVICE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGE.
+`
+}
+
+func License() string {
+	return `
+Copyright (C) 2018 Borislav Nikolov
+
+This software is provided 'as-is', without any express or implied
+warranty.  In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+1. The origin of this software must not be misrepresented; you must not
+   claim that you wrote the original software. If you use this software
+   in a product, an acknowledgment in the product documentation would be
+   appreciated but is not required.
+2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
+3. This notice may not be removed or altered from any source distribution.
+
+Borislav Nikolov
+jack@sofialondonmoskva.com
+`
+}
+
 func GenericHelp() string {
 	return `
 Alpha:
@@ -33,9 +123,9 @@ How:
 
   Your data is compressed and encrypted on input, but it is compressed
   without signing, so attackers can flip arbitrary bits, but not make
-  sense out of it. The purpose of the encryption is just in case someone
-  manages to get a file from the disk. You should always send encrypted
-  data.
+  sense out of it. The purpose of the encryption is just in case
+  someone manages to get a file from the disk. You should always send
+  encrypted data.
 
 
 Cost:
@@ -51,14 +141,8 @@ Cost:
 
 }
 
-func AfterRegistration(secret, tokenrw, tokenwo string) string {
+func Backup(email string) string {
 	return fmt.Sprintf(`
-Secret : %s
-
-ReadWrite Token: %s
-WriteOnly Token: %s
-(they will be sent to your email as well).
-
 Backup: 
  cat path/to/file | curl --data-binary @- \
    https://baxx.dev/v1/io/$SECRET/$TOKEN/path/to/file
@@ -67,12 +151,28 @@ Restore:
  curl https://baxx.dev/v1/io/$SECRET/$TOKEN/path/to/file > file
 
 Restore from WriteOnly token: 
- curl -u email \
+ curl -u %s \
    https://baxx.dev/protected/v1/io/$SECRET/$TOKEN/path/to/file
+`, email)
+}
+
+func Token(email string) string {
+	return fmt.Sprintf(`
+Secret
+ This is your user secret, its random uuid, and you should
+ try to keep it safe, but in case you publish it somewhere
+ you can replace it:
+
+ curl -u %s -XPOST \
+  https://baxx.dev/protected/v1/replace/secret | json_pp
+
+Tokens
+ they are like backup namespaces, you can have the same
+ file in different tokens and it wont conflict
 
 
-Create new tokens:
- curl -u email -d '{"WriteOnly":false, "NumberOfArchives":7}' \
+Create New Tokens:
+ curl -u %s -d '{"WriteOnly":false, "NumberOfArchives":7}' \
    https://baxx.dev/protected/v1/create/token
 
 WriteOnly: 
@@ -82,16 +182,59 @@ NumberOfArchives:
  Useful for database or modified files archives like, e.g:
  mysqldump | curl curl --data-binary @- \
   https://baxx.dev/v1/io/$SECRET/$TOKEN/mysql.gz
+`, email, email)
+}
 
+func Register(email string) string {
+	return fmt.Sprintf(`
 
 Register:
-  curl -d '{"email":"jack@example.com", "password":"mickey mouse"}' \
-     https://baxx.dev/v1/register | jq
+  curl -d '{"email":"%s", "password":"mickey mouse"}' \
+    https://baxx.dev/v1/register | json_pp
 
+Change Password
+  curl -u %s -d'{"new_password": "donald mouse"}' \
+    https://baxx.dev/protected/v1/replace/password | json_pp
+
+Change Email
+
+  curl -u %s -d'{"new_email": "x@example.com"}' \
+    https://baxx.dev/protected/v1/replace/email | json_pp
+
+It will also send new verification email, you can
+also use the replace/email endpoint to resend the
+verification email
+
+
+`, email, email, email)
+}
+
+func AfterRegistration(email, secret, tokenrw, tokenwo string) string {
+	return fmt.Sprintf(`
+Secret : %s
+
+ReadWrite Token: %s
+WriteOnly Token: %s
+(they will be sent to your email as well).
+
+%s
+
+%s
+
+%s
+
+
+Terms of service
+
+%s
+
+License
+
+%s
 
 Help: 
  curl https://baxx.dev/v1/help [ not ready yet ]
  ssh help@baxx.dev [ not ready yet ]
  email help@baxx.dev
-`, secret, tokenrw, tokenwo)
+`, secret, tokenrw, tokenwo, Backup(email), Token(email), Register(email), TermsAndConditions(), License())
 }
