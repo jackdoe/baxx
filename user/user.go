@@ -121,7 +121,7 @@ type Token struct {
 	Salt             string `gorm:"not null";type:"varchar(32)" json:"-"`
 	UserID           uint64 `gorm:"not null" json:"-"`
 	WriteOnly        bool   `gorm:"not null" json:"write_only"`
-	NumberOfArchives uint64 `gorm:"not null" json:"number_of_archives"`
+	NumberOfArchives uint64 `gorm:"not null" json:"keep_n_versions"`
 	SizeUsed         uint64 `gorm:"not null;default:0" json:"size_used"`
 	CreatedAt        time.Time
 	UpdatedAt        time.Time `json:"-"`

@@ -185,12 +185,12 @@ Tokens
 
 
 Create New Tokens:
- curl -u %s -d '{"WriteOnly":false, "NumberOfArchives":7}' \
+ curl -u %s -d '{"write_only":false, "keep_n_versions":7}' \
    https://baxx.dev/protected/v1/create/token
 
-WriteOnly: 
+write_only: 
  tokens can only add but not get files (without password)
-NumberOfArchives: 
+keep_n_versions: 
  How many versions per file (with different sha256) to keep.
  Useful for database or modified files archives like, e.g:
  mysqldump | curl curl --data-binary @- \

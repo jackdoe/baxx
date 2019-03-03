@@ -13,7 +13,12 @@ type sendMailConfig struct {
 	contentType string
 }
 
+var IS_TESTING = false
+
 func sendmail(sm sendMailConfig) error {
+	if IS_TESTING {
+		return nil
+	}
 	m := gomail.NewMessage()
 	m.SetHeader("From", sm.from)
 	user := "apikey"

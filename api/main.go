@@ -157,7 +157,7 @@ if you have any feedback please send me an email to jack@baxx.dev.
 --
 baxx.dev
 
-`),
+`, paymentID, email),
 	})
 	log.Warnf("failed to send: %s", err.Error())
 	return err
@@ -171,6 +171,63 @@ func sendRegistrationHelp(paymentID, email, secret, tokenrw, tokenwo string) err
 		body:    help.AfterRegistration(paymentID, email, secret, tokenrw, tokenwo),
 	})
 	return err
+}
+
+func registerUser(db *gorm.DB, json CreateUserInput) (*CreateUserOutput, *User, error) {
+	if err := ValidatePassword(json.Password); err != nil {
+		return nil, nil, err
+	}
+
+	if err := ValidateEmail(json.Email); err != nil {
+		return nil, nil, err
+	}
+
+	_, exists, err := FindUser(db, json.Email, json.Password)
+	if err == nil || exists {
+		return nil, nil, errors.New("user already exists")
+	}
+
+	user := &User{Email: json.Email}
+	user.SetPassword(json.Password)
+	if err := db.Create(user).Error; err != nil {
+		return nil, nil, err
+	}
+	if err := sendVerificationLink(db, user.GenerateVerificationLink()); err != nil {
+		return nil, nil, err
+	}
+
+	tokenWO := &Token{
+		UserID:           user.ID,
+		Salt:             strings.Replace(fmt.Sprintf("%s", uuid.Must(uuid.NewV4())), "-", "", -1),
+		NumberOfArchives: 7,
+		WriteOnly:        true,
+	}
+	if err := db.Create(tokenWO).Error; err != nil {
+		return nil, nil, err
+	}
+
+	tokenRW := &Token{
+		UserID:           user.ID,
+		Salt:             strings.Replace(fmt.Sprintf("%s", uuid.Must(uuid.NewV4())), "-", "", -1),
+		NumberOfArchives: 7,
+		WriteOnly:        false,
+	}
+
+	if err := db.Create(tokenRW).Error; err != nil {
+		return nil, nil, err
+	}
+
+	if err := sendRegistrationHelp(user.PaymentID, user.Email, user.SemiSecretID, tokenRW.ID, tokenWO.ID); err != nil {
+		log.Warnf("failed to send email, ignoring error and moving on,  %s", err.Error())
+	}
+
+	return &CreateUserOutput{
+		Secret:    user.SemiSecretID,
+		TokenRW:   tokenRW.ID,
+		TokenWO:   tokenWO.ID,
+		PaymentID: user.PaymentID,
+		Help:      help.AfterRegistration(user.PaymentID, user.Email, user.SemiSecretID, tokenRW.ID, tokenWO.ID),
+	}, user, nil
 }
 
 func main() {
@@ -223,76 +280,16 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		if err := ValidatePassword(json.Password); err != nil {
+		out, user, err := registerUser(db, json)
+		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-
-		if err := ValidateEmail(json.Email); err != nil {
-			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		_, exists, err := FindUser(db, json.Email, json.Password)
-		if err == nil || exists {
-			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": "user already exists"})
-			return
-		}
-
-		user := &User{Email: json.Email}
-		user.SetPassword(json.Password)
-		if err := db.Create(user).Error; err != nil {
-			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		if err := sendVerificationLink(db, user.GenerateVerificationLink()); err != nil {
-			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
 		actionLog(db, user.ID, "user", "create", c.Request)
-
-		tokenWO := &Token{
-			UserID:           user.ID,
-			Salt:             strings.Replace(fmt.Sprintf("%s", uuid.Must(uuid.NewV4())), "-", "", -1),
-			NumberOfArchives: 7,
-			WriteOnly:        true,
-		}
-		if err := db.Create(tokenWO).Error; err != nil {
-			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		tokenRW := &Token{
-			UserID:           user.ID,
-			Salt:             strings.Replace(fmt.Sprintf("%s", uuid.Must(uuid.NewV4())), "-", "", -1),
-			NumberOfArchives: 7,
-			WriteOnly:        false,
-		}
-		if err := db.Create(tokenRW).Error; err != nil {
-			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		if err := sendRegistrationHelp(user.PaymentID, user.Email, user.SemiSecretID, tokenRW.ID, tokenWO.ID); err != nil {
-			warnErr(c, err)
-		}
-
-		c.JSON(http.StatusOK, &CreateUserOutput{
-			Secret:    user.SemiSecretID,
-			TokenRW:   tokenRW.ID,
-			TokenWO:   tokenWO.ID,
-			PaymentID: user.PaymentID,
-			Help:      help.AfterRegistration(user.PaymentID, user.Email, user.SemiSecretID, tokenRW.ID, tokenWO.ID),
-		})
+		c.JSON(http.StatusOK, out)
 	})
+
 	authorized.POST("/v1/replace/secret", func(c *gin.Context) {
 		user := c.MustGet("user").(*User)
 		user.SetSemiSecretID()

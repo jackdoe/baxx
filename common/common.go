@@ -9,8 +9,8 @@ import (
 )
 
 type CreateTokenInput struct {
-	WriteOnly        bool   `json:"writeonly"`
-	NumberOfArchives uint64 `json:"number_of_archives"`
+	WriteOnly        bool   `json:"write_only"`
+	NumberOfArchives uint64 `json:"keep_n_versions"`
 }
 
 type CreateUserInput struct {
