@@ -156,26 +156,32 @@ Cost:
 
 func Backup(email string) string {
 	return fmt.Sprintf(`
-Backup:
+File Upload:
  cat path/to/file | curl --data-binary @- \
    https://baxx.dev/v1/io/$SECRET/$TOKEN/path/to/file
 
-Restore:
+File Download:
  curl https://baxx.dev/v1/io/$SECRET/$TOKEN/path/to/file > file
+
+File Delete:
+ curl -XDELETE https://baxx.dev/v1/io/$SECRET/$TOKEN/path/to/file
 
 List Files in path LIKE /path/to%:
  curl https://baxx.dev/v1/dir/$SECRET/$TOKEN/path/to/
 
 WriteOnly tokens require BasicAuth and /protected prefix.
 
-Restore from WriteOnly token:
+Download from WriteOnly token:
  curl -u %s \
    https://baxx.dev/protected/v1/io/$SECRET/$TOKEN/path/to/file
+
+Delete with WriteOnly token:
+ curl -u %s -XDELETE \
+   https://baxx.dev/v1/io/$SECRET/$TOKEN/path/to/file
 
 List with WriteOnly token:
  curl -u %s \
    https://baxx.dev/protected/v1/dir/$SECRET/$TOKEN/path/to/
-
 `, email)
 }
 
