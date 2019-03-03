@@ -1,7 +1,6 @@
 package user
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/jinzhu/gorm"
@@ -28,8 +27,8 @@ func comparePasswords(hashedPwd string, plainPwd string) bool {
 type PaymentHistory struct {
 	ID        string    `gorm:"primary_key" json:"-"`
 	UserID    uint64    `gorm:"not null" json:"-"`
-	IPN       string    `gorm:"not null";type:"text" json:"-"`
-	IPNRAW    string    `gorm:"not null";type:"text" json:"-"`
+	IPN       string    `gorm:"not null;type:text" json:"-"`
+	IPNRAW    string    `gorm:"not null;type:text" json:"-"`
 	UpdatedAt time.Time `json:"-"`
 	CreatedAt time.Time `json:"-"`
 }
@@ -106,51 +105,14 @@ func (user *User) BeforeCreate(scope *gorm.Scope) error {
 	return nil
 }
 
-/* do some validataion */
-
-type NotificationDest struct {
-	Type  string `binding:"required"`
-	Value string `binding:"required"`
-}
-
-type NotificationRule struct {
-	Match        string `binding:"required"`
-	Type         string `binding:"required"`
-	Value        int64
-	Destinations []NotificationDest
-}
-
-type NotificationConfiguration struct {
-	Rules []*NotificationRule `binding:"required"`
-}
-
 type Token struct {
-	ID                 string    `gorm:"primary_key"  json:"token"`
-	Salt               string    `gorm:"not null";type:"varchar(32)" json:"-"`
-	UserID             uint64    `gorm:"not null" json:"-"`
-	WriteOnly          bool      `gorm:"not null" json:"-"`
-	NumberOfArchives   uint64    `gorm:"not null" json:"-"`
-	NotificationConfig string    `gorm:"not null";type:"text" json:"-"`
-	CreatedAt          time.Time `json:"-"`
-	UpdatedAt          time.Time `json:"-"`
-}
-
-func (token *Token) GetNotificationConfig() (*NotificationConfiguration, error) {
-	nc := &NotificationConfiguration{}
-	err := json.Unmarshal([]byte(token.NotificationConfig), nc)
-	if err != nil {
-		return nil, err
-	}
-	return nc, nil
-}
-
-func (token *Token) SetNotificationConfig(nc *NotificationConfiguration) error {
-	b, err := json.Marshal(nc)
-	if err != nil {
-		return err
-	}
-	token.NotificationConfig = string(b)
-	return nil
+	ID               string    `gorm:"primary_key"  json:"token"`
+	Salt             string    `gorm:"not null";type:"varchar(32)" json:"-"`
+	UserID           uint64    `gorm:"not null" json:"-"`
+	WriteOnly        bool      `gorm:"not null" json:"-"`
+	NumberOfArchives uint64    `gorm:"not null" json:"-"`
+	CreatedAt        time.Time `json:"-"`
+	UpdatedAt        time.Time `json:"-"`
 }
 
 func (token *Token) BeforeCreate(scope *gorm.Scope) error {

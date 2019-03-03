@@ -1,2 +1,2 @@
 all:
-	go run *.go
+	go run *.go -sandbox -debug
