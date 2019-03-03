@@ -460,9 +460,8 @@ func main() {
 		}
 
 		u := &User{}
-		tx := db.Begin()
+
 		if err := db.Where("payment_id = ?", c.Param("paymentID")).Take(u).Error; err != nil {
-			tx.Rollback()
 			return err
 		}
 		encoded, err := n.JSON()
@@ -477,8 +476,7 @@ func main() {
 			IPNRAW: body,
 		}
 
-		if err := tx.Create(ph).Error; err != nil {
-			tx.Rollback()
+		if err := db.Create(ph).Error; err != nil {
 			warnErr(c, err)
 			return err
 		}
@@ -494,12 +492,7 @@ func main() {
 			// not sure what to do, just ignore
 		}
 
-		if err := tx.Save(u).Error; err != nil {
-			tx.Rollback()
-			warnErr(c, err)
-			return err
-		}
-		if err := tx.Commit().Error; err != nil {
+		if err := db.Save(u).Error; err != nil {
 			warnErr(c, err)
 			return err
 		}

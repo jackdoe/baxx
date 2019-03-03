@@ -108,7 +108,9 @@ Alpha:
 
 Why charging during alpha:
 
-  Because I want to see if someone really cares about this
+  Because I want to see if someone really cares about this.
+  Lets work together to make usable backup as a service!
+  
 
 What:
 
@@ -130,7 +132,7 @@ Why:
 
 How:
 
-  alpha is just on digitalocean, but the beta will be on dedicated
+  The Alpha is just on digitalocean, but the beta will be on dedicated
   servers from hetzner.com
 
   Your data is compressed and encrypted on input, but it is compressed
