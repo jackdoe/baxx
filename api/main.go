@@ -365,32 +365,43 @@ func main() {
 		c.JSON(http.StatusOK, token)
 	})
 
-	getViewTokenLoggedOrNot := func(c *gin.Context) (*Token, error) {
+	getViewTokenLoggedOrNot := func(c *gin.Context) (*Token, *User, error) {
 		user := c.Param("user_semi_secret_id")
 		x, isLoggedIn := c.Get("user")
 		if isLoggedIn {
 			if user != x.(*User).SemiSecretID {
-				return nil, errors.New("wrong token/user combination")
+				return nil, nil, errors.New("wrong token/user combination")
 			}
 		}
 
 		token := c.Param("token")
 
-		t, err := FindToken(db, user, token)
+		t, u, err := FindToken(db, user, token)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		if !isLoggedIn {
 			if t.WriteOnly && c.Request.Method != "POST" {
-				return nil, errors.New("write only token, use /v1/protected/io/:secret/:token/*path")
+				return nil, nil, errors.New("write only token, use /v1/protected/io/:secret/:token/*path")
 			}
 		}
-		return t, nil
+
+		if u.EmailVerified == nil {
+			err = errors.New("email not verified yet")
+			return nil, nil, err
+		}
+
+		if u.PaidSubscription == nil {
+			err = errors.New("payment not received yet, go to https://baxx.dev/v1/sub/" + u.PaymentID + " or if you already did, contact me at jack@baxx.dev")
+			return nil, nil, err
+		}
+
+		return t, u, nil
 	}
 
 	download := func(c *gin.Context) {
-		t, err := getViewTokenLoggedOrNot(c)
+		t, _, err := getViewTokenLoggedOrNot(c)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -410,7 +421,7 @@ func main() {
 	}
 
 	upload := func(c *gin.Context) {
-		t, err := getViewTokenLoggedOrNot(c)
+		t, _, err := getViewTokenLoggedOrNot(c)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
