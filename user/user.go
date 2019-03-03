@@ -118,8 +118,8 @@ type Token struct {
 	ID               string `gorm:"primary_key"  json:"token"`
 	Salt             string `gorm:"not null";type:"varchar(32)" json:"-"`
 	UserID           uint64 `gorm:"not null" json:"-"`
-	WriteOnly        bool   `gorm:"not null" json:"-"`
-	NumberOfArchives uint64 `gorm:"not null" json:"-"`
+	WriteOnly        bool   `gorm:"not null" json:"write_only"`
+	NumberOfArchives uint64 `gorm:"not null" json:"number_of_archives"`
 	CreatedAt        time.Time
 	UpdatedAt        time.Time `json:"-"`
 }
