@@ -6,10 +6,9 @@ func TermsAndConditions() string {
 	return `
 By purchasing, registering for, or using the “Baxx” services (the
   “Services”) you ("referred in the document as "you", "customer",
-  "subscriber", "client") enter into a contract with Prymr
-  B.V. Amsterdam, The Netherlands (also referred in the document as
-  "baxx", "we"), registered with logo Kamer van Koophandelnumber:
-  857632991, and you accept and agree to the following terms (the
+  "subscriber", "client") enter into a contract with Borislav Nikolov
+  Amsterdam, The Netherlands (also referred in the document as "baxx",
+  "we"),and you accept and agree to the following terms (the
   “Contract”). The Contract shall apply to the supply of the Services,
   use of the Services after purchase or after registering for limited
   free use where such offer has been made available.
@@ -71,7 +70,7 @@ func License() string {
 Copyright (C) 2018 Borislav Nikolov
 
 This software is provided 'as-is', without any express or implied
-warranty.  In no event will the authors be held liable for any damages
+warranty. In no event will the authors be held liable for any damages
 arising from the use of this software.
 
 Permission is granted to anyone to use this software for any purpose,
@@ -88,6 +87,14 @@ freely, subject to the following restrictions:
 
 Borislav Nikolov
 jack@sofialondonmoskva.com
+`
+}
+
+func GDPR() string {
+	return `
+We are not sharing the data with anyone for no purposes what so ever.
+We are keeping logs of IP adress uploading/downloading files,and the
+paypal payment notifications for starting/ending the subscription.
 `
 }
 
@@ -256,7 +263,7 @@ Terms of service
 
 %s
 
-License
+GDPR
 
 %s
 
@@ -264,5 +271,5 @@ Help:
  curl https://baxx.dev/v1/help [ not ready yet ]
  ssh jack@baxx.dev [ not ready yet ]
  email jack@baxx.dev
-`, Intro(), payment, secret, tokenrw, tokenwo, Backup(email), Token(email), Register(email), TermsAndConditions(), License())
+`, Intro(), payment, secret, tokenrw, tokenwo, Backup(email), Token(email), Register(email), TermsAndConditions(), GDPR())
 }
