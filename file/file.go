@@ -244,7 +244,7 @@ type FileMetadataAndVersion struct {
 func LSAL(files []FileMetadataAndVersion) string {
 	buf := bytes.NewBufferString("")
 	grouped := map[string][]FileMetadataAndVersion{}
-	fmt.Fprintf(buf, "\nsize\tdate\tname@version\tsha\n")
+
 	for _, f := range files {
 		grouped[f.FileMetadata.Path] = append(grouped[f.FileMetadata.Path], f)
 	}
