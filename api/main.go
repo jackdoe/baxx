@@ -424,6 +424,9 @@ func main() {
 	}
 
 	upload := func(c *gin.Context) {
+		body := c.Request.Body
+		defer body.Close()
+
 		t, _, err := getViewTokenLoggedOrNot(c)
 		if err != nil {
 			warnErr(c, err)
@@ -431,8 +434,6 @@ func main() {
 			return
 		}
 
-		body := c.Request.Body
-		defer body.Close()
 		fv, err := SaveFile(db, t, body, c.Param("path"))
 		if err != nil {
 			warnErr(c, err)
