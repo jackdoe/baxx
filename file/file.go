@@ -1,6 +1,7 @@
 package file
 
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/sha256"
@@ -14,6 +15,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"time"
 )
 
@@ -237,6 +239,40 @@ func FindAndOpenFile(db *gorm.DB, t *Token, p string) (*FileOrigin, *os.File, io
 type FileMetadataAndVersion struct {
 	FileMetadata *FileMetadata
 	Versions     []*FileVersion
+}
+
+func LSAL(files []FileMetadataAndVersion) string {
+	buf := bytes.NewBufferString("")
+	grouped := map[string][]FileMetadataAndVersion{}
+	fmt.Fprintf(buf, "\nsize\tdate\tname@version\tsha\n")
+	for _, f := range files {
+		grouped[f.FileMetadata.Path] = append(grouped[f.FileMetadata.Path], f)
+	}
+
+	keys := []string{}
+	for p, _ := range grouped {
+		keys = append(keys, p)
+	}
+	sort.Strings(keys)
+	// sort
+	for _, k := range keys {
+		files := grouped[k]
+		fmt.Fprintf(buf, "%s:\n", k)
+		size := uint64(0)
+		for _, f := range files {
+			for _, v := range f.Versions {
+				size += v.FileOrigin.Size
+			}
+		}
+		fmt.Fprintf(buf, "total %d\n", size)
+		for _, f := range files {
+			for i, v := range f.Versions {
+				fmt.Fprintf(buf, "%d\t%s\t%s@v%d\t%s\n", v.FileOrigin.Size, v.CreatedAt.Format(time.ANSIC), f.FileMetadata.Filename, i, v.FileOrigin.SHA256)
+			}
+		}
+		fmt.Fprintf(buf, "\n")
+	}
+	return buf.String()
 }
 
 func ListFilesInPath(db *gorm.DB, t *Token, p string) ([]FileMetadataAndVersion, error) {

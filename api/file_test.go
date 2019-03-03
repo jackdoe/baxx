@@ -81,7 +81,8 @@ func TestFileQuota(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	log.Printf("%+q", files)
+
+	log.Printf("%s", file.LSAL(files))
 	if len(files) != 2 {
 		t.Fatalf("expected 2 files got %d", len(files))
 	}

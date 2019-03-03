@@ -551,8 +551,12 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-
-		c.JSON(http.StatusOK, files)
+		_, text := c.GetQuery("text")
+		if text {
+			c.String(http.StatusOK, LSAL(files))
+		} else {
+			c.JSON(http.StatusOK, files)
+		}
 	}
 
 	mutateSinglePATH := "/v1/io/:user_semi_secret_id/:token/*path"
