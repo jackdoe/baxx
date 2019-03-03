@@ -25,7 +25,7 @@ func comparePasswords(hashedPwd string, plainPwd string) bool {
 }
 
 type PaymentHistory struct {
-	ID        string    `gorm:"primary_key" json:"-"`
+	ID        uint64    `gorm:"primary_key" json:"-"`
 	UserID    uint64    `gorm:"not null" json:"-"`
 	IPN       string    `gorm:"not null;type:text" json:"-"`
 	IPNRAW    string    `gorm:"not null;type:text" json:"-"`
