@@ -172,15 +172,8 @@ func main() {
 			return
 		}
 
-		// if the user is created again with current password just return it
-		// useful for scripts i guess (probably wrong)
-		u, exists, err := FindUser(db, json.Email, json.Password)
-		if err == nil {
-			c.JSON(http.StatusOK, &CreateUserOutput{Secret: u.SemiSecretID, TokenWO: "", TokenRW: "", PaymentID: u.PaymentID})
-			return
-		}
-
-		if exists {
+		_, exists, err := FindUser(db, json.Email, json.Password)
+		if err == nil || exists {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": "user already exists"})
 			return
@@ -231,13 +224,12 @@ func main() {
 
 		c.JSON(http.StatusOK, &CreateUserOutput{
 			Secret:    user.SemiSecretID,
-			TokenWO:   tokenWO.ID,
 			TokenRW:   tokenRW.ID,
+			TokenWO:   tokenWO.ID,
 			PaymentID: user.PaymentID,
 			Help:      help.AfterRegistration(user.PaymentID, user.Email, user.SemiSecretID, tokenRW.ID, tokenWO.ID),
 		})
 	})
-
 	authorized.POST("/v1/replace/secret", func(c *gin.Context) {
 		user := c.MustGet("user").(*User)
 		user.SetSemiSecretID()
@@ -246,19 +238,26 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-
 		c.JSON(http.StatusOK, &ChangeSecretOutput{
 			Secret: user.SemiSecretID,
 		})
 	})
-
 	authorized.POST("/v1/status", func(c *gin.Context) {
 		user := c.MustGet("user").(*User)
+		tokens, err := user.ListTokens(db)
+		if err != nil {
+			warnErr(c, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
 		c.JSON(http.StatusOK, &UserStatusOutput{
 			EmailVerified:         user.EmailVerified,
 			StartedSubscription:   user.StartedSubscription,
 			CancelledSubscription: user.CancelledSubscription,
-			Paid: user.Paid(),
+			Tokens:                tokens,
+			Secret:                user.SemiSecretID,
+			Paid:                  user.Paid(),
 		})
 	})
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/badoux/checkmail"
+	"github.com/jackdoe/baxx/user"
 	"time"
 )
 
@@ -48,17 +49,20 @@ type ChangeSecretOutput struct {
 }
 
 type UserStatusOutput struct {
-	EmailVerified         *time.Time `json:"email_verified"`
-	Paid                  bool       `json:"paid"`
-	StartedSubscription   *time.Time `json:"started_subscription"`
-	CancelledSubscription *time.Time `json:"cancelled_subscription"`
+	EmailVerified         *time.Time    `json:"email_verified"`
+	Paid                  bool          `json:"paid"`
+	StartedSubscription   *time.Time    `json:"started_subscription"`
+	CancelledSubscription *time.Time    `json:"cancelled_subscription"`
+	Secret                string        `json:"secret"`
+	PaymentID             string        `json:"payment_id"`
+	Tokens                []*user.Token `json:"tokens"`
 }
 
 type CreateUserOutput struct {
 	Secret    string `json:"secret"`
+	PaymentID string `json:"payment_id"`
 	TokenWO   string `json:"token_wo"`
 	TokenRW   string `json:"token_rw"`
-	PaymentID string `json:"token_rw"`
 	Help      string `json:"help"`
 }
 

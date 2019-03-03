@@ -85,6 +85,15 @@ func (user *User) SetPassword(p string) {
 	user.HashedPassword = hashAndSalt(p)
 }
 
+func (user *User) ListTokens(db *gorm.DB) ([]*Token, error) {
+	tokens := []*Token{}
+	if err := db.Where("user_id = ?", user.ID).Find(&tokens).Error; err != nil {
+		return nil, err
+	}
+
+	return tokens, nil
+}
+
 func getUUID() string {
 	return fmt.Sprintf("%s", uuid.Must(uuid.NewV4()))
 }
@@ -106,12 +115,12 @@ func (user *User) BeforeCreate(scope *gorm.Scope) error {
 }
 
 type Token struct {
-	ID               string    `gorm:"primary_key"  json:"token"`
-	Salt             string    `gorm:"not null";type:"varchar(32)" json:"-"`
-	UserID           uint64    `gorm:"not null" json:"-"`
-	WriteOnly        bool      `gorm:"not null" json:"-"`
-	NumberOfArchives uint64    `gorm:"not null" json:"-"`
-	CreatedAt        time.Time `json:"-"`
+	ID               string `gorm:"primary_key"  json:"token"`
+	Salt             string `gorm:"not null";type:"varchar(32)" json:"-"`
+	UserID           uint64 `gorm:"not null" json:"-"`
+	WriteOnly        bool   `gorm:"not null" json:"-"`
+	NumberOfArchives uint64 `gorm:"not null" json:"-"`
+	CreatedAt        time.Time
 	UpdatedAt        time.Time `json:"-"`
 }
 
