@@ -9,14 +9,14 @@
  + use queue to make sure emails are sent
 
 * files
- + delete api
- + list api [paginated]
- + search api
- + rename api
- + quota
+ + delete api [done Sun  3 Mar 22:25:06 CET 2019]
+ + list api [done Sun  3 Mar 22:25:06 CET 2019] (not paginated)
+ + search api [ wontfix: dont think its needed ]
+ + rename api [ wontfix: there is upload and delete ]
+ + quota [size added, no enforcement yet ]
 
 * tokens
- + list api
+ + list api [ listed in /status Sat  2 Mar 16:30:59 CET 2019 ]
  + delete api
    - with support to move files
      to another token
