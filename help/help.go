@@ -26,7 +26,6 @@ Acceptable Conduct:
   that interferes with or disrupts Baxx's services or networks
   connected to Baxx.
 
-
 Contract Duration
   You agree that any malicious activities are considered prohibited
   usage and will result in immediate account suspension or
@@ -35,9 +34,9 @@ Contract Duration
   notice.
 
   You agree that Baxx shall be permitted to charge your credit card on
-  a monthly, annual, or other agreed upon basis in advance of
-  providing services. Payment is due upon invoicing. Service may be
-  interrupted on accounts that reach 15 days past due.
+  a monthly basis in advance of providing services. Payment is due
+  every month. Service may be interrupted on accounts that reach 1
+  month past due.
 
 Backup
   Subscriber is solely responsible for the preservation of
@@ -47,7 +46,7 @@ Backup
   responsibility to preserve Data. We shall have no liability for any
   Data that may be lost.
 
-  The data must dome *encrypted* to to Baxx, and can not be read by
+  The data must sent *encrypted* to to Baxx, and can not be read by
   Baxx employees or third parties.
 
 
@@ -97,10 +96,16 @@ func GenericHelp() string {
 Alpha:
 
   this is alpha, use at your own risk
+  not everything is ready yet
+  no guarnatees about the data yet
+
+Why charging during alpha:
+
+  Because I want to see if someone really cares about this
 
 What:
 
-  baxx.dev is a dead simple backup as a service with unix philosophy
+  baxx.dev is a simple backup as a service with unix philosophy
   in mind
 
   tackling what is fundamental problem with backups: 
@@ -130,12 +135,11 @@ How:
 
 Cost:
 
-  the alpha costs 5E per month for few GB much more than you would buy
-  google drive or dropbox or anything
+  The alpha costs 5E per month for 10 GB much more expensive than you
+  would buy google drive or dropbox or anything (for now).
 
-  ultimately you should be able to get 5E per 1tb per month (maybe
-  even less)
-
+  Ultimately you should be able to get 5E per 1TB per month (maybe
+  even less).
 
 `
 
@@ -213,9 +217,28 @@ User Status
 
 `, email, email, email, email)
 }
+func Intro() string {
+	return `baxx.dev - Unix Philosophy Backup Service
+Storage 10G
+Trial 1 Month 0.1E
+Subscription: 5E per Month
+Availability: ALPHA 
+  Here be Dragons! Data can be lost.
+  Refunds in case everything burns down.
+`
+}
 
-func AfterRegistration(email, secret, tokenrw, tokenwo string) string {
+func AfterRegistration(payment, email, secret, tokenrw, tokenwo string) string {
 	return fmt.Sprintf(`
+
+%s
+Subscription URL (redirects to paypal.com): 
+
+  https://baxx.dev/v1/sub/%s
+
+Please subscribe first in order to use the service.
+
+
 Secret : %s
 
 ReadWrite Token: %s
@@ -239,7 +262,7 @@ License
 
 Help: 
  curl https://baxx.dev/v1/help [ not ready yet ]
- ssh help@baxx.dev [ not ready yet ]
- email help@baxx.dev
-`, secret, tokenrw, tokenwo, Backup(email), Token(email), Register(email), TermsAndConditions(), License())
+ ssh jack@baxx.dev [ not ready yet ]
+ email jack@baxx.dev
+`, Intro(), payment, secret, tokenrw, tokenwo, Backup(email), Token(email), Register(email), TermsAndConditions(), License())
 }

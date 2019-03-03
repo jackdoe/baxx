@@ -1,5 +1,6 @@
 * payments
- + setup paypal
+ + setup paypal [ jack@baxx.dev ]
+
 
 * send emails
  + after registration [ done Sat  2 Mar 23:11:08 CET 2019 ]

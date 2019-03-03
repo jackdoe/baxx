@@ -89,6 +89,7 @@ func main() {
 
 	window := tui.NewVBox(
 		tui.NewPadder(10, 1, tui.NewLabel(logo)),
+		tui.NewPadder(1, 0, tui.NewLabel(bhelp.Intro())),
 		tui.NewPadder(1, 1, form),
 		tui.NewPadder(1, 0, tui.NewLabel("Registering means you agree with\nthe terms of service!")),
 		tui.NewPadder(1, 0, tui.NewLabel("")),
@@ -173,7 +174,7 @@ func main() {
 		ui.Quit()
 	})
 	help.OnActivated(func(b *tui.Button) {
-		popup("HELP", "[Back]", bhelp.GenericHelp(), "", "API", bhelp.AfterRegistration("your.email@example.com", "SECRET", "TOKEN-RW", "TOKEN-WO"))
+		popup("HELP", "[Back]", bhelp.GenericHelp(), "", bhelp.AfterRegistration("WILL-BE-IN-YOUR-EMAIL", "your.email@example.com", "SECRET", "TOKEN-RW", "TOKEN-WO"))
 	})
 
 	tos.OnActivated(func(b *tui.Button) {

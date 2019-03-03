@@ -25,6 +25,15 @@ func comparePasswords(hashedPwd string, plainPwd string) bool {
 	return true
 }
 
+type PaymentHistory struct {
+	ID        string    `gorm:"primary_key" json:"-"`
+	UserID    uint64    `gorm:"not null" json:"-"`
+	IPN       string    `gorm:"not null";type:"text" json:"-"`
+	IPNRAW    string    `gorm:"not null";type:"text" json:"-"`
+	UpdatedAt time.Time `json:"-"`
+	CreatedAt time.Time `json:"-"`
+}
+
 type VerificationLink struct {
 	ID         string     `gorm:"primary_key" json:"-"`
 	UserID     uint64     `gorm:"not null" json:"-"`
@@ -36,14 +45,16 @@ type VerificationLink struct {
 }
 
 type User struct {
-	ID             uint64     `gorm:"primary_key" json:"-"`
-	SemiSecretID   string     `gorm:"not null" json:"secret"`
-	Seed           string     `gorm:"not null" json:"-"`
-	Email          string     `gorm:"not null" json:"-"`
-	EmailVerified  *time.Time `json:"-"`
-	HashedPassword string     `gorm:"not null" json:"-"`
-	CreatedAt      time.Time  `json:"-"`
-	UpdatedAt      time.Time  `json:"-"`
+	ID               uint64     `gorm:"primary_key" json:"-"`
+	SemiSecretID     string     `gorm:"not null" json:"secret"`
+	Seed             string     `gorm:"not null" json:"-"`
+	PaymentID        string     `gorm:"not null" json:"-"`
+	Email            string     `gorm:"not null" json:"-"`
+	EmailVerified    *time.Time `json:"-"`
+	PaidSubscription *time.Time `json:"-"`
+	HashedPassword   string     `gorm:"not null" json:"-"`
+	CreatedAt        time.Time  `json:"-"`
+	UpdatedAt        time.Time  `json:"-"`
 }
 
 func (user *User) GenerateVerificationLink() *VerificationLink {
@@ -53,6 +64,7 @@ func (user *User) GenerateVerificationLink() *VerificationLink {
 		Email:  user.Email,
 	}
 }
+
 func (user *User) MatchPassword(p string) bool {
 	return comparePasswords(user.HashedPassword, p)
 }
@@ -77,6 +89,7 @@ func (user *User) BeforeSave(scope *gorm.Scope) error {
 func (user *User) BeforeCreate(scope *gorm.Scope) error {
 	scope.SetColumn("SemiSecretID", getUUID())
 	scope.SetColumn("Seed", getUUID())
+	scope.SetColumn("PaymentID", getUUID())
 	return nil
 }
 

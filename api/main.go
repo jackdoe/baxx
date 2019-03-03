@@ -8,6 +8,7 @@ import (
 	. "github.com/jackdoe/baxx/common"
 	. "github.com/jackdoe/baxx/file"
 	"github.com/jackdoe/baxx/help"
+	"github.com/jackdoe/baxx/ipn"
 	. "github.com/jackdoe/baxx/user"
 	auth "github.com/jackdoe/gin-basic-auth-dynamic"
 	"github.com/jinzhu/gorm"
@@ -33,13 +34,18 @@ func warnErr(c *gin.Context, err error) {
 }
 
 func initDatabase(db *gorm.DB) {
-	if err := db.AutoMigrate(&User{}, &VerificationLink{}, &Token{}, &FileOrigin{}, &FileMetadata{}, &FileVersion{}, &ActionLog{}).Error; err != nil {
+	if err := db.AutoMigrate(&User{}, &VerificationLink{}, &Token{}, &FileOrigin{}, &FileMetadata{}, &FileVersion{}, &ActionLog{}, &PaymentHistory{}).Error; err != nil {
 		log.Fatal(err)
 	}
 	if err := db.Model(&VerificationLink{}).AddUniqueIndex("idx_user_sent_at", "user_id", "sent_at").Error; err != nil {
 		log.Fatal(err)
 	}
+
 	if err := db.Model(&User{}).AddUniqueIndex("idx_email", "email").Error; err != nil {
+		log.Fatal(err)
+	}
+
+	if err := db.Model(&User{}).AddUniqueIndex("idx_payment_id", "payment_id").Error; err != nil {
 		log.Fatal(err)
 	}
 
@@ -65,7 +71,7 @@ func sendVerificationLink(db *gorm.DB, verificationLink *VerificationLink) error
 		return err
 	}
 	err := sendmail(sendMailConfig{
-		from:    "info@baxx.dev",
+		from:    "jack@baxx.dev",
 		to:      []string{verificationLink.Email},
 		subject: "Please verify your email",
 		body: fmt.Sprintf(
@@ -94,12 +100,12 @@ baxx.dev
 	return nil
 }
 
-func sendRegistrationHelp(email, secret, tokenrw, tokenwo string) error {
+func sendRegistrationHelp(paymentID, email, secret, tokenrw, tokenwo string) error {
 	err := sendmail(sendMailConfig{
-		from:    "info@baxx.dev",
+		from:    "jack@baxx.dev",
 		to:      []string{email},
 		subject: "Welcome to baxx.dev!",
-		body:    help.AfterRegistration(email, secret, tokenrw, tokenwo),
+		body:    help.AfterRegistration(paymentID, email, secret, tokenrw, tokenwo),
 	})
 	return err
 }
@@ -108,6 +114,7 @@ func main() {
 	var pbind = flag.String("bind", "127.0.0.1:9123", "bind")
 	var proot = flag.String("root", "/tmp", "root")
 	var pdebug = flag.Bool("debug", false, "debug")
+	var psandbox = flag.Bool("sandbox", false, "sandbox")
 	var prelease = flag.Bool("release", false, "release")
 	flag.Parse()
 
@@ -218,7 +225,7 @@ func main() {
 			return
 		}
 
-		if err := sendRegistrationHelp(user.Email, user.SemiSecretID, tokenRW.ID, tokenWO.ID); err != nil {
+		if err := sendRegistrationHelp(user.PaymentID, user.Email, user.SemiSecretID, tokenRW.ID, tokenWO.ID); err != nil {
 			warnErr(c, err)
 		}
 
@@ -226,7 +233,7 @@ func main() {
 			Secret:  user.SemiSecretID,
 			TokenWO: tokenWO.ID,
 			TokenRW: tokenRW.ID,
-			Help:    help.AfterRegistration(user.Email, user.SemiSecretID, tokenRW.ID, tokenWO.ID),
+			Help:    help.AfterRegistration(user.PaymentID, user.Email, user.SemiSecretID, tokenRW.ID, tokenWO.ID),
 		})
 	})
 
@@ -431,10 +438,58 @@ func main() {
 	authorized.POST(mutatePATH, upload)
 	r.POST(mutatePATH, upload)
 
-	authorized.GET("/v1/subscription", func(c *gin.Context) {
-		user := c.MustGet("user").(*User)
-		c.String(http.StatusOK, "https://www.paypal.com/cgi-bin/webscr?cmd=_xclick-subscriptions&business=jack%40sofialondonmoskva.com&a3=5&p3=1&t3=M&item_name=baxx.dev%20backups%20as%20a%20service&item_number=1&return=https%3A%2F%2Fbax.dev%2Fthanks&p1=1&t1=M&src=1&sra=1&no_note=1&no_note=1&currency_code=EUR&lc=US&ify_url=https%3A%2F%2Fbaxx.dev%2Fipn%2F"+
-			user.Seed)
+	ipn.Listener(r, "/ipn/:paymentID", func(c *gin.Context, err error, body string, n *ipn.Notification) error {
+		if err != nil {
+			warnErr(c, err)
+			return nil
+		}
+
+		u := &User{}
+		tx := db.Begin()
+		if err := db.Where("payment_id = ?", c.Param("paymentID")).Take(u).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+		encoded, err := n.JSON()
+		if err != nil {
+			warnErr(c, err)
+			encoded = "{}"
+		}
+
+		ph := &PaymentHistory{
+			UserID: u.ID,
+			IPN:    encoded,
+			IPNRAW: body,
+		}
+
+		if err := tx.Create(ph).Error; err != nil {
+			tx.Rollback()
+			warnErr(c, err)
+			return err
+		}
+
+		now := time.Now()
+		u.PaidSubscription = &now
+		if err := tx.Save(u).Error; err != nil {
+			tx.Rollback()
+			warnErr(c, err)
+			return err
+		}
+		if err := tx.Commit().Error; err != nil {
+			warnErr(c, err)
+			return err
+		}
+
+		return nil
+	})
+
+	r.GET("/v1/sub/:paymentID", func(c *gin.Context) {
+		prefix := "https://www.paypal.com/cgi-bin/webscr"
+		if *psandbox {
+			prefix = "https://ipnpb.sandbox.paypal.com/cgi-bin/webscr"
+		}
+		url := prefix + "?cmd=_xclick-subscriptions&business=jack%40baxx.dev&a3=5&p3=1&t3=M&item_name=baxx.dev+-+backup+as+a+service&return=https%3A%2F%2Fbaxx.dev%2Fthanks_for_paying&a1=0.1&p1=1&t1=M&src=1&sra=1&no_note=1&no_note=1&currency_code=EUR&lc=GB&charset=UTF%2d8¬ify_url=https%3A%2F%2Fbaxx.dev%2Fipn%2F" + c.Param("paymentID")
+		c.Redirect(http.StatusFound, url)
 	})
 
 	r.GET("/v1/verify/:id", func(c *gin.Context) {
