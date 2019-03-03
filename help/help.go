@@ -182,7 +182,7 @@ Delete with WriteOnly token:
 List with WriteOnly token:
  curl -u %s \
    https://baxx.dev/protected/v1/dir/$SECRET/$TOKEN/path/to/
-`, email)
+`, email, email, email, email)
 }
 
 func Token(email string) string {
