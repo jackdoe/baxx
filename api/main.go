@@ -560,7 +560,6 @@ func main() {
 	}
 
 	mutateSinglePATH := "/v1/io/:user_semi_secret_id/:token/*path"
-	mutateManyPATH := "/v1/dir/:user_semi_secret_id/:token/*path"
 
 	authorized.GET(mutateSinglePATH, download)
 	r.GET(mutateSinglePATH, download)
@@ -571,8 +570,11 @@ func main() {
 	authorized.DELETE(mutateSinglePATH, deleteFile)
 	r.DELETE(mutateSinglePATH, deleteFile)
 
-	authorized.GET(mutateManyPATH, listFiles)
-	r.GET(mutateManyPATH, listFiles)
+	for _, a := range []string{"dir", "ls"} {
+		mutateManyPATH := "/v1/" + a + "/:user_semi_secret_id/:token/*path"
+		authorized.GET(mutateManyPATH, listFiles)
+		r.GET(mutateManyPATH, listFiles)
+	}
 
 	ipn.Listener(r, "/ipn/:paymentID", func(c *gin.Context, err error, body string, n *ipn.Notification) error {
 		if err != nil {

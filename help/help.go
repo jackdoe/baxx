@@ -167,9 +167,10 @@ File Delete:
  curl -XDELETE https://baxx.dev/v1/io/$SECRET/$TOKEN/path/to/file
 
 List Files in path LIKE /path/to%:
- curl https://baxx.dev/v1/dir/$SECRET/$TOKEN/path/to/
+ curl https://baxx.dev/v1/ls/$SECRET/$TOKEN/path/to/
  use -H "Accept: application/json" if you want json back
  by default it prints human readable text
+
 
 WriteOnly tokens require BasicAuth and /protected prefix.
 
@@ -183,7 +184,7 @@ Delete with WriteOnly token:
 
 List with WriteOnly token:
  curl -u %s \
-   https://baxx.dev/protected/v1/dir/$SECRET/$TOKEN/path/to/
+   https://baxx.dev/protected/v1/ls/$SECRET/$TOKEN/path/to/
 `, email, email, email, email)
 }
 
