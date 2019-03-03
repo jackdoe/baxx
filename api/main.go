@@ -551,15 +551,18 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		if strings.HasPrefix(c.Request.RequestURI, "/v1/ls") {
-			c.String(http.StatusOK, LSAL(files))
-		} else {
-			c.JSON(http.StatusOK, files)
+
+		for _, accepted := range c.Accepted {
+			if accepted == "application/json" {
+				c.JSON(http.StatusOK, files)
+				return
+			}
 		}
+		c.String(http.StatusOK, LSAL(files))
 	}
 
 	mutateSinglePATH := "/v1/io/:user_semi_secret_id/:token/*path"
-	mutateManyPATH := "/v1/{dir,ls}/:user_semi_secret_id/:token/*path"
+	mutateManyPATH := "/v1/dir/:user_semi_secret_id/:token/*path"
 
 	authorized.GET(mutateSinglePATH, download)
 	r.GET(mutateSinglePATH, download)

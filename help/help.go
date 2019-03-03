@@ -168,10 +168,8 @@ File Delete:
 
 List Files in path LIKE /path/to%:
  curl https://baxx.dev/v1/dir/$SECRET/$TOKEN/path/to/
- dir returns json
-
- curl https://baxx.dev/v1/ls/$SECRET/$TOKEN/path/to/'
- ls returns human readable
+ use -H "Accept: application/json" if you want json back
+ by default it prints human readable text
 
 WriteOnly tokens require BasicAuth and /protected prefix.
 
