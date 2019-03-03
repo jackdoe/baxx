@@ -226,6 +226,7 @@ API Error:
 
 please contact help@baxx.dev if it persists`, err.Error()))
 		} else {
+
 			popup("SUCCESS", "[Exit]", u.Help)
 		}
 	})

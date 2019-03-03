@@ -55,10 +55,11 @@ type UserStatusOutput struct {
 }
 
 type CreateUserOutput struct {
-	Secret  string `json:"secret"`
-	TokenWO string `json:"token_wo"`
-	TokenRW string `json:"token_rw"`
-	Help    string `json:"help"`
+	Secret    string `json:"secret"`
+	TokenWO   string `json:"token_wo"`
+	TokenRW   string `json:"token_rw"`
+	PaymentID string `json:"token_rw"`
+	Help      string `json:"help"`
 }
 
 type DeleteToken struct {

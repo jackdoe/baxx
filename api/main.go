@@ -176,7 +176,7 @@ func main() {
 		// useful for scripts i guess (probably wrong)
 		u, exists, err := FindUser(db, json.Email, json.Password)
 		if err == nil {
-			c.JSON(http.StatusOK, &CreateUserOutput{Secret: u.SemiSecretID, TokenWO: "", TokenRW: ""})
+			c.JSON(http.StatusOK, &CreateUserOutput{Secret: u.SemiSecretID, TokenWO: "", TokenRW: "", PaymentID: u.PaymentID})
 			return
 		}
 
@@ -230,10 +230,11 @@ func main() {
 		}
 
 		c.JSON(http.StatusOK, &CreateUserOutput{
-			Secret:  user.SemiSecretID,
-			TokenWO: tokenWO.ID,
-			TokenRW: tokenRW.ID,
-			Help:    help.AfterRegistration(user.PaymentID, user.Email, user.SemiSecretID, tokenRW.ID, tokenWO.ID),
+			Secret:    user.SemiSecretID,
+			TokenWO:   tokenWO.ID,
+			TokenRW:   tokenRW.ID,
+			PaymentID: user.PaymentID,
+			Help:      help.AfterRegistration(user.PaymentID, user.Email, user.SemiSecretID, tokenRW.ID, tokenWO.ID),
 		})
 	})
 
