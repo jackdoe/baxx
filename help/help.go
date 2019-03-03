@@ -110,16 +110,16 @@ Why charging during alpha:
 
   Because I want to see if someone really cares about this.
   Lets work together to make usable backup as a service!
-  
+
 
 What:
 
   baxx.dev is a simple backup as a service with unix philosophy
   in mind
 
-  tackling what is fundamental problem with backups: 
-   * anomaly detection 
-   * notifications 
+  tackling what is fundamental problem with backups:
+   * anomaly detection
+   * notifications
    * alerts
 
   and not storage availability, if someone tells you 99.9999%
@@ -156,16 +156,26 @@ Cost:
 
 func Backup(email string) string {
 	return fmt.Sprintf(`
-Backup: 
+Backup:
  cat path/to/file | curl --data-binary @- \
    https://baxx.dev/v1/io/$SECRET/$TOKEN/path/to/file
 
-Restore: 
+Restore:
  curl https://baxx.dev/v1/io/$SECRET/$TOKEN/path/to/file > file
 
-Restore from WriteOnly token: 
+List Files in path LIKE /path/to%:
+ curl https://baxx.dev/v1/dir/$SECRET/$TOKEN/path/to/
+
+WriteOnly tokens require BasicAuth and /protected prefix.
+
+Restore from WriteOnly token:
  curl -u %s \
    https://baxx.dev/protected/v1/io/$SECRET/$TOKEN/path/to/file
+
+List with WriteOnly token:
+ curl -u %s \
+   https://baxx.dev/protected/v1/dir/$SECRET/$TOKEN/path/to/
+
 `, email)
 }
 
@@ -188,9 +198,9 @@ Create New Tokens:
  curl -u %s -d '{"write_only":false, "keep_n_versions":7}' \
    https://baxx.dev/protected/v1/create/token
 
-write_only: 
+write_only:
  tokens can only add but not get files (without password)
-keep_n_versions: 
+keep_n_versions:
  How many versions per file (with different sha256) to keep.
  Useful for database or modified files archives like, e.g:
  mysqldump | curl curl --data-binary @- \
@@ -231,7 +241,7 @@ func Intro() string {
 Storage 10G
 Trial 1 Month 0.1E
 Subscription: 5E per Month
-Availability: ALPHA 
+Availability: ALPHA
   Here be Dragons! Data can be lost.
   Refunds in case everything burns down.
 `
@@ -241,7 +251,7 @@ func AfterRegistration(payment, email, secret, tokenrw, tokenwo string) string {
 	return fmt.Sprintf(`
 
 %s
-Subscription URL (redirects to paypal.com): 
+Subscription URL (redirects to paypal.com):
 
   https://baxx.dev/v1/sub/%s
 
@@ -269,7 +279,7 @@ GDPR
 
 %s
 
-Help: 
+Help:
  curl https://baxx.dev/v1/help [ not ready yet ]
  ssh help@baxx.dev [ not ready yet ]
  email jack@baxx.dev

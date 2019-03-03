@@ -18,7 +18,7 @@ import (
 )
 
 type FileOrigin struct {
-	ID     uint64 `gorm:"primary_key" json:"id"`
+	ID     uint64 `gorm:"primary_key" json:"-"`
 	Size   uint64 `gorm:"not null" json:"size"`
 	SHA256 string `gorm:"not null" json:"sha"`
 
@@ -38,7 +38,7 @@ type FileMetadata struct {
 	Path      string    `gorm:"not null" json:"path"`
 	Filename  string    `gorm:"not null" json:"filename"`
 	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"-"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type FileVersion struct {
