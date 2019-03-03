@@ -254,8 +254,10 @@ func main() {
 	authorized.POST("/v1/status", func(c *gin.Context) {
 		user := c.MustGet("user").(*User)
 		c.JSON(http.StatusOK, &UserStatusOutput{
-			EmailVerified:    user.EmailVerified,
-			PaidSubscription: user.PaidSubscription,
+			EmailVerified:         user.EmailVerified,
+			StartedSubscription:   user.StartedSubscription,
+			CancelledSubscription: user.CancelledSubscription,
+			Paid: user.Paid(),
 		})
 	})
 
@@ -393,8 +395,8 @@ func main() {
 			return nil, nil, err
 		}
 
-		if u.PaidSubscription == nil {
-			err = errors.New("payment not received yet, go to https://baxx.dev/v1/sub/" + u.PaymentID + " or if you already did, contact me at jack@baxx.dev")
+		if !u.Paid() {
+			err = errors.New("payment not received yet or subscription is cancelled, go to https://baxx.dev/v1/sub/" + u.PaymentID + " or if you already did, contact me at jack@baxx.dev")
 			return nil, nil, err
 		}
 
@@ -481,7 +483,16 @@ func main() {
 		}
 
 		now := time.Now()
-		u.PaidSubscription = &now
+		if n.TxnType == "subscr_signup" {
+			u.StartedSubscription = &now
+			u.CancelledSubscription = nil
+		} else if n.TxnType == "subscr_cancel" {
+			u.CancelledSubscription = &now
+		} else {
+			log.Warnf("unknown txn type, ignoring: %s", n.TxnType)
+			// not sure what to do, just ignore
+		}
+
 		if err := tx.Save(u).Error; err != nil {
 			tx.Rollback()
 			warnErr(c, err)

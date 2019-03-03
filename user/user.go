@@ -45,18 +45,31 @@ type VerificationLink struct {
 }
 
 type User struct {
-	ID               uint64     `gorm:"primary_key" json:"-"`
-	SemiSecretID     string     `gorm:"not null" json:"secret"`
-	Seed             string     `gorm:"not null" json:"-"`
-	PaymentID        string     `gorm:"not null" json:"-"`
-	Email            string     `gorm:"not null" json:"-"`
-	EmailVerified    *time.Time `json:"-"`
-	PaidSubscription *time.Time `json:"-"`
-	HashedPassword   string     `gorm:"not null" json:"-"`
-	CreatedAt        time.Time  `json:"-"`
-	UpdatedAt        time.Time  `json:"-"`
+	ID                    uint64     `gorm:"primary_key" json:"-"`
+	SemiSecretID          string     `gorm:"not null" json:"secret"`
+	Seed                  string     `gorm:"not null" json:"-"`
+	PaymentID             string     `gorm:"not null" json:"-"`
+	Email                 string     `gorm:"not null" json:"-"`
+	EmailVerified         *time.Time `json:"-"`
+	StartedSubscription   *time.Time `json:"-"`
+	CancelledSubscription *time.Time `json:"-"`
+	HashedPassword        string     `gorm:"not null" json:"-"`
+	CreatedAt             time.Time  `json:"-"`
+	UpdatedAt             time.Time  `json:"-"`
 }
 
+func (user *User) Paid() bool {
+	if user.StartedSubscription == nil {
+		return false
+	}
+	if user.CancelledSubscription == nil {
+		return true
+	}
+
+	delta := user.CancelledSubscription.Sub(*user.StartedSubscription)
+	return delta.Hours() < (24 * 30)
+
+}
 func (user *User) GenerateVerificationLink() *VerificationLink {
 	return &VerificationLink{
 		ID:     getUUID(),
