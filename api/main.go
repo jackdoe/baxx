@@ -551,12 +551,10 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-
-		for _, accepted := range c.Accepted {
-			if accepted == "application/json" {
-				c.JSON(http.StatusOK, files)
-				return
-			}
+		accepted := c.NegotiateFormat("application/json")
+		if accepted == "application/json" {
+			c.JSON(http.StatusOK, files)
+			return
 		}
 		c.String(http.StatusOK, LSAL(files))
 	}
