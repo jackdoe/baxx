@@ -48,7 +48,8 @@ type ChangeSecretOutput struct {
 }
 
 type UserStatusOutput struct {
-	EmailVerified *time.Time `json:"email_verified"`
+	EmailVerified    *time.Time `json:"email_verified"`
+	PaidSubscription *time.Time `json:"paid_subscription"`
 }
 
 type CreateUserOutput struct {

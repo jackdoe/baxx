@@ -254,7 +254,8 @@ func main() {
 	authorized.POST("/v1/status", func(c *gin.Context) {
 		user := c.MustGet("user").(*User)
 		c.JSON(http.StatusOK, &UserStatusOutput{
-			EmailVerified: user.EmailVerified,
+			EmailVerified:    user.EmailVerified,
+			PaidSubscription: user.PaidSubscription,
 		})
 	})
 
