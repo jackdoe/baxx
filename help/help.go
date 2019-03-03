@@ -269,7 +269,7 @@ GDPR
 
 Help: 
  curl https://baxx.dev/v1/help [ not ready yet ]
- ssh jack@baxx.dev [ not ready yet ]
+ ssh help@baxx.dev [ not ready yet ]
  email jack@baxx.dev
 `, Intro(), payment, secret, tokenrw, tokenwo, Backup(email), Token(email), Register(email), TermsAndConditions(), GDPR())
 }
