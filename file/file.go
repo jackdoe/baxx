@@ -18,9 +18,9 @@ import (
 )
 
 type FileOrigin struct {
-	ID     uint64 `gorm:"primary_key"`
-	Size   uint64 `gorm:"not null"`
-	SHA256 string `gorm:"not null"`
+	ID     uint64 `gorm:"primary_key" json:"id"`
+	Size   uint64 `gorm:"not null" json:"size"`
+	SHA256 string `gorm:"not null" json:"sha"`
 
 	CreatedAt time.Time `json:"-"`
 	UpdatedAt time.Time `json:"-"`
@@ -31,24 +31,23 @@ func (fo *FileOrigin) FSPath() string {
 }
 
 type FileMetadata struct {
-	ID uint64 `gorm:"primary_key"`
+	ID uint64 `gorm:"primary_key" json:"-"`
 
-	UserID   uint64 `gorm:"not null"`
-	TokenID  string `gorm:"not null"`
-	Path     string `gorm:"not null"`
-	Filename string `gorm:"not null"`
-
-	CreatedAt time.Time `json:"-"`
+	UserID    uint64    `gorm:"not null" json:"-"`
+	TokenID   string    `gorm:"not null" json:"-"`
+	Path      string    `gorm:"not null" json:"path"`
+	Filename  string    `gorm:"not null" json:"filename"`
+	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"-"`
 }
 
 type FileVersion struct {
-	ID             uint64 `gorm:"primary_key"`
-	FileMetadataID uint64 `gorm:"not null" json:"-"`
-	FileOriginID   uint64 `gorm:"not null" json:"-"`
-
-	CreatedAt time.Time `json:"-"`
-	UpdatedAt time.Time `json:"-"`
+	ID             uint64     `gorm:"primary_key"`
+	FileMetadataID uint64     `gorm:"not null" json:"-"`
+	FileOriginID   uint64     `gorm:"not null" json:"-"`
+	FileOrigin     FileOrigin `json:"origin"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"-"`
 }
 
 func split(s string) (string, string) {
@@ -124,28 +123,100 @@ func decompressAndDecrypt(key string, r io.Reader) (io.Reader, error) {
 	// or if someone steals the data
 }
 
-func FindFile(db *gorm.DB, t *Token, p string) (*FileOrigin, error) {
+func DeleteFile(db *gorm.DB, t *Token, p string) error {
+	tx := db.Begin()
+	_, fm, _, err := FindFile(tx, t, p)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	versions, err := ListVersionsFile(tx, t, p)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	removeFiles := []string{}
+	// go and delete all versions
+
+	for _, rm := range versions {
+		conflicts := 0
+		if err := tx.Model(FileVersion{}).Where("file_origin_id = ? AND file_metadata_id != ?", rm.FileOriginID, rm.FileMetadataID).Count(&conflicts).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+		// delete the origin
+		if conflicts == 0 {
+			toBeDeleted := &FileOrigin{}
+			if err := tx.Where("ID = ?", rm.FileOriginID).Take(&toBeDeleted).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+			if t.SizeUsed >= toBeDeleted.Size {
+				t.SizeUsed -= toBeDeleted.Size
+			}
+
+			if err := tx.Delete(toBeDeleted).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+
+			removeFiles = append(removeFiles, toBeDeleted.FSPath())
+		}
+
+		// delete the version
+		if err := tx.Delete(rm).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// delete the metadata
+	if err := tx.Delete(fm).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Save(t).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// goooo
+	if err := tx.Commit().Error; err != nil {
+		return err
+	}
+
+	for _, f := range removeFiles {
+		log.Printf("removing %s, because of file delete operation", f)
+		os.Remove(f)
+	}
+	return nil
+
+}
+
+func FindFile(db *gorm.DB, t *Token, p string) (*FileOrigin, *FileMetadata, *FileVersion, error) {
 	dir, name := split(p)
 	fm := &FileMetadata{}
 	if err := db.Where("user_id = ? AND token_id = ? AND filename = ? AND path = ?", t.UserID, t.ID, name, dir).Take(fm).Error; err != nil {
-		return nil, err
+		return nil, nil, nil, err
 
 	}
 	fv := &FileVersion{}
 	if err := db.Where("file_metadata_id = ?", fm.ID).Last(fv).Error; err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
 	fo := &FileOrigin{}
 	if err := db.Where("id = ?", fv.FileOriginID).Take(fo).Error; err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
-	return fo, nil
+	return fo, fm, fv, nil
 }
 
 func FindAndOpenFile(db *gorm.DB, t *Token, p string) (*FileOrigin, *os.File, io.Reader, error) {
-	fo, err := FindFile(db, t, p)
+	fo, _, _, err := FindFile(db, t, p)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -162,6 +233,32 @@ func FindAndOpenFile(db *gorm.DB, t *Token, p string) (*FileOrigin, *os.File, io
 	return fo, file, reader, nil
 
 }
+
+type FileMetadataAndVersion struct {
+	FileMetadata *FileMetadata
+	Versions     []*FileVersion
+}
+
+func ListFilesInPath(db *gorm.DB, t *Token, p string) ([]FileMetadataAndVersion, error) {
+	dir, _ := split(p)
+	metadata := []*FileMetadata{}
+	if err := db.Where("user_id = ? AND token_id = ? AND path like ?", t.UserID, t.ID, dir+"%").Order("id").Find(&metadata).Error; err != nil {
+		return nil, err
+	}
+
+	out := []FileMetadataAndVersion{}
+
+	for _, fm := range metadata {
+		versions := []*FileVersion{}
+		if err := db.Preload("FileOrigin").Where("file_metadata_id = ?", fm.ID).Order("id").Find(&versions).Error; err != nil {
+			return nil, err
+		}
+		out = append(out, FileMetadataAndVersion{fm, versions})
+	}
+
+	return out, nil
+}
+
 func ListVersionsFile(db *gorm.DB, t *Token, p string) ([]*FileVersion, error) {
 	dir, name := split(p)
 	fm := &FileMetadata{}
@@ -219,7 +316,7 @@ func SaveFile(db *gorm.DB, t *Token, body io.Reader, p string) (*FileVersion, er
 		return nil, err
 	}
 
-	limit := int(t.NumberOfArchives + 1)
+	limit := int(t.NumberOfArchives)
 	removeFiles := []string{}
 	if len(versions) > limit {
 		toDelete := versions[0:(len(versions) - limit)]

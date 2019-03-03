@@ -57,7 +57,7 @@ func initDatabase(db *gorm.DB) {
 		log.Fatal(err)
 	}
 
-	if err := db.Model(&FileMetadata{}).AddUniqueIndex("idx_fm_user_id_token_id_path", "user_id", "token_id", "path", "filename").Error; err != nil {
+	if err := db.Model(&FileMetadata{}).AddUniqueIndex("idx_fm_user_id_token_id_path_2", "user_id", "token_id", "path", "filename").Error; err != nil {
 		log.Fatal(err)
 	}
 
@@ -302,6 +302,7 @@ func main() {
 			Secret: user.SemiSecretID,
 		})
 	})
+
 	authorized.POST("/v1/status", func(c *gin.Context) {
 		user := c.MustGet("user").(*User)
 		tokens, err := user.ListTokens(db)
@@ -513,13 +514,61 @@ func main() {
 		c.JSON(http.StatusOK, fv)
 	}
 
-	mutatePATH := "/v1/io/:user_semi_secret_id/:token/*path"
+	deleteFile := func(c *gin.Context) {
+		t, _, err := getViewTokenLoggedOrNot(c)
+		if err != nil {
+			warnErr(c, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 
-	authorized.GET(mutatePATH, download)
-	r.GET(mutatePATH, download)
+		if err := DeleteFile(db, t, c.Param("path")); err != nil {
+			warnErr(c, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 
-	authorized.POST(mutatePATH, upload)
-	r.POST(mutatePATH, upload)
+		actionLog(db, t.UserID, "file", "delete", c.Request, "")
+		c.JSON(http.StatusOK, &Success{true})
+	}
+
+	listFiles := func(c *gin.Context) {
+		t, _, err := getViewTokenLoggedOrNot(c)
+		if err != nil {
+			warnErr(c, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		p := c.Param("path")
+		if !strings.HasSuffix(p, "/") {
+			p = p + "/"
+		}
+
+		files, err := ListFilesInPath(db, t, p)
+		if err != nil {
+			warnErr(c, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, files)
+	}
+
+	mutateSinglePATH := "/v1/io/:user_semi_secret_id/:token/*path"
+	mutateManyPATH := "/v1/dir/:user_semi_secret_id/:token/*path"
+
+	authorized.GET(mutateSinglePATH, download)
+	r.GET(mutateSinglePATH, download)
+
+	authorized.POST(mutateSinglePATH, upload)
+	r.POST(mutateSinglePATH, upload)
+
+	authorized.DELETE(mutateSinglePATH, deleteFile)
+	r.DELETE(mutateSinglePATH, deleteFile)
+
+	authorized.GET(mutateManyPATH, listFiles)
+	r.GET(mutateManyPATH, listFiles)
 
 	ipn.Listener(r, "/ipn/:paymentID", func(c *gin.Context, err error, body string, n *ipn.Notification) error {
 		if err != nil {

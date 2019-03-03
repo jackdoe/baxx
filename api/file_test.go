@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	. "github.com/jackdoe/baxx/common"
 	"github.com/jackdoe/baxx/file"
 	. "github.com/jackdoe/baxx/user"
@@ -52,14 +53,66 @@ func TestFileQuota(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	filePath := "/example/example.txt"
-	body := []byte("a b c d")
 
-	fv, err := file.SaveFile(db, token, bytes.NewBuffer(body), filePath)
+	filePath := "/example/example.txt"
+
+	for i := 0; i < 20; i++ {
+		_, err := file.SaveFile(db, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d %d", i))), filePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	_, err = file.SaveFile(db, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	versions, err := file.ListVersionsFile(db, token, filePath)
+	if len(versions) != 7 {
+		t.Fatalf("expected 7 versions got %d", len(versions))
+	}
+
+	used := getUsed(t, db, user)
+	if used != 77 {
+		t.Fatalf("expected 77 got %d", used)
+	}
+	files, err := file.ListFilesInPath(db, token, "/example/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	log.Printf("%+q", files)
+	if len(files) != 2 {
+		t.Fatalf("expected 2 files got %d", len(files))
+	}
+
+	versions, err = file.ListVersionsFile(db, token, filePath+"second")
+	if len(versions) != 1 {
+		t.Fatalf("expected1 versions got %d", len(versions))
+	}
+
+	err = file.DeleteFile(db, token, filePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	used = getUsed(t, db, user)
+	if used != 7 {
+		t.Fatalf("expected 7 got %d", used)
+	}
+
+	err = file.DeleteFile(db, token, filePath+"second")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	used = getUsed(t, db, user)
+	if used != 0 {
+		t.Fatalf("expected 0 got %d", used)
+	}
+}
+
+func getUsed(t *testing.T, db *gorm.DB, user *User) uint64 {
 	tokens, err := user.ListTokens(db)
 	if err != nil {
 		t.Fatal(err)
@@ -69,8 +122,5 @@ func TestFileQuota(t *testing.T) {
 	for _, t := range tokens {
 		used += t.SizeUsed
 	}
-	if used != 7 {
-		t.Fatalf("expected 7 got %d", used)
-	}
-	log.Printf("%#v %#v used %d", tokens, fv, used)
+	return used
 }
