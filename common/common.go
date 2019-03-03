@@ -56,6 +56,8 @@ type UserStatusOutput struct {
 	Secret                string        `json:"secret"`
 	PaymentID             string        `json:"payment_id"`
 	Tokens                []*user.Token `json:"tokens"`
+	Quota                 uint64        `json:"quota"`
+	QuotaUsed             uint64        `json:"used"`
 }
 
 type CreateUserOutput struct {

@@ -196,6 +196,8 @@ func SaveFile(db *gorm.DB, t *Token, body io.Reader, p string) (*FileVersion, er
 			tx.Rollback()
 			return nil, err
 		}
+		// only count once if file is created
+		t.SizeUsed += fo.Size
 	}
 
 	// create file metadata if we did not create it
@@ -234,6 +236,15 @@ func SaveFile(db *gorm.DB, t *Token, body io.Reader, p string) (*FileVersion, er
 					tx.Rollback()
 					return nil, err
 				}
+				// XXX:
+				// sice we are adding size only if the sha is different,
+				// but the sha can be from some other token, we risk
+				// to have negative used size here, because we the current token
+				// might not be the one that added the file
+
+				if t.SizeUsed >= toBeDeleted.Size {
+					t.SizeUsed -= toBeDeleted.Size
+				}
 
 				if err := tx.Delete(toBeDeleted).Error; err != nil {
 					tx.Rollback()
@@ -247,6 +258,11 @@ func SaveFile(db *gorm.DB, t *Token, body io.Reader, p string) (*FileVersion, er
 				return nil, err
 			}
 		}
+	}
+
+	if err := tx.Save(t).Error; err != nil {
+		tx.Rollback()
+		return nil, err
 	}
 
 	// goooo

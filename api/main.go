@@ -80,7 +80,7 @@ this is the verification link:
 
   https://baxx.dev/v1/verify/%s
 
-you can check the account status with:
+You can check the account status with:
 
   curl -u %s -XPOST https://baxx.dev/protected/v1/status | json_pp
 
@@ -98,6 +98,69 @@ baxx.dev
 		return err
 	}
 	return nil
+}
+
+func sendPaymentThanks(email string) error {
+	err := sendmail(sendMailConfig{
+		from:    "jack@baxx.dev",
+		to:      []string{email},
+		subject: "Thanks for subscribing!",
+		body: fmt.Sprintf(
+			`Hi,
+
+Thanks for subscribing!
+Even though the service is just in alpha state, it is much
+appreciated!
+
+If you want to cancel you have to do that in your paypal account.
+
+
+You can check the account status with:
+
+  curl -u %s -XPOST https://baxx.dev/protected/v1/status | json_pp
+
+--
+baxx.dev
+
+`, email),
+	})
+
+	log.Warnf("failed to send: %s", err.Error())
+
+	return err
+}
+
+func sendPaymentCancelMail(email string, paymentID string) error {
+	err := sendmail(sendMailConfig{
+		from:    "jack@baxx.dev",
+		to:      []string{email},
+		subject: "Subscription cancelled!",
+		body: fmt.Sprintf(
+			`Hi,
+
+We just received subscription cancellation message from paypal.
+You will be able to upload/download backups for 1 more month.
+If you want to renew your subscription go to:
+
+  https://baxx.dev/v1/sub/%s
+
+and you will be redirected to paypal.com.
+
+
+You can check the account status with:
+
+  curl -u %s -XPOST https://baxx.dev/protected/v1/status | json_pp
+
+Thanks for using baxx.dev,
+if you have any feedback please send me an email to jack@baxx.dev.
+
+--
+baxx.dev
+
+`),
+	})
+	log.Warnf("failed to send: %s", err.Error())
+	return err
 }
 
 func sendRegistrationHelp(paymentID, email, secret, tokenrw, tokenwo string) error {
@@ -251,12 +314,19 @@ func main() {
 			return
 		}
 
+		used := uint64(0)
+		for _, t := range tokens {
+			used += t.SizeUsed
+		}
+
 		c.JSON(http.StatusOK, &UserStatusOutput{
 			EmailVerified:         user.EmailVerified,
 			StartedSubscription:   user.StartedSubscription,
 			CancelledSubscription: user.CancelledSubscription,
 			Tokens:                tokens,
 			Secret:                user.SemiSecretID,
+			Quota:                 user.Quota,
+			QuotaUsed:             used,
 			Paid:                  user.Paid(),
 		})
 	})
@@ -458,9 +528,15 @@ func main() {
 			warnErr(c, err)
 			return nil
 		}
+		if n.TestIPN && !*psandbox {
+			// received testipn request while not in sandbox mode
+			warnErr(c, errors.New("testIPN received while not in sandbox mode"))
+		}
+
+		// check currency and amount and etc
+		// otherwise anyone can create ipn request with wrong amount :D
 
 		u := &User{}
-
 		if err := db.Where("payment_id = ?", c.Param("paymentID")).Take(u).Error; err != nil {
 			return err
 		}
@@ -482,11 +558,15 @@ func main() {
 		}
 
 		now := time.Now()
+		cancel := false
+		subscribe := false
 		if n.TxnType == "subscr_signup" {
 			u.StartedSubscription = &now
 			u.CancelledSubscription = nil
+			subscribe = true
 		} else if n.TxnType == "subscr_cancel" {
 			u.CancelledSubscription = &now
+			cancel = true
 		} else {
 			log.Warnf("unknown txn type, ignoring: %s", n.TxnType)
 			// not sure what to do, just ignore
@@ -497,6 +577,11 @@ func main() {
 			return err
 		}
 
+		if cancel {
+			go sendPaymentCancelMail(u.Email, u.PaymentID)
+		} else if subscribe {
+			go sendPaymentThanks(u.Email)
+		}
 		return nil
 	})
 

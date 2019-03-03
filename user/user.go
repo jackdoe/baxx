@@ -49,6 +49,8 @@ type User struct {
 	Seed                  string     `gorm:"not null" json:"-"`
 	PaymentID             string     `gorm:"not null" json:"-"`
 	Email                 string     `gorm:"not null" json:"-"`
+	Quota                 uint64     `gorm:"not null;default:10737418240" json:"quota"`
+	QuotaUsed             uint64     `gorm:"not null;default:0" json:"quota_used"`
 	EmailVerified         *time.Time `json:"-"`
 	StartedSubscription   *time.Time `json:"-"`
 	CancelledSubscription *time.Time `json:"-"`
@@ -120,6 +122,7 @@ type Token struct {
 	UserID           uint64 `gorm:"not null" json:"-"`
 	WriteOnly        bool   `gorm:"not null" json:"write_only"`
 	NumberOfArchives uint64 `gorm:"not null" json:"number_of_archives"`
+	SizeUsed         uint64 `gorm:"not null;default:0" json:"size_used"`
 	CreatedAt        time.Time
 	UpdatedAt        time.Time `json:"-"`
 }

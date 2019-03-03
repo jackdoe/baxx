@@ -1,12 +1,12 @@
 * payments
  + setup paypal ( jack@baxx.dev ) [ done Sun  3 Mar 14:13:14 CET 2019]
 
-
 * send emails
  + after registration [ done Sat  2 Mar 23:11:08 CET 2019 ]
  + setup mail verification [ done Sat  2 Mar 23:11:08 CET 2019 ]
  + after subscription
- + on quota reach
+ + on quota reach 80%
+ + use queue to make sure emails are sent
 
 * files
  + delete api
