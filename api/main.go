@@ -681,23 +681,23 @@ func main() {
 		if time.Now().Unix()-int64(v.SentAt) > (24 * 3600) {
 			tx.Rollback()
 			warnErr(c, errors.New(fmt.Sprintf("verification link expired %#v", v)))
-			c.String(http.StatusOK, `Oops, verification link has expired!
+			c.String(http.StatusOK, fmt.Sprintf(`Oops, verification link has expired!
 
 You can generate new one with:
 
  curl -u your.current.email@example.com \
-  -XPOST -d'{"new_email": "your.current.email@example.com"}' \
+  -XPOST -d'{"new_email": "%s"}' \
   https://baxx.dev/protected/v1/replace/email
 
 The verification links are valid for 24 hours,
 You can check your account status at:
 
-  curl -u your.current.email@example.com -XPOST https://baxx.dev/protected/v1/status
+  curl -u %s -XPOST https://baxx.dev/protected/v1/status
 
 If something is wrong, please contact me at help@baxx.dev.
 
 Thanks!
-`)
+`, v.Email, v.Email))
 			return
 
 		}
@@ -740,14 +740,14 @@ If you don't receive new link please contact me at help@baxx.dev!
 			wrong(err)
 		}
 
-		c.String(http.StatusOK, `Thanks!
+		c.String(http.StatusOK, fmt.Sprintf(`Thanks!
 The email is verified now!
 
 You can check your account status at:
 
-  curl -u your.current.email@example.com -XPOST https://baxx.dev/protected/v1/status
+  curl -u %s -XPOST https://baxx.dev/protected/v1/status
 
-`)
+`, v.Email))
 	})
 
 	r.Run(*pbind)
