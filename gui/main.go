@@ -318,7 +318,7 @@ func postRegistration(ui tui.UI, bc *baxx.Client, email, pass string) *tui.Box {
 	})
 
 	go func() {
-		spinner := []string{"(*----)", "(-*---)", "(--*--)", "(---*-)", "(----*)"}
+		spinner := []string{"/", "-", "\\", "|"}
 		i := 0
 		for {
 			cb := <-work
