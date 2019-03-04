@@ -149,9 +149,9 @@ baxx.dev
 
 `, email),
 	})
-
-	log.Warnf("failed to send: %s", err.Error())
-
+	if err != nil {
+		log.Warnf("failed to send: %s", err.Error())
+	}
 	return err
 }
 
@@ -184,7 +184,9 @@ baxx.dev
 
 `, paymentID, email),
 	})
-	log.Warnf("failed to send: %s", err.Error())
+	if err != nil {
+		log.Warnf("failed to send: %s", err.Error())
+	}
 	return err
 }
 
