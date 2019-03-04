@@ -147,7 +147,7 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 	)
 
 	window := tui.NewVBox(
-		tui.NewPadder(10, 1, tui.NewLabel(logo)),
+		tui.NewPadder(1, 1, tui.NewLabel(logo)),
 		tui.NewPadder(1, 0, tui.NewLabel(bhelp.Intro())),
 		tui.NewPadder(1, 1, form),
 		tui.NewPadder(1, 0, tui.NewLabel("Registering means you agree with\nthe terms of service!")),
