@@ -1,8 +1,7 @@
 package help
 
 func TermsAndConditions() string {
-	return `
-By purchasing, registering for, or using the “Baxx” services (the
+	return `By purchasing, registering for, or using the “Baxx” services (the
   “Services”) you ("referred in the document as "you", "customer",
   "subscriber", "client") enter into a contract with Borislav Nikolov
   Amsterdam, The Netherlands (also referred in the document as "baxx",
