@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +11,11 @@ import (
 	"net/http"
 	"strings"
 )
+
+func basicAuth(username, password string) string {
+	auth := username + ":" + password
+	return base64.StdEncoding.EncodeToString([]byte(auth))
+}
 
 type Client struct {
 	h      *http.Client
@@ -24,7 +30,7 @@ func NewClient(h *http.Client, base string, status chan string) *Client {
 	return &Client{h: h, base: base, status: status}
 }
 
-func (c *Client) query(path string, req interface{}, dest interface{}) error {
+func (c *Client) query(path string, user string, pass string, req interface{}, dest interface{}) error {
 	comm := func(msg ...string) {
 		if c.status != nil {
 			c.status <- fmt.Sprintf("query %s %s", path, strings.Join(msg, " "))
@@ -44,7 +50,16 @@ func (c *Client) query(path string, req interface{}, dest interface{}) error {
 		url = fmt.Sprintf("%s/%s", url, path)
 	}
 
-	resp, err := c.h.Post(url, "application/json", bytes.NewBuffer(encoded))
+	httpreq, err := http.NewRequest("POST", url, bytes.NewBuffer(encoded))
+	if user != "" {
+		httpreq.SetBasicAuth(user, pass)
+	}
+
+	if err != nil {
+		comm("error", err.Error())
+		return err
+	}
+	resp, err := c.h.Do(httpreq)
 	if err != nil {
 		comm("error", err.Error())
 		return err
@@ -78,6 +93,18 @@ func (c *Client) query(path string, req interface{}, dest interface{}) error {
 
 func (c *Client) Register(input *CreateUserInput) (*CreateUserOutput, error) {
 	out := &CreateUserOutput{}
-	err := c.query("v1/register", input, out)
+	err := c.query("v1/register", "", "", input, out)
+	return out, err
+}
+
+func (c *Client) Status(input *CreateUserInput) (*UserStatusOutput, error) {
+	out := &UserStatusOutput{}
+	err := c.query("protected/v1/status", input.Email, input.Password, map[string]string{}, out)
+	return out, err
+}
+
+func (c *Client) ReplaceEmail(input *CreateUserInput, newEmail string) (*UserStatusOutput, error) {
+	out := &UserStatusOutput{}
+	err := c.query("protected/v1/replace/email", input.Email, input.Password, ChangeEmailInput{NewEmail: newEmail}, out)
 	return out, err
 }

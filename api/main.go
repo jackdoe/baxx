@@ -66,6 +66,31 @@ func initDatabase(db *gorm.DB) {
 	}
 }
 
+func getUserStatus(db *gorm.DB, user *User) (*UserStatusOutput, error) {
+	tokens, err := user.ListTokens(db)
+	if err != nil {
+		return nil, err
+	}
+
+	used := uint64(0)
+	for _, t := range tokens {
+		used += t.SizeUsed
+	}
+
+	return &UserStatusOutput{
+		EmailVerified:         user.EmailVerified,
+		StartedSubscription:   user.StartedSubscription,
+		CancelledSubscription: user.CancelledSubscription,
+		Tokens:                tokens,
+		Secret:                user.SemiSecretID,
+		Quota:                 user.Quota,
+		QuotaUsed:             used,
+		Paid:                  user.Paid(),
+		PaymentID:             user.PaymentID,
+		Email:                 user.Email,
+	}, nil
+}
+
 func sendVerificationLink(db *gorm.DB, verificationLink *VerificationLink) error {
 	if err := db.Save(verificationLink).Error; err != nil {
 		return err
@@ -163,17 +188,17 @@ baxx.dev
 	return err
 }
 
-func sendRegistrationHelp(paymentID, email, secret, tokenrw, tokenwo string) error {
+func sendRegistrationHelp(status *UserStatusOutput) error {
 	err := sendmail(sendMailConfig{
 		from:    "jack@baxx.dev",
-		to:      []string{email},
+		to:      []string{status.Email},
 		subject: "Welcome to baxx.dev!",
-		body:    help.AfterRegistration(paymentID, email, secret, tokenrw, tokenwo),
+		body:    help.EmailAfterRegistration(status),
 	})
 	return err
 }
 
-func registerUser(db *gorm.DB, json CreateUserInput) (*CreateUserOutput, *User, error) {
+func registerUser(db *gorm.DB, json CreateUserInput) (*UserStatusOutput, *User, error) {
 	if err := ValidatePassword(json.Password); err != nil {
 		return nil, nil, err
 	}
@@ -216,18 +241,16 @@ func registerUser(db *gorm.DB, json CreateUserInput) (*CreateUserOutput, *User, 
 	if err := db.Create(tokenRW).Error; err != nil {
 		return nil, nil, err
 	}
+	status, err := getUserStatus(db, user)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	if err := sendRegistrationHelp(user.PaymentID, user.Email, user.SemiSecretID, tokenRW.ID, tokenWO.ID); err != nil {
+	if err := sendRegistrationHelp(status); err != nil {
 		log.Warnf("failed to send email, ignoring error and moving on,  %s", err.Error())
 	}
 
-	return &CreateUserOutput{
-		Secret:    user.SemiSecretID,
-		TokenRW:   tokenRW.ID,
-		TokenWO:   tokenWO.ID,
-		PaymentID: user.PaymentID,
-		Help:      help.AfterRegistration(user.PaymentID, user.Email, user.SemiSecretID, tokenRW.ID, tokenWO.ID),
-	}, user, nil
+	return status, user, nil
 }
 
 func main() {
@@ -305,29 +328,13 @@ func main() {
 
 	authorized.POST("/v1/status", func(c *gin.Context) {
 		user := c.MustGet("user").(*User)
-		tokens, err := user.ListTokens(db)
+		status, err := getUserStatus(db, user)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-
-		used := uint64(0)
-		for _, t := range tokens {
-			used += t.SizeUsed
-		}
-
-		c.JSON(http.StatusOK, &UserStatusOutput{
-			EmailVerified:         user.EmailVerified,
-			StartedSubscription:   user.StartedSubscription,
-			CancelledSubscription: user.CancelledSubscription,
-			Tokens:                tokens,
-			Secret:                user.SemiSecretID,
-			Quota:                 user.Quota,
-			QuotaUsed:             used,
-			Paid:                  user.Paid(),
-			PaymentID:             user.PaymentID,
-		})
+		c.JSON(http.StatusOK, status)
 	})
 
 	authorized.POST("/v1/replace/password", func(c *gin.Context) {

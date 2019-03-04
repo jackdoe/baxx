@@ -5,6 +5,7 @@ import (
 	"fmt"
 	. "github.com/jackdoe/baxx/common"
 	"github.com/jackdoe/baxx/file"
+	"github.com/jackdoe/baxx/help"
 	. "github.com/jackdoe/baxx/user"
 	"github.com/jinzhu/gorm"
 	"io/ioutil"
@@ -35,6 +36,8 @@ func TestFileQuota(t *testing.T) {
 	defer db.Close()
 	initDatabase(db)
 	status, user, err := registerUser(db, CreateUserInput{Email: "jack@prymr.nl", Password: " abcabcabc"})
+	log.Printf(help.EmailAfterRegistration(status))
+
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +52,7 @@ func TestFileQuota(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	token, _, err := FindToken(db, user.SemiSecretID, status.TokenRW)
+	token, _, err := FindToken(db, user.SemiSecretID, status.Tokens[0].ID)
 	if err != nil {
 		t.Fatal(err)
 	}
