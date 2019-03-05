@@ -16,6 +16,7 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -276,9 +277,10 @@ func LSAL(files []FileMetadataAndVersion) string {
 }
 
 func ListFilesInPath(db *gorm.DB, t *Token, p string) ([]FileMetadataAndVersion, error) {
-	dir, _ := split(p)
 	metadata := []*FileMetadata{}
-	if err := db.Where("user_id = ? AND token_id = ? AND path like ?", t.UserID, t.ID, dir+"%").Order("id").Find(&metadata).Error; err != nil {
+	p = strings.TrimSuffix(p, "/")
+
+	if err := db.Where("user_id = ? AND token_id = ? AND path like ?", t.UserID, t.ID, p+"%").Order("id").Find(&metadata).Error; err != nil {
 		return nil, err
 	}
 
