@@ -431,7 +431,7 @@ func main() {
 		defer file.Close()
 		c.Header("Content-Length", fmt.Sprintf("%d", fo.Size))
 		c.Header("Content-Transfer-Encoding", "binary")
-		c.Header("Content-Disposition", "attachment; filename="+fo.SHA256) // make sure people dont use it for loading js
+		c.Header("Content-Disposition", "attachment; filename="+fo.SHA256+".sha") // make sure people dont use it for loading js
 		c.Header("Content-Type", "application/octet-stream")
 		c.DataFromReader(http.StatusOK, int64(fo.Size), "octet/stream", reader, map[string]string{})
 	}
