@@ -87,7 +87,7 @@ Current Tokens:
 
 * List Files in path LIKE /path/to%:
 
- curl https://baxx.dev/v1/ls/$TOKEN/path/to/
+ curl https://baxx.dev/v1/ls/$TOKEN/path/to
 
  use -H "Accept: application/json" if you want json back
  by default it prints human readable text

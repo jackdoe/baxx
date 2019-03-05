@@ -52,6 +52,8 @@
   + baxx.dev/help/v1/io*
   + baxx.dev/help/v1/create/token*
   + baxx.dev/help
-  + move to templates
+  + baxx.dev/v1/help [ done Tue  5 Mar 22:12:29 CET 2019 ]
+  + move to templates [ done Tue  5 Mar 22:12:29 CET 2019 ]
+
 * tests
   there are zero tests at the moment
