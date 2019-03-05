@@ -36,7 +36,8 @@
    - quota info
    - activity info
 
- + generate new secret [ done Sat  2 Mar 16:02:37 CET 2019]
+ + generate new secret
+   [ done Sat  2 Mar 16:02:37 CET 2019]
    (add support for multiple secrets?) [ not now ]
    [ deleted Tue  5 Mar 21:49:48 CET 2019 ]
 
