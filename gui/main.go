@@ -267,7 +267,7 @@ func postRegistration(ui tui.UI, bc *baxx.Client, email, pass string) *tui.Box {
 	chain := &tui.SimpleFocusChain{}
 	chain.Set(help, resend, quit)
 	ui.SetFocusChain(chain)
-
+	stop := make(chan bool, 1)
 	quit.OnActivated(func(b *tui.Button) {
 		ui.Quit()
 	})
@@ -293,6 +293,7 @@ func postRegistration(ui tui.UI, bc *baxx.Client, email, pass string) *tui.Box {
 			subscribed.SetText("Activate at https://baxx.dev/v1/sub/" + status.PaymentID)
 		}
 		if status.Paid && status.EmailVerified != nil {
+			stop <- true
 			popup(ui, content, true, nil, "SUCCESS", "Your account is now ready to be used", "", "", Render(EMAIL_AFTER_REGISTRATION, status))
 		}
 		return nil
@@ -313,18 +314,22 @@ func postRegistration(ui tui.UI, bc *baxx.Client, email, pass string) *tui.Box {
 		spinner := []string{"/", "-", "\\", "|"}
 		i := 0
 		for {
-			cb := <-work
-			err := cb()
-			if err != nil {
-				wait := make(chan bool)
-				popup(ui, content, false, func() { wait <- true }, "ERROR", apiError(err))
+			select {
+			case cb := <-work:
+				err := cb()
+				if err != nil {
+					wait := make(chan bool)
+					popup(ui, content, false, func() { wait <- true }, "ERROR", apiError(err))
+					ui.Update(func() {})
+					<-wait
+				}
+				timer.SetText("Refreshing.. " + spinner[i%len(spinner)])
 				ui.Update(func() {})
-				<-wait
+				time.Sleep(1 * time.Second)
+				i++
+			case <-stop:
+				break
 			}
-			timer.SetText("Refreshing.. " + spinner[i%len(spinner)])
-			ui.Update(func() {})
-			time.Sleep(1 * time.Second)
-			i++
 		}
 	}()
 
