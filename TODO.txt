@@ -35,8 +35,10 @@
    - to show if subscription is acctive [ done Sun  3 Mar 14:13:14 CET 2019 ]
    - quota info
    - activity info
+
  + generate new secret [ done Sat  2 Mar 16:02:37 CET 2019]
    (add support for multiple secrets?) [ not now ]
+   [ deleted Tue  5 Mar 21:49:48 CET 2019 ]
 
 * gui (can make it like midnight commander)
  + manage tokens
@@ -50,6 +52,6 @@
   + baxx.dev/help/v1/io*
   + baxx.dev/help/v1/create/token*
   + baxx.dev/help
-
+  + move to templates
 * tests
   there are zero tests at the moment

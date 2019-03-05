@@ -44,29 +44,16 @@ func ValidatePassword(p string) error {
 	return nil
 }
 
-type ChangeSecretOutput struct {
-	Secret string `json:"secret"`
-}
-
 type UserStatusOutput struct {
 	EmailVerified         *time.Time    `json:"email_verified"`
 	Paid                  bool          `json:"paid"`
 	StartedSubscription   *time.Time    `json:"started_subscription"`
 	CancelledSubscription *time.Time    `json:"cancelled_subscription"`
-	Secret                string        `json:"secret"`
 	PaymentID             string        `json:"payment_id"`
 	Tokens                []*user.Token `json:"tokens"`
 	Quota                 uint64        `json:"quota"`
 	QuotaUsed             uint64        `json:"used"`
 	Email                 string        `json:"email"`
-}
-
-type CreateUserOutput struct {
-	Secret    string `json:"secret"`
-	PaymentID string `json:"payment_id"`
-	TokenWO   string `json:"token_wo"`
-	TokenRW   string `json:"token_rw"`
-	Help      string `json:"help"`
 }
 
 type DeleteToken struct {
@@ -75,4 +62,10 @@ type DeleteToken struct {
 
 type QueryError struct {
 	Error string `json:"error"`
+}
+
+var EMPTY_STATUS = &UserStatusOutput{
+	PaymentID: "WILL-BE-IN-YOUR-EMAIL",
+	Email:     "your.email@example.com",
+	Tokens:    []*user.Token{&user.Token{ID: "TOKEN-UUID-A", WriteOnly: true, NumberOfArchives: 3}, &user.Token{ID: "TOKEN-UUID-B", WriteOnly: false, NumberOfArchives: 3}},
 }

@@ -4,8 +4,7 @@ import (
 	"fmt"
 	baxx "github.com/jackdoe/baxx/client"
 	bcommon "github.com/jackdoe/baxx/common"
-	bhelp "github.com/jackdoe/baxx/help"
-	buser "github.com/jackdoe/baxx/user"
+	. "github.com/jackdoe/baxx/help"
 	"github.com/marcusolsson/tui-go"
 	"log"
 	"time"
@@ -100,13 +99,6 @@ API Error:
 please contact help@baxx.dev if it persists`, err.Error())
 }
 
-var EMPTY_STATUS = &bcommon.UserStatusOutput{
-	PaymentID: "WILL-BE-IN-YOUR-EMAIL",
-	Email:     "your.email@example.com",
-	Secret:    "SECRET-UUID",
-	Tokens:    []*buser.Token{&buser.Token{ID: "TOKEN-UUID-A", WriteOnly: true, NumberOfArchives: 3}, &buser.Token{ID: "TOKEN-UUID-B", WriteOnly: false, NumberOfArchives: 3}},
-}
-
 func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string)) *tui.Box {
 	user := tui.NewEntry()
 	user.SetFocused(true)
@@ -148,7 +140,7 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 
 	window := tui.NewVBox(
 		tui.NewPadder(1, 1, tui.NewLabel(logo)),
-		tui.NewPadder(1, 0, tui.NewLabel(bhelp.Intro())),
+		tui.NewPadder(1, 0, tui.NewLabel(Render(GUI_INTRO, nil))),
 		tui.NewPadder(1, 1, form),
 		tui.NewPadder(1, 0, tui.NewLabel("Registering means you agree with\nthe terms of service!")),
 		tui.NewPadder(1, 0, tui.NewLabel("")),
@@ -176,11 +168,11 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 	})
 
 	help.OnActivated(func(b *tui.Button) {
-		popup(ui, root, false, nil, "HELP", bhelp.GenericHelp(), "", bhelp.EmailAfterRegistration(EMPTY_STATUS))
+		popup(ui, root, false, nil, "HELP", Render(PITCH, nil), "", Render(EMAIL_AFTER_REGISTRATION, bcommon.EMPTY_STATUS))
 	})
 
 	tos.OnActivated(func(b *tui.Button) {
-		popup(ui, root, false, nil, "Terms Of Service", bhelp.TermsAndConditions())
+		popup(ui, root, false, nil, "Terms Of Service", Render(TERMS_AND_CONDITIONS, nil))
 	})
 
 	register.OnActivated(func(b *tui.Button) {
@@ -281,7 +273,7 @@ func postRegistration(ui tui.UI, bc *baxx.Client, email, pass string) *tui.Box {
 	})
 
 	help.OnActivated(func(b *tui.Button) {
-		popup(ui, content, false, nil, "HELP", bhelp.GenericHelp(), "", bhelp.EmailAfterRegistration(EMPTY_STATUS))
+		popup(ui, content, false, nil, "HELP", Render(PITCH, nil), "", Render(EMAIL_AFTER_REGISTRATION, bcommon.EMPTY_STATUS))
 	})
 
 	refreshStatus := func() error {
@@ -301,7 +293,7 @@ func postRegistration(ui tui.UI, bc *baxx.Client, email, pass string) *tui.Box {
 			subscribed.SetText("Activate at https://baxx.dev/v1/sub/" + status.PaymentID)
 		}
 		if status.Paid && status.EmailVerified != nil {
-			popup(ui, content, true, nil, "SUCCESS", "Your account is now ready to be used", "", "", bhelp.EmailAfterRegistration(status))
+			popup(ui, content, true, nil, "SUCCESS", "Your account is now ready to be used", "", "", Render(EMAIL_AFTER_REGISTRATION, status))
 		}
 		return nil
 	}

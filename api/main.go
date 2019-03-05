@@ -82,7 +82,6 @@ func getUserStatus(db *gorm.DB, user *User) (*UserStatusOutput, error) {
 		StartedSubscription:   user.StartedSubscription,
 		CancelledSubscription: user.CancelledSubscription,
 		Tokens:                tokens,
-		Secret:                user.SemiSecretID,
 		Quota:                 user.Quota,
 		QuotaUsed:             used,
 		Paid:                  user.Paid(),
@@ -99,20 +98,7 @@ func sendVerificationLink(db *gorm.DB, verificationLink *VerificationLink) error
 		from:    "jack@baxx.dev",
 		to:      []string{verificationLink.Email},
 		subject: "Please verify your email",
-		body: fmt.Sprintf(
-			`Hi,
-this is the verification link: 
-
-  https://baxx.dev/v1/verify/%s
-
-You can check the account status with:
-
-  curl -u %s -XPOST https://baxx.dev/protected/v1/status | json_pp
-
---
-baxx.dev
-
-`, verificationLink.ID, verificationLink.Email),
+		body:    help.Render(help.EMAIL_VALIDATION, verificationLink),
 	})
 
 	if err != nil {
@@ -130,24 +116,7 @@ func sendPaymentThanks(email string) error {
 		from:    "jack@baxx.dev",
 		to:      []string{email},
 		subject: "Thanks for subscribing!",
-		body: fmt.Sprintf(
-			`Hi,
-
-Thanks for subscribing!
-Even though the service is just in alpha state, it is much
-appreciated!
-
-If you want to cancel you have to do that in your paypal account.
-
-
-You can check the account status with:
-
-  curl -u %s -XPOST https://baxx.dev/protected/v1/status | json_pp
-
---
-baxx.dev
-
-`, email),
+		body:    help.Render(help.EMAIL_VALIDATION, map[string]string{"Email": email}),
 	})
 	if err != nil {
 		log.Warnf("failed to send: %s", err.Error())
@@ -160,30 +129,9 @@ func sendPaymentCancelMail(email string, paymentID string) error {
 		from:    "jack@baxx.dev",
 		to:      []string{email},
 		subject: "Subscription cancelled!",
-		body: fmt.Sprintf(
-			`Hi,
-
-We just received subscription cancellation message from paypal.
-You will be able to upload/download backups for 1 more month.
-If you want to renew your subscription go to:
-
-  https://baxx.dev/v1/sub/%s
-
-and you will be redirected to paypal.com.
-
-
-You can check the account status with:
-
-  curl -u %s -XPOST https://baxx.dev/protected/v1/status | json_pp
-
-Thanks for using baxx.dev,
-if you have any feedback please send me an email to jack@baxx.dev.
-
---
-baxx.dev
-
-`, paymentID, email),
+		body:    help.Render(help.EMAIL_PAYMENT_CANCEL, map[string]string{"PaymentID": paymentID, "Email": email}),
 	})
+
 	if err != nil {
 		log.Warnf("failed to send: %s", err.Error())
 	}
@@ -195,7 +143,7 @@ func sendRegistrationHelp(status *UserStatusOutput) error {
 		from:    "jack@baxx.dev",
 		to:      []string{status.Email},
 		subject: "Welcome to baxx.dev!",
-		body:    help.EmailAfterRegistration(status),
+		body:    help.Render(help.EMAIL_AFTER_REGISTRATION, status),
 	})
 	return err
 }
@@ -313,19 +261,6 @@ func main() {
 		}
 		actionLog(db, user.ID, "user", "create", c.Request)
 		c.JSON(http.StatusOK, out)
-	})
-
-	authorized.POST("/v1/replace/secret", func(c *gin.Context) {
-		user := c.MustGet("user").(*User)
-		user.SetSemiSecretID()
-		if err := db.Save(user).Error; err != nil {
-			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, &ChangeSecretOutput{
-			Secret: user.SemiSecretID,
-		})
 	})
 
 	authorized.POST("/v1/status", func(c *gin.Context) {
@@ -447,24 +382,22 @@ func main() {
 	})
 
 	getViewTokenLoggedOrNot := func(c *gin.Context) (*Token, *User, error) {
-		user := c.Param("user_semi_secret_id")
-		x, isLoggedIn := c.Get("user")
-		if isLoggedIn {
-			if user != x.(*User).SemiSecretID {
-				return nil, nil, errors.New("wrong token/user combination")
-			}
-		}
-
 		token := c.Param("token")
-
-		t, u, err := FindToken(db, user, token)
+		t, u, err := FindToken(db, token)
 		if err != nil {
 			return nil, nil, err
 		}
 
+		x, isLoggedIn := c.Get("user")
+		if isLoggedIn {
+			if u.ID != x.(*User).ID {
+				return nil, nil, errors.New("wrong token/user combination")
+			}
+		}
+
 		if !isLoggedIn {
 			if t.WriteOnly && c.Request.Method != "POST" {
-				return nil, nil, errors.New("write only token, use /v1/protected/io/:secret/:token/*path")
+				return nil, nil, errors.New("write only token, use /v1/protected/io/$TOKEN/*path")
 			}
 		}
 
@@ -568,7 +501,7 @@ func main() {
 		c.String(http.StatusOK, LSAL(files))
 	}
 
-	mutateSinglePATH := "/v1/io/:user_semi_secret_id/:token/*path"
+	mutateSinglePATH := "/v1/io/:token/*path"
 
 	authorized.GET(mutateSinglePATH, download)
 	r.GET(mutateSinglePATH, download)
@@ -580,7 +513,7 @@ func main() {
 	r.DELETE(mutateSinglePATH, deleteFile)
 
 	for _, a := range []string{"dir", "ls"} {
-		mutateManyPATH := "/v1/" + a + "/:user_semi_secret_id/:token/*path"
+		mutateManyPATH := "/v1/" + a + "/:token/*path"
 		authorized.GET(mutateManyPATH, listFiles)
 		r.GET(mutateManyPATH, listFiles)
 	}
@@ -655,13 +588,15 @@ func main() {
 		url := prefix + "?cmd=_xclick-subscriptions&business=jack%40baxx.dev&a3=5&p3=1&t3=M&item_name=baxx.dev+-+backup+as+a+service&return=https%3A%2F%2Fbaxx.dev%2Fthanks_for_paying&a1=0.1&p1=1&t1=M&src=1&sra=1&no_note=1&no_note=1&currency_code=EUR&lc=GB&charset=UTF%2d8¬ify_url=https%3A%2F%2Fbaxx.dev%2Fipn%2F" + c.Param("paymentID")
 		c.Redirect(http.StatusFound, url)
 	})
-
+	r.GET("/v1/help", func(c *gin.Context) {
+		c.String(http.StatusOK, help.Render(help.EMAIL_AFTER_REGISTRATION, EMPTY_STATUS))
+	})
 	r.GET("/v1/verify/:id", func(c *gin.Context) {
 		v := &VerificationLink{}
 		now := time.Now()
 
 		wrong := func(err error) {
-			c.String(http.StatusInternalServerError, fmt.Sprintf("Oops, something went wrong!\n%s\n\n, if persists please send it to help@baxx.dev\n", err.Error()))
+			c.String(http.StatusInternalServerError, help.Render(help.HTML_LINK_ERROR, err.Error()))
 		}
 		tx := db.Begin()
 
@@ -683,50 +618,22 @@ func main() {
 		if time.Now().Unix()-int64(v.SentAt) > (24 * 3600) {
 			tx.Rollback()
 			warnErr(c, errors.New(fmt.Sprintf("verification link expired %#v", v)))
-			c.String(http.StatusOK, fmt.Sprintf(`Oops, verification link has expired!
-
-You can generate new one with:
-
- curl -u your.current.email@example.com \
-  -XPOST -d'{"new_email": "%s"}' \
-  https://baxx.dev/protected/v1/replace/email
-
-The verification links are valid for 24 hours,
-You can check your account status at:
-
-  curl -u %s -XPOST https://baxx.dev/protected/v1/status
-
-If something is wrong, please contact me at help@baxx.dev.
-
-Thanks!
-`, v.Email, v.Email))
+			c.String(http.StatusOK, help.Render(help.HTML_LINK_EXPIRED, v))
 			return
-
 		}
 
 		u := &User{}
 		if err := tx.Where("id = ?", v.UserID).Take(u).Error; err != nil {
 			warnErr(c, errors.New(fmt.Sprintf("weird state, verification's user not found %#v", v)))
 			tx.Rollback()
-			c.String(http.StatusOK, `
-Oops, verification link's user not found,
-this is very weird
-
-please contact me at help@baxx.dev!
-`)
-
+			c.String(http.StatusInternalServerError, help.Render(help.HTML_LINK_ERROR, "verification link's user not found, this is very weird"))
 			return
 		}
 
 		if u.Email != v.Email {
 			tx.Rollback()
 			warnErr(c, errors.New(fmt.Sprintf("weird state, user changed email %#v %#v", v, u)))
-			c.String(http.StatusOK,
-				`Oops, the user's email already changed,
-this is the old verification link.
-
-If you don't receive new link please contact me at help@baxx.dev!
-`)
+			c.String(http.StatusInternalServerError, help.Render(help.HTML_LINK_ERROR, "user email already changed, this is very weird"))
 			return
 		}
 
@@ -742,14 +649,7 @@ If you don't receive new link please contact me at help@baxx.dev!
 			wrong(err)
 		}
 
-		c.String(http.StatusOK, fmt.Sprintf(`Thanks!
-The email is verified now!
-
-You can check your account status at:
-
-  curl -u %s -XPOST https://baxx.dev/protected/v1/status
-
-`, v.Email))
+		c.String(http.StatusOK, help.Render(help.HTML_VERIFICATION_OK, v))
 	})
 
 	r.Run(*pbind)

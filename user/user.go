@@ -45,8 +45,6 @@ type VerificationLink struct {
 
 type User struct {
 	ID                    uint64     `gorm:"primary_key" json:"-"`
-	SemiSecretID          string     `gorm:"not null" json:"secret"`
-	Seed                  string     `gorm:"not null" json:"-"`
 	PaymentID             string     `gorm:"not null" json:"-"`
 	Email                 string     `gorm:"not null" json:"-"`
 	Quota                 uint64     `gorm:"not null;default:10737418240" json:"quota"`
@@ -100,26 +98,16 @@ func getUUID() string {
 	return fmt.Sprintf("%s", uuid.Must(uuid.NewV4()))
 }
 
-func (user *User) SetSemiSecretID() {
-	user.SemiSecretID = getUUID()
-}
-
-func (user *User) BeforeSave(scope *gorm.Scope) error {
-	scope.SetColumn("Seed", getUUID())
-	return nil
-}
-
 func (user *User) BeforeCreate(scope *gorm.Scope) error {
-	scope.SetColumn("SemiSecretID", getUUID())
-	scope.SetColumn("Seed", getUUID())
 	scope.SetColumn("PaymentID", getUUID())
 	return nil
 }
 
 type Token struct {
-	ID               string `gorm:"primary_key"  json:"token"`
-	Salt             string `gorm:"not null";type:"varchar(32)" json:"-"`
-	UserID           uint64 `gorm:"not null" json:"-"`
+	ID     string `gorm:"primary_key"  json:"token"`
+	Salt   string `gorm:"not null";type:"varchar(32)" json:"-"`
+	UserID uint64 `gorm:"not null" json:"-"`
+
 	WriteOnly        bool   `gorm:"not null" json:"write_only"`
 	NumberOfArchives uint64 `gorm:"not null" json:"keep_n_versions"`
 	SizeUsed         uint64 `gorm:"not null;default:0" json:"size_used"`
@@ -134,18 +122,20 @@ func (token *Token) BeforeCreate(scope *gorm.Scope) error {
 	return nil
 }
 
-func FindToken(db *gorm.DB, userSemiSecretId string, token string) (*Token, *User, error) {
+func FindToken(db *gorm.DB, token string) (*Token, *User, error) {
 	t := &Token{}
-	u := &User{}
-	query := db.Where("semi_secret_id = ?", userSemiSecretId).Take(u)
+
+	query := db.Where("id = ?", token).Take(t)
 	if query.RecordNotFound() {
 		return nil, nil, query.Error
 	}
 
-	query = db.Where("user_id = ? AND id = ?", u.ID, token).Take(t)
+	u := &User{}
+	query = db.Where("id = ?", t.UserID).Take(u)
 	if query.RecordNotFound() {
 		return nil, nil, query.Error
 	}
+
 	return t, u, nil
 }
 

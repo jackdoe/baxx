@@ -91,8 +91,8 @@ func (c *Client) query(path string, user string, pass string, req interface{}, d
 	return nil
 }
 
-func (c *Client) Register(input *CreateUserInput) (*CreateUserOutput, error) {
-	out := &CreateUserOutput{}
+func (c *Client) Register(input *CreateUserInput) (*UserStatusOutput, error) {
+	out := &UserStatusOutput{}
 	err := c.query("v1/register", "", "", input, out)
 	return out, err
 }

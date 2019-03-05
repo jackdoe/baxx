@@ -1,7 +1,6 @@
 package help
 
-func GenericHelp() string {
-	return `## baxx.dev is a simple backup service with unix philosophy in mind
+var PITCH = Parse(`## baxx.dev is a simple backup service with unix philosophy in mind
 
   tackling what is fundamental problem with backups:
    * anomaly detection
@@ -39,5 +38,4 @@ needed the data it was either corrupt or 0 bytes, or was missing.
  without signing, so attackers can flip arbitrary bits, but not make
  sense out of it. The purpose of the encryption is just in case
  someone manages to get a file from the disk. You should always send
- encrypted data.`
-}
+ encrypted data.`)

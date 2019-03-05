@@ -36,7 +36,7 @@ func TestFileQuota(t *testing.T) {
 	defer db.Close()
 	initDatabase(db)
 	status, user, err := registerUser(db, CreateUserInput{Email: "jack@prymr.nl", Password: " abcabcabc"})
-	log.Printf(help.EmailAfterRegistration(status))
+	log.Printf(help.Render(help.EMAIL_AFTER_REGISTRATION, status))
 
 	if err != nil {
 		t.Fatal(err)
@@ -52,7 +52,7 @@ func TestFileQuota(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	token, _, err := FindToken(db, user.SemiSecretID, status.Tokens[0].ID)
+	token, _, err := FindToken(db, status.Tokens[0].ID)
 	if err != nil {
 		t.Fatal(err)
 	}

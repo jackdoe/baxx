@@ -1,7 +1,7 @@
 package help
 
-func TermsAndConditions() string {
-	return `By purchasing, registering for, or using the “Baxx” services (the
+var TERMS_AND_CONDITIONS = Parse(`
+By purchasing, registering for, or using the “Baxx” services (the
   “Services”) you ("referred in the document as "you", "customer",
   "subscriber", "client") enter into a contract with Borislav Nikolov
   Amsterdam, The Netherlands (also referred in the document as "baxx",
@@ -59,5 +59,11 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
 TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 USE OF THIS SERVICE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 DAMAGE.
-`
-}
+
+## GDPR
+
+We are not sharing the data with anyone for no purposes what so ever.
+We are keeping logs of IP adress uploading/downloading files,and the
+paypal payment notifications for starting/ending the subscription.
+
+`)

@@ -1,7 +1,6 @@
 package help
 
-func License() string {
-	return `
+var LICENSE = Parse(`
 Copyright (C) 2018 Borislav Nikolov
 
 This software is provided 'as-is', without any express or implied
@@ -22,5 +21,4 @@ freely, subject to the following restrictions:
 
 Borislav Nikolov
 jack@sofialondonmoskva.com
-`
-}
+`)
