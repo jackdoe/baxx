@@ -18,8 +18,6 @@ import (
 )
 
 func TestFileQuota(t *testing.T) {
-	IS_TESTING = true
-
 	dir, err := ioutil.TempDir("", "test_file")
 	if err != nil {
 		t.Fatal(err)
