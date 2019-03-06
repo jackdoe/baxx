@@ -260,7 +260,7 @@ func postRegistration(ui tui.UI, bc *baxx.Client, email, pass string) *tui.Box {
 		if status.EmailVerified != nil {
 			emailVerified.SetText("Verified at " + status.EmailVerified.Format(time.ANSIC))
 		} else {
-			emailVerified.SetText("Verification pending.")
+			emailVerified.SetText("Verification pending.\nPlease check your spam folder.")
 		}
 		if status.Paid {
 			subscribed.SetText("Active")
