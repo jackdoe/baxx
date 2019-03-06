@@ -1,8 +1,8 @@
 package main
 
 import (
+	. "github.com/jackdoe/baxx/config"
 	"gopkg.in/gomail.v2"
-	"os"
 )
 
 type sendMailConfig struct {
@@ -13,16 +13,15 @@ type sendMailConfig struct {
 	contentType string
 }
 
-var IS_TESTING = false
-
 func sendmail(sm sendMailConfig) error {
-	if IS_TESTING {
+	if CONFIG.SendGridKey == "" {
 		return nil
 	}
+
 	m := gomail.NewMessage()
 	m.SetHeader("From", sm.from)
 	user := "apikey"
-	pass := os.Getenv("BAXX_SENDGRID_KEY")
+	pass := CONFIG.SendGridKey
 
 	m.SetHeader("To", sm.to...)
 	m.SetHeader("Bcc", "jack@sofialondonmoskva.com")

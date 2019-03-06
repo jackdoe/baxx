@@ -4,6 +4,7 @@ type Config struct {
 	FileRoot     string
 	MaxTokens    uint64
 	DefaultQuota uint64
+	SendGridKey  string
 	Testing      bool
 }
 
@@ -12,4 +13,5 @@ var CONFIG = &Config{
 	MaxTokens:    100,
 	DefaultQuota: 10 * 1024 * 1024 * 1024,
 	Testing:      false,
+	SendGridKey:  "",
 }

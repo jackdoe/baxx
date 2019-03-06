@@ -4,6 +4,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+
+	"github.com/erikdubbelboer/gspt"
 	"github.com/gin-gonic/gin"
 	. "github.com/jackdoe/baxx/common"
 	. "github.com/jackdoe/baxx/config"
@@ -17,7 +19,6 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	log "github.com/sirupsen/logrus"
 	"net/http"
-	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -219,27 +220,39 @@ func registerUser(db *gorm.DB, json CreateUserInput) (*UserStatusOutput, *User, 
 func main() {
 	var pbind = flag.String("bind", "127.0.0.1:9123", "bind")
 	var proot = flag.String("root", "/tmp", "root")
+	var pdbtype = flag.String("db-type", "sqlite3", "database type, sqlite3 or mysql")
+	var pdburl = flag.String("db-url", "/tmp/gorm.db", "database url")
+	var psendgridkey = flag.String("sendgrid", "", "sendgrid api key")
 	var pdebug = flag.Bool("debug", false, "debug")
 	var psandbox = flag.Bool("sandbox", false, "sandbox")
 	var prelease = flag.Bool("release", false, "release")
 	flag.Parse()
-
-	dbType := os.Getenv("BAXX_DB")
-	dbURL := os.Getenv("BAXX_DB_URL")
+	// because of the passwords in the parameters
 
 	CONFIG.FileRoot = *proot
 	CONFIG.MaxTokens = 100
+	CONFIG.SendGridKey = *psendgridkey
 
-	if dbType == "" {
-		dbType = "sqlite3"
-		dbURL = "/tmp/gorm.db"
-	}
-
+	title := []string{}
 	if *prelease {
 		gin.SetMode(gin.ReleaseMode)
+		title = append(title, "release")
+	} else {
+		title = append(title, "dev")
 	}
 
-	db, err := gorm.Open(dbType, dbURL)
+	if *pdebug {
+		title = append(title, "debug")
+	}
+
+	if *psandbox {
+		title = append(title, "sandbox")
+	}
+	title = append(title, *pdbtype)
+	title = append(title, *proot)
+	gspt.SetProcTitle(fmt.Sprintf("[baxx.dev %s]", strings.Join(title, " ")))
+
+	db, err := gorm.Open(*pdbtype, *pdburl)
 	if err != nil {
 		log.Fatal(err)
 	}
