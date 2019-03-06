@@ -112,7 +112,8 @@ func (user *User) BeforeCreate(scope *gorm.Scope) error {
 }
 
 type Token struct {
-	ID     string `gorm:"primary_key"  json:"token"`
+	ID     uint64 `gorm:"primary_key"  json:"token"`
+	UUID   string `gorm:"not null"  json:"token"`
 	Salt   string `gorm:"not null";type:"varchar(32)" json:"-"`
 	UserID uint64 `gorm:"not null" json:"-"`
 
@@ -153,6 +154,7 @@ func (user *User) GetQuotaUsed(db *gorm.DB) (int64, error) {
 
 func (user *User) CreateToken(db *gorm.DB, writeOnly bool, numOfArchives uint64) (*Token, error) {
 	t := &Token{
+		UUID:             getUUID(),
 		Salt:             strings.Replace(getUUID(), "-", "", -1),
 		UserID:           user.ID,
 		WriteOnly:        writeOnly,
@@ -178,7 +180,7 @@ func (user *User) CreateToken(db *gorm.DB, writeOnly bool, numOfArchives uint64)
 func FindToken(db *gorm.DB, token string) (*Token, *User, error) {
 	t := &Token{}
 
-	query := db.Where("id = ?", token).Take(t)
+	query := db.Where("uuid = ?", token).Take(t)
 	if query.RecordNotFound() {
 		return nil, nil, query.Error
 	}

@@ -22,15 +22,19 @@ type ChangePasswordInput struct {
 	NewPassword string `binding:"required" json:"new_password"`
 }
 
+type DeleteTokenInput struct {
+	UUID string `binding:"required" json:"token"`
+}
+
 type Success struct {
 	Success bool `json:"success"`
 }
 
 type TokenOutput struct {
-	ID               string    `gorm:"primary_key"  json:"token"`
-	WriteOnly        bool      `gorm:"not null" json:"write_only"`
-	NumberOfArchives uint64    `gorm:"not null" json:"keep_n_versions"`
-	SizeUsed         uint64    `gorm:"not null;default:0" json:"size_used"`
+	UUID             string    `json:"token"`
+	WriteOnly        bool      `json:"write_only"`
+	NumberOfArchives uint64    `json:"keep_n_versions"`
+	SizeUsed         uint64    `json:"size_used"`
 	CreatedAt        time.Time `json:"created_at"`
 }
 
@@ -46,10 +50,6 @@ type UserStatusOutput struct {
 	Email                 string         `json:"email"`
 }
 
-type DeleteToken struct {
-	MoveFilesToToken string `json:"move_files_to_token"`
-}
-
 type QueryError struct {
 	Error string `json:"error"`
 }
@@ -57,5 +57,5 @@ type QueryError struct {
 var EMPTY_STATUS = &UserStatusOutput{
 	PaymentID: "WILL-BE-IN-YOUR-EMAIL",
 	Email:     "your.email@example.com",
-	Tokens:    []*TokenOutput{&TokenOutput{ID: "TOKEN-UUID-A", WriteOnly: true, NumberOfArchives: 3}, &TokenOutput{ID: "TOKEN-UUID-B", WriteOnly: false, NumberOfArchives: 3}},
+	Tokens:    []*TokenOutput{&TokenOutput{UUID: "TOKEN-UUID-A", WriteOnly: true, NumberOfArchives: 3}, &TokenOutput{UUID: "TOKEN-UUID-B", WriteOnly: false, NumberOfArchives: 3}},
 }

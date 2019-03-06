@@ -34,7 +34,7 @@ func warnErr(c *gin.Context, err error) {
 }
 
 func initDatabase(db *gorm.DB) {
-	if err := db.AutoMigrate(&User{}, &VerificationLink{}, &Token{}, &FileOrigin{}, &FileMetadata{}, &FileVersion{}, &ActionLog{}, &PaymentHistory{}).Error; err != nil {
+	if err := db.AutoMigrate(&User{}, &VerificationLink{}, &Token{}, &FileMetadata{}, &FileVersion{}, &ActionLog{}, &PaymentHistory{}).Error; err != nil {
 		log.Fatal(err)
 	}
 	if err := db.Model(&VerificationLink{}).AddUniqueIndex("idx_user_sent_at", "user_id", "sent_at").Error; err != nil {
@@ -45,25 +45,26 @@ func initDatabase(db *gorm.DB) {
 		log.Fatal(err)
 	}
 
+	if err := db.Model(&Token{}).AddUniqueIndex("idx_token", "uuid").Error; err != nil {
+		log.Fatal(err)
+	}
+
 	if err := db.Model(&User{}).AddUniqueIndex("idx_payment_id", "payment_id").Error; err != nil {
 		log.Fatal(err)
 	}
 
-	if err := db.Model(&Token{}).AddIndex("idx_token_user_id", "user_id").Error; err != nil {
+	if err := db.Model(&FileVersion{}).AddIndex("idx_token_sha", "token_id", "sha256").Error; err != nil {
 		log.Fatal(err)
 	}
 
-	if err := db.Model(&FileOrigin{}).AddUniqueIndex("idx_sha", "sha256").Error; err != nil {
+	if err := db.Model(&FileMetadata{}).AddUniqueIndex("idx_fm_token_id_path_2", "token_id", "path", "filename").Error; err != nil {
 		log.Fatal(err)
 	}
 
-	if err := db.Model(&FileMetadata{}).AddUniqueIndex("idx_fm_user_id_token_id_path_2", "user_id", "token_id", "path", "filename").Error; err != nil {
+	if err := db.Model(&FileVersion{}).AddIndex("idx_fv_metadata_updated", "file_metadata_id", "updated_at_ns").Error; err != nil {
 		log.Fatal(err)
 	}
 
-	if err := db.Model(&FileVersion{}).AddUniqueIndex("idx_fv_metadata_origin", "file_metadata_id", "file_origin_id").Error; err != nil {
-		log.Fatal(err)
-	}
 }
 
 func getUserStatus(db *gorm.DB, user *User) (*UserStatusOutput, error) {
@@ -73,7 +74,7 @@ func getUserStatus(db *gorm.DB, user *User) (*UserStatusOutput, error) {
 	}
 	tokensTransformed := []*TokenOutput{}
 	for _, t := range tokens {
-		tokensTransformed = append(tokensTransformed, &TokenOutput{ID: t.ID, WriteOnly: t.WriteOnly, NumberOfArchives: t.NumberOfArchives, CreatedAt: t.CreatedAt})
+		tokensTransformed = append(tokensTransformed, &TokenOutput{UUID: t.UUID, WriteOnly: t.WriteOnly, NumberOfArchives: t.NumberOfArchives, CreatedAt: t.CreatedAt})
 	}
 	used := uint64(0)
 	for _, t := range tokens {
@@ -377,8 +378,40 @@ func main() {
 		}
 
 		actionLog(db, user.ID, "token", "create", c.Request)
-		out := &TokenOutput{ID: token.ID, WriteOnly: token.WriteOnly, NumberOfArchives: token.NumberOfArchives, CreatedAt: token.CreatedAt}
+		out := &TokenOutput{UUID: token.UUID, WriteOnly: token.WriteOnly, NumberOfArchives: token.NumberOfArchives, CreatedAt: token.CreatedAt}
 		c.JSON(http.StatusOK, out)
+	})
+
+	authorized.POST("/v1/delete/token", func(c *gin.Context) {
+		user := c.MustGet("user").(*User)
+		var json DeleteTokenInput
+		if err := c.ShouldBindJSON(&json); err != nil {
+			warnErr(c, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		token, u, err := FindToken(db, json.UUID)
+		if err != nil {
+			warnErr(c, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if u.ID != user.ID {
+			err := errors.New("wrong token/user combination")
+			warnErr(c, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if err := DeleteToken(db, token); err != nil {
+			warnErr(c, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		actionLog(db, user.ID, "token", "delete", c.Request)
+
+		c.JSON(http.StatusOK, &Success{true})
 	})
 
 	getViewTokenLoggedOrNot := func(c *gin.Context) (*Token, *User, error) {
@@ -456,7 +489,7 @@ func main() {
 
 		// check if over quota
 
-		actionLog(db, t.UserID, "file", "upload", c.Request, fmt.Sprintf("FileVersion: %d/%d/%d", fv.ID, fv.FileMetadataID, fv.FileOriginID))
+		actionLog(db, t.UserID, "file", "upload", c.Request, fmt.Sprintf("FileVersion: %d/%d", fv.ID, fv.FileMetadataID))
 		c.JSON(http.StatusOK, fv)
 	}
 

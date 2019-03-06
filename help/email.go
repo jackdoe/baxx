@@ -50,7 +50,7 @@ https://baxx.dev/v1/sub/{{.PaymentID}}
 Current Tokens:
 
 {{ range .Tokens }}
-  TOKEN: {{.ID}}
+  TOKEN: {{.UUID}}
   Write Only: {{ .WriteOnly }}
   Keep N Versions {{ .NumberOfArchives }}
 
@@ -69,6 +69,13 @@ Current Tokens:
 
     mysqldump | curl curl --data-binary @- \
      https://baxx.dev/v1/io/$TOKEN/mysql.gz
+
+* Delete tokens
+
+ curl -u {{ .Email }} -d '{"uuid": "TOKEN-UUID"}' \
+   https://baxx.dev/protected/v1/delete/token
+
+ this will delete the token and all the files in it
 
 ## File operations
 

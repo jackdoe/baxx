@@ -53,7 +53,7 @@ func TestFileQuota(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	token, _, err := FindToken(db, status.Tokens[0].ID)
+	token, _, err := FindToken(db, status.Tokens[0].UUID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,10 +61,26 @@ func TestFileQuota(t *testing.T) {
 	filePath := "/example/example.txt"
 
 	for i := 0; i < 20; i++ {
-		_, err := file.SaveFile(db, token, user, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d %d", i))), filePath)
+		s := fmt.Sprintf("a b c d %d", i)
+		_, err := file.SaveFile(db, token, user, bytes.NewBuffer([]byte(s)), filePath)
 		if err != nil {
 			t.Fatal(err)
 		}
+		_, file, reader, err := file.FindAndOpenFile(db, token, filePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		b, err := ioutil.ReadAll(reader)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if string(b) != s {
+			t.Fatalf("expected %s got %s", s, string(b))
+		}
+		file.Close()
+
 	}
 
 	_, err = file.SaveFile(db, token, user, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
@@ -137,17 +153,26 @@ func TestFileQuota(t *testing.T) {
 	log.Printf("left: %d", left)
 
 	CONFIG.MaxTokens = 10
+	created := []*Token{}
 	for i := 0; i < 8; i++ {
-		_, err = user.CreateToken(db, false, 1)
+		to, err := user.CreateToken(db, false, 1)
 		if err != nil {
 			t.Fatal(err)
 		}
+		created = append(created, to)
 	}
 	_, err = user.CreateToken(db, false, 1)
 	if err.Error() != "max tokens created (max=10)" {
 		t.Fatalf("expected max tokens created (max=10) got %s", err.Error())
 	}
 
+	created = append(created, token)
+	for _, to := range created {
+		err := file.DeleteToken(db, to)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 }
 
 func getUsed(t *testing.T, db *gorm.DB, user *User) uint64 {
