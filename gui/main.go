@@ -101,19 +101,26 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 
 	quit := tui.NewButton("[Quit]")
 	help := tui.NewButton("[Help]")
+	pitch := tui.NewButton("[What/Why/How]")
 	tos := tui.NewButton("[Terms Of Service]")
+	buttonsRegister := tui.NewHBox(
+		tui.NewSpacer(),
+		tui.NewPadder(1, 0, register),
+		tui.NewSpacer(),
+	)
+
 	buttonsTop := tui.NewHBox(
-		//tui.NewSpacer(),
+		tui.NewSpacer(),
 		tui.NewPadder(1, 0, help),
+		tui.NewPadder(1, 0, pitch),
 		tui.NewPadder(1, 0, tos),
-		//		tui.NewSpacer(),
+		tui.NewSpacer(),
 	)
 
 	buttonsBottom := tui.NewHBox(
-		//		tui.NewSpacer(),
-		tui.NewPadder(1, 0, register),
+		tui.NewSpacer(),
 		tui.NewPadder(1, 0, quit),
-		//		tui.NewSpacer(),
+		tui.NewSpacer(),
 	)
 
 	window := tui.NewVBox(
@@ -122,6 +129,9 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 		tui.NewPadder(1, 1, form),
 		tui.NewPadder(1, 0, tui.NewLabel("Registering means you agree with\nthe terms of service!")),
 		tui.NewPadder(1, 0, tui.NewLabel("")),
+		buttonsRegister,
+		tui.NewPadder(1, 0, tui.NewLabel("")),
+
 		buttonsTop,
 		tui.NewPadder(1, 0, tui.NewLabel("")),
 		buttonsBottom,
@@ -138,7 +148,7 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 
 	root := content
 	chain := &tui.SimpleFocusChain{}
-	chain.Set(user, password, confirmPassword, help, tos, register, quit)
+	chain.Set(user, password, confirmPassword, register, help, pitch, tos, quit)
 	ui.SetFocusChain(chain)
 
 	quit.OnActivated(func(b *tui.Button) {
@@ -146,7 +156,11 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 	})
 
 	help.OnActivated(func(b *tui.Button) {
-		popup(ui, root, false, nil, "HELP", Render(PITCH, nil), "", Render(EMAIL_AFTER_REGISTRATION, bcommon.EMPTY_STATUS))
+		popup(ui, root, false, nil, "HELP", Render(EMAIL_AFTER_REGISTRATION, bcommon.EMPTY_STATUS))
+	})
+
+	pitch.OnActivated(func(b *tui.Button) {
+		popup(ui, root, false, nil, "HELP", Render(PITCH, nil))
 	})
 
 	tos.OnActivated(func(b *tui.Button) {

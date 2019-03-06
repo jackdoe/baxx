@@ -2,12 +2,12 @@ package help
 
 var PITCH = Parse(`# baxx.dev is a simple backup service with unix philosophy in mind
 
-  tackling what is fundamental problem with backups:
-   * anomaly detection
-   * notifications
-   * alerts
-   * durability
-   * watching the watchers
+ tackling what is fundamental problem with backups:
+  * anomaly detection
+  * notifications
+  * alerts
+  * durability
+  * watching the watchers
 
 In 20 years of experience I have used many backup solutions, from one
 line scripts to complicated systems, and in almost all cases when I
@@ -23,19 +23,23 @@ needed the data it was either corrupt or 0 bytes, or was missing.
  Because I want to see if someone really cares about this.
  Lets work together to make usable backup service!
 
-## Price
+## Encryption
+ Your data is compressed and encrypted when received, the encryption
+ key is auto generated uuid, and the purpose of the encryption is
+ simply to obscure the data in case the machines are hacked, hacker
+ will have to also get access to the database as well.
 
- Storage 10G
- Trial 1 Month 0.1E (10 euro cents)
- Subscription: 5E per Month
+ Anyway, dont trust it and use encryption when sending data.
 
-## How:
+## End goal
 
- The Alpha is just on digitalocean, but the beta will be on dedicated
- servers from hetzner.com
+* zero configuration notifications
+  using active learning (or machine teaching as they call it now)
 
- Your data is compressed and encrypted on input, but it is compressed
- without signing, so attackers can flip arbitrary bits, but not make
- sense out of it. The purpose of the encryption is just in case
- someone manages to get a file from the disk. You should always send
- encrypted data.`)
+* ask when uncertain
+  when some anomaly is detected, keep the files and wait for manual
+  confirmation (via email)
+
+* easy configuration
+  easy and intuitive rules that can be shared
+`)

@@ -39,7 +39,7 @@ the support.
 
 ## Subscribe
 
-In order to use baxx.dev you need subscription,
+In order to use baxx.dev you need a subscription,
 At the moment I support only paypal.com, please visit:
 
 https://baxx.dev/sub/{{.PaymentID}}
@@ -59,8 +59,8 @@ Thanks again!
 
 # Tokens
 
- Tokens are like backup namespaces, you can have the same
- file in different tokens and it won't conflict.
+ Tokens are like backup namespaces, you can have the same file in
+ different tokens and it won't conflict.
 
 ## Current Tokens:
 
@@ -79,8 +79,8 @@ Thanks again!
    tokens can only add but not get files (without password)
 
  Keep #N Versions:
-   How many versions per file (with different sha256) to keep.
-   Useful for database or modified files archives like, e.g:
+   How many versions per file (with different sha256) to keep.  Useful
+   for database or modified files archives like, e.g:
 
    mysqldump | curl --data-binary @- \
     https://baxx.dev/io/$TOKEN/mysql.gz
@@ -102,8 +102,8 @@ Thanks again!
  Same filepath can have up to #N Versions depending on the token
  configuration.
 
- Uploading the same sha256 resulting in reusing existing version
- and also does not consume quota.
+ Uploading the same sha256 resulting in reusing existing version and
+ also does not consume quota.
 
 ## File Download:
 
@@ -121,8 +121,8 @@ Thanks again!
 
  curl https://baxx.dev/ls/$TOKEN/path/to
 
- use -H "Accept: application/json" if you want json back
- by default it prints human readable text
+ use -H "Accept: application/json" if you want json back by default it
+ prints human readable text
 
 
 WriteOnly tokens require BasicAuth and /protected prefix.
@@ -162,9 +162,8 @@ WriteOnly tokens require BasicAuth and /protected prefix.
  curl -u {{.Email}} -d'{"new_email": "x@example.com"}' \
   https://baxx.dev/protected/replace/email | json_pp
 
- It will also send new verification email, you can
- also use the replace/email endpoint to resend the
- verification email.
+ It will also send new verification email, you can also use the
+ replace/email endpoint to resend the verification email.
 
 ## User Status
 
@@ -176,13 +175,22 @@ WriteOnly tokens require BasicAuth and /protected prefix.
   * current tokens
   * size used
 
+# Encryption
+
+ Your data is compressed and encrypted when received, the encryption
+ key is auto generated uuid, and the purpose of the encryption is
+ simply to obscure the data in case the machines are hacked, hacker
+ will have to also get access to the database as well.
+
+ Anyway, dont trust it and use encryption when uploading.
+
 --
 baxx.dev
 `)
 
 var EMAIL_VALIDATION = Parse(`Hi,
 
-this is the verification link: 
+this is the verification link:
 
   https://baxx.dev/verify/{{.ID}}
 
@@ -191,9 +199,8 @@ You can check the account status with:
   curl -u {{.Email}} -XPOST https://baxx.dev/protected/status | json_pp
 
 PS:
-It is very likely that this email goes to the spam folder 
-because it is small and texty.. anyway, I hope it doesnt.
-(fingers crossed)
+It is very likely that this email goes to the spam folder because it
+is small and texty.. anyway, I hope it doesnt.
 
 --
 baxx.dev
