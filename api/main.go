@@ -166,7 +166,7 @@ func registerUser(db *gorm.DB, json CreateUserInput) (*UserStatusOutput, *User, 
 		return nil, nil, errors.New("user already exists")
 	}
 
-	user := &User{Email: json.Email}
+	user := &User{Email: json.Email, Quota: CONFIG.DefaultQuota}
 	user.SetPassword(json.Password)
 	if err := tx.Create(user).Error; err != nil {
 		tx.Rollback()
