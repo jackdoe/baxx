@@ -87,6 +87,10 @@ func TestFileQuota(t *testing.T) {
 	}
 
 	versions, err := file.ListVersionsFile(db, token, filePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	if len(versions) != 7 {
 		t.Fatalf("expected 7 versions got %d", len(versions))
 	}

@@ -58,10 +58,12 @@ func Listener(g *gin.Engine, path string, cb func(c *gin.Context, err error, bod
 		verifyStatus, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			cb(c, errors.Wrap(err, "failed to read verification response"), "", nil)
+			w.WriteHeader(http.BadRequest)
 			return
 		}
 		if string(verifyStatus) != "VERIFIED" {
 			cb(c, errors.Errorf("unexpected verify status %q", verifyStatus), "", nil)
+			w.WriteHeader(http.BadRequest)
 			return
 		}
 

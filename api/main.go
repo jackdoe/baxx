@@ -711,5 +711,5 @@ func main() {
 		c.String(http.StatusOK, help.Render(help.HTML_VERIFICATION_OK, v))
 	})
 
-	r.Run(*pbind)
+	log.Fatal(r.Run(*pbind))
 }
