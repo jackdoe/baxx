@@ -10,7 +10,6 @@ If you want to renew your subscription go to:
 
 and you will be redirected to paypal.com.
 
-
 You can check the account status with:
 
   curl -u {{.Email}} -XPOST https://baxx.dev/protected/v1/status | json_pp
@@ -191,7 +190,6 @@ Even though the service is just in alpha state, it is much
 appreciated!
 
 If you want to cancel you have to do that in your paypal account.
-
 
 You can check the account status with:
 
