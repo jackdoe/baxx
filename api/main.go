@@ -120,7 +120,7 @@ func sendPaymentThanks(email string) error {
 		from:    "jack@baxx.dev",
 		to:      []string{email},
 		subject: "Thanks for subscribing!",
-		body:    help.Render(help.EMAIL_VALIDATION, map[string]string{"Email": email}),
+		body:    help.Render(help.EMAIL_PAYMENT_THANKS, map[string]string{"Email": email}),
 	})
 	if err != nil {
 		log.Warnf("failed to send: %s", err.Error())
