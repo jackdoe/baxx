@@ -5,7 +5,9 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/sha256"
+	"errors"
 	"fmt"
+	. "github.com/jackdoe/baxx/config"
 	. "github.com/jackdoe/baxx/user"
 	"github.com/jinzhu/gorm"
 	"github.com/pierrec/lz4"
@@ -60,26 +62,24 @@ func split(s string) (string, string) {
 	return dir, name
 }
 
-var ROOT = "/tmp" // this will go away when we move to s3 or something
-
 func locate(f string) string {
-	dir := path.Join(ROOT, "baxx", f[0:2], f[2:4])
+	dir := path.Join(CONFIG.FileRoot, "baxx", f[0:2], f[2:4])
 	os.MkdirAll(dir, 0700)
 	return path.Join(dir, f)
 }
 
-func saveUploadedFile(key string, body io.Reader) (string, int64, error) {
+func saveUploadedFile(key string, body io.Reader) (string, string, int64, error) {
 	sha := sha256.New()
 	tee := io.TeeReader(body, sha)
 	block, err := aes.NewCipher([]byte(key))
 	if err != nil {
-		return "", 0, err
+		return "", "", 0, err
 	}
 
 	temporary := locate(fmt.Sprintf("%d.%s", time.Now().UnixNano(), uuid.Must(uuid.NewV4())))
 	dest, err := os.Create(temporary)
 	if err != nil {
-		return "", 0, err
+		return "", "", 0, err
 	}
 	var iv [aes.BlockSize]byte
 
@@ -91,7 +91,7 @@ func saveUploadedFile(key string, body io.Reader) (string, int64, error) {
 	if err != nil {
 		dest.Close()
 		os.Remove(temporary)
-		return "", 0, err
+		return "", "", 0, err
 	}
 	// XXX: not to be trusted, attacker can flip bits
 	// the only reason we encrypt is so we dont accidentally receive unencrypted data
@@ -100,14 +100,9 @@ func saveUploadedFile(key string, body io.Reader) (string, int64, error) {
 	lz4Writer.Close()
 	encryptedWriter.Close()
 	dest.Close()
-
 	shasum := fmt.Sprintf("%x", sha.Sum(nil))
-	err = os.Rename(temporary, locate(shasum))
-	if err != nil {
-		os.Remove(temporary)
-		return "", 0, err
-	}
-	return shasum, size, nil
+
+	return temporary, shasum, size, nil
 }
 
 func decompressAndDecrypt(key string, r io.Reader) (io.Reader, error) {
@@ -311,9 +306,9 @@ func ListVersionsFile(db *gorm.DB, t *Token, p string) ([]*FileVersion, error) {
 	return versions, nil
 }
 
-func SaveFile(db *gorm.DB, t *Token, body io.Reader, p string) (*FileVersion, error) {
+func SaveFile(db *gorm.DB, t *Token, user *User, body io.Reader, p string) (*FileVersion, error) {
 	dir, name := split(p)
-	sha, size, err := saveUploadedFile(t.Salt, body)
+	tempName, sha, size, err := saveUploadedFile(t.Salt, body)
 	if err != nil {
 		return nil, err
 	}
@@ -396,6 +391,26 @@ func SaveFile(db *gorm.DB, t *Token, body io.Reader, p string) (*FileVersion, er
 	}
 
 	if err := tx.Save(t).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	left, err := user.GetQuotaLeft(tx)
+	if err != nil {
+		os.Remove(tempName)
+		tx.Rollback()
+		return nil, err
+	}
+
+	if left < 0 {
+		os.Remove(tempName)
+		tx.Rollback()
+		return nil, errors.New("quota limit reached")
+	}
+
+	err = os.Rename(tempName, locate(sha))
+	if err != nil {
+		os.Remove(tempName)
 		tx.Rollback()
 		return nil, err
 	}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	. "github.com/jackdoe/baxx/common"
+	. "github.com/jackdoe/baxx/config"
 	. "github.com/jackdoe/baxx/file"
 	"github.com/jackdoe/baxx/help"
 	"github.com/jackdoe/baxx/ipn"
@@ -14,7 +15,6 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	"github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
@@ -159,48 +159,48 @@ func registerUser(db *gorm.DB, json CreateUserInput) (*UserStatusOutput, *User, 
 	if err := ValidateEmail(json.Email); err != nil {
 		return nil, nil, err
 	}
-
-	_, exists, err := FindUser(db, json.Email, json.Password)
+	tx := db.Begin()
+	_, exists, err := FindUser(tx, json.Email, json.Password)
 	if err == nil || exists {
+		tx.Rollback()
 		return nil, nil, errors.New("user already exists")
 	}
 
 	user := &User{Email: json.Email}
 	user.SetPassword(json.Password)
-	if err := db.Create(user).Error; err != nil {
-		return nil, nil, err
-	}
-	if err := sendVerificationLink(db, user.GenerateVerificationLink()); err != nil {
-		return nil, nil, err
-	}
-
-	tokenWO := &Token{
-		UserID:           user.ID,
-		Salt:             strings.Replace(fmt.Sprintf("%s", uuid.Must(uuid.NewV4())), "-", "", -1),
-		NumberOfArchives: 7,
-		WriteOnly:        true,
-	}
-	if err := db.Create(tokenWO).Error; err != nil {
+	if err := tx.Create(user).Error; err != nil {
+		tx.Rollback()
 		return nil, nil, err
 	}
 
-	tokenRW := &Token{
-		UserID:           user.ID,
-		Salt:             strings.Replace(fmt.Sprintf("%s", uuid.Must(uuid.NewV4())), "-", "", -1),
-		NumberOfArchives: 7,
-		WriteOnly:        false,
-	}
-
-	if err := db.Create(tokenRW).Error; err != nil {
+	// XXX: should we throw if we fail to send verification email?
+	if err := sendVerificationLink(tx, user.GenerateVerificationLink()); err != nil {
+		tx.Rollback()
 		return nil, nil, err
 	}
-	status, err := getUserStatus(db, user)
+
+	_, err = user.CreateToken(tx, true, 7)
 	if err != nil {
+		tx.Rollback()
+		return nil, nil, err
+	}
+	_, err = user.CreateToken(tx, false, 7)
+	if err != nil {
+		tx.Rollback()
+		return nil, nil, err
+	}
+	status, err := getUserStatus(tx, user)
+	if err != nil {
+		tx.Rollback()
 		return nil, nil, err
 	}
 
 	if err := sendRegistrationHelp(status); err != nil {
 		log.Warnf("failed to send email, ignoring error and moving on,  %s", err.Error())
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return nil, nil, err
 	}
 
 	return status, user, nil
@@ -216,7 +216,10 @@ func main() {
 
 	dbType := os.Getenv("BAXX_DB")
 	dbURL := os.Getenv("BAXX_DB_URL")
-	ROOT = *proot
+
+	CONFIG.FileRoot = *proot
+	CONFIG.MaxTokens = 100
+
 	if dbType == "" {
 		dbType = "sqlite3"
 		dbURL = "/tmp/gorm.db"
@@ -359,7 +362,6 @@ func main() {
 
 	authorized.POST("/v1/create/token", func(c *gin.Context) {
 		user := c.MustGet("user").(*User)
-
 		var json CreateTokenInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
@@ -367,21 +369,16 @@ func main() {
 			return
 		}
 
-		token := &Token{
-			UserID:           user.ID,
-			Salt:             strings.Replace(fmt.Sprintf("%s", uuid.Must(uuid.NewV4())), "-", "", -1),
-			NumberOfArchives: json.NumberOfArchives,
-			WriteOnly:        json.WriteOnly,
-		}
-
-		if err := db.Create(token).Error; err != nil {
+		token, err := user.CreateToken(db, json.WriteOnly, json.NumberOfArchives)
+		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
 		actionLog(db, user.ID, "token", "create", c.Request)
-		c.JSON(http.StatusOK, token)
+		out := &TokenOutput{ID: token.ID, WriteOnly: token.WriteOnly, NumberOfArchives: token.NumberOfArchives, CreatedAt: token.CreatedAt}
+		c.JSON(http.StatusOK, out)
 	})
 
 	getViewTokenLoggedOrNot := func(c *gin.Context) (*Token, *User, error) {
@@ -443,19 +440,21 @@ func main() {
 		body := c.Request.Body
 		defer body.Close()
 
-		t, _, err := getViewTokenLoggedOrNot(c)
+		t, user, err := getViewTokenLoggedOrNot(c)
+		if err != nil {
+			warnErr(c, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		p := c.Param("path")
+		fv, err := SaveFile(db, t, user, body, p)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		fv, err := SaveFile(db, t, body, c.Param("path"))
-		if err != nil {
-			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
+		// check if over quota
 
 		actionLog(db, t.UserID, "file", "upload", c.Request, fmt.Sprintf("FileVersion: %d/%d/%d", fv.ID, fv.FileMetadataID, fv.FileOriginID))
 		c.JSON(http.StatusOK, fv)

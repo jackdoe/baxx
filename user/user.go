@@ -3,9 +3,11 @@ package user
 import (
 	"errors"
 	"fmt"
+	. "github.com/jackdoe/baxx/config"
 	"github.com/jinzhu/gorm"
 	"github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
+	"strings"
 	"time"
 )
 
@@ -126,6 +128,51 @@ func (token *Token) BeforeCreate(scope *gorm.Scope) error {
 
 	scope.SetColumn("ID", fmt.Sprintf("%s", id))
 	return nil
+}
+
+func (user *User) GetQuotaLeft(db *gorm.DB) (int64, error) {
+	used, err := user.GetQuotaUsed(db)
+	if err != nil {
+		return 0, err
+	}
+	return int64(user.Quota) - int64(used), nil
+}
+
+func (user *User) GetQuotaUsed(db *gorm.DB) (int64, error) {
+	tokens, err := user.ListTokens(db)
+	if err != nil {
+		return 0, err
+	}
+
+	used := uint64(0)
+	for _, t := range tokens {
+		used += t.SizeUsed
+	}
+	return int64(used), nil
+}
+
+func (user *User) CreateToken(db *gorm.DB, writeOnly bool, numOfArchives uint64) (*Token, error) {
+	t := &Token{
+		Salt:             strings.Replace(getUUID(), "-", "", -1),
+		UserID:           user.ID,
+		WriteOnly:        writeOnly,
+		NumberOfArchives: numOfArchives,
+	}
+
+	tokens, err := user.ListTokens(db)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(tokens) >= int(CONFIG.MaxTokens) {
+		return nil, errors.New(fmt.Sprintf("max tokens created (max=%d)", CONFIG.MaxTokens))
+	}
+
+	if err := db.Create(t).Error; err != nil {
+		return nil, err
+	}
+
+	return t, nil
 }
 
 func FindToken(db *gorm.DB, token string) (*Token, *User, error) {
