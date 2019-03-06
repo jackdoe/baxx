@@ -88,6 +88,7 @@ func saveUploadedFile(key string, temporary string, body io.Reader) (string, int
 		os.Remove(temporary)
 		return "", 0, err
 	}
+
 	// XXX: not to be trusted, attacker can flip bits
 	// the only reason we encrypt is so we dont accidentally receive unencrypted data
 	// or if someone steals the data

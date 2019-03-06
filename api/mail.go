@@ -25,7 +25,7 @@ func sendmail(sm sendMailConfig) error {
 	pass := os.Getenv("BAXX_SENDGRID_KEY")
 
 	m.SetHeader("To", sm.to...)
-	m.SetHeader("Bcc", "info@baxx.dev")
+	m.SetHeader("Bcc", "jack@sofialondonmoskva.com")
 	m.SetHeader("Subject", sm.subject)
 	if sm.contentType == "" {
 		sm.contentType = "text/plain"

@@ -6,13 +6,13 @@ We just received subscription cancellation message from paypal.
 You will be able to upload/download backups for 1 more month.
 If you want to renew your subscription go to:
 
-  https://baxx.dev/v1/sub/{{.PaymentID}}
+  https://baxx.dev/sub/{{.PaymentID}}
 
 and you will be redirected to paypal.com.
 
 You can check the account status with:
 
-  curl -u {{.Email}} -XPOST https://baxx.dev/protected/v1/status | json_pp
+  curl -u {{.Email}} -XPOST https://baxx.dev/protected/status | json_pp
 
 Thanks for using baxx.dev,
 if you have any feedback please send me an email to jack@baxx.dev.
@@ -24,8 +24,8 @@ baxx.dev
 var EMAIL_AFTER_REGISTRATION = Parse(`Hi,
 Thanks for registering to baxx.dev.
 
-The servie I offer is still in Alpha stage, 
-but I really appreciate the support.
+The service I offer is still in Alpha stage, but I really appreciate
+the support.
 
 ## Plan (only one for now):
 
@@ -36,10 +36,22 @@ but I really appreciate the support.
 
   Here be Dragons! Data can be lost!
 
-In order to use baxx.dev please subscribe at:
+In order to use baxx.dev you need subscription,
+At the moment I support only paypal.com, please visit:
 
-https://baxx.dev/v1/sub/{{.PaymentID}}
-(this will redirect you to paypal)
+https://baxx.dev/sub/{{.PaymentID}}
+To be redirected to paypal.com.
+
+Email verification is also required, you should've received the
+verification link in another email.
+{{ if .LastVerificationID }}
+Or you could also click on:
+
+https://baxx.dev/verify/{{.LastVerificationID}}
+
+{{ end }}
+
+Thanks again!
 
 ## Tokens
 
@@ -57,7 +69,7 @@ Current Tokens:
 * Create New Tokens:
 
  curl -u {{ .Email }} -d '{"write_only":false, "keep_n_versions":7}' \
-   https://baxx.dev/protected/v1/create/token
+   https://baxx.dev/protected/create/token
 
  + Write Only:
    tokens can only add but not get files (without password)
@@ -67,12 +79,12 @@ Current Tokens:
    Useful for database or modified files archives like, e.g:
 
     mysqldump | curl curl --data-binary @- \
-     https://baxx.dev/v1/io/$TOKEN/mysql.gz
+     https://baxx.dev/io/$TOKEN/mysql.gz
 
 * Delete tokens
 
  curl -u {{ .Email }} -d '{"uuid": "TOKEN-UUID"}' \
-   https://baxx.dev/protected/v1/delete/token
+   https://baxx.dev/protected/delete/token
 
  this will delete the token and all the files in it
 
@@ -81,7 +93,7 @@ Current Tokens:
 * File Upload:
 
  cat path/to/file | curl --data-binary @- \
-   https://baxx.dev/v1/io/$TOKEN/path/to/file
+   https://baxx.dev/io/$TOKEN/path/to/file
 
  Same filepath can have up to #N Versions depending on the token
  configuration.
@@ -91,19 +103,19 @@ Current Tokens:
 
 * File Download:
 
- curl https://baxx.dev/v1/io/$TOKEN/path/to/file > file
+ curl https://baxx.dev/io/$TOKEN/path/to/file > file
 
  Downloads the last upload version
 
 * File Delete:
 
- curl -XDELETE https://baxx.dev/v1/io/$TOKEN/path/to/file
+ curl -XDELETE https://baxx.dev/io/$TOKEN/path/to/file
 
  deletes all versions of a file
 
 * List Files in path LIKE /path/to%:
 
- curl https://baxx.dev/v1/ls/$TOKEN/path/to
+ curl https://baxx.dev/ls/$TOKEN/path/to
 
  use -H "Accept: application/json" if you want json back
  by default it prints human readable text
@@ -114,17 +126,17 @@ WriteOnly tokens require BasicAuth and /protected prefix.
 * Download from WriteOnly token:
 
  curl -u {{ .Email }} \
-   https://baxx.dev/protected/v1/io/$TOKEN/path/to/file
+   https://baxx.dev/protected/io/$TOKEN/path/to/file
 
 * Delete with WriteOnly token:
 
  curl -u {{ .Email }} -XDELETE \
-   https://baxx.dev/v1/io/$TOKEN/path/to/file
+   https://baxx.dev/io/$TOKEN/path/to/file
 
 * List with WriteOnly token:
 
  curl -u {{ .Email }} \
-   https://baxx.dev/protected/v1/ls/$TOKEN/path/to/
+   https://baxx.dev/protected/ls/$TOKEN/path/to/
 
 
 ## Profile Management
@@ -132,19 +144,19 @@ WriteOnly tokens require BasicAuth and /protected prefix.
 * Register:
 
  curl -d '{"email":"{{.Email}}", "password":"mickey mouse"}' \
-  https://baxx.dev/v1/register | json_pp
+  https://baxx.dev/register | json_pp
 
 * Change Password
 
  curl -u {{.Email}} -d'{"new_password": "donald mouse"}' \
-  https://baxx.dev/protected/v1/replace/password | json_pp
+  https://baxx.dev/protected/replace/password | json_pp
 
  (use https://www.xkcd.com/936/)
 
 * Change Email
 
  curl -u {{.Email}} -d'{"new_email": "x@example.com"}' \
-  https://baxx.dev/protected/v1/replace/email | json_pp
+  https://baxx.dev/protected/replace/email | json_pp
 
  It will also send new verification email, you can
  also use the replace/email endpoint to resend the
@@ -152,7 +164,7 @@ WriteOnly tokens require BasicAuth and /protected prefix.
 
 * User Status
 
- curl -u {{.Email}} -XPOST https://baxx.dev/protected/v1/status
+ curl -u {{.Email}} -XPOST https://baxx.dev/protected/status
 
  shows things like
   * is the email verified
@@ -168,11 +180,11 @@ var EMAIL_VALIDATION = Parse(`Hi,
 
 this is the verification link: 
 
-  https://baxx.dev/v1/verify/{{.ID}}
+  https://baxx.dev/verify/{{.ID}}
 
 You can check the account status with:
 
-  curl -u {{.Email}} -XPOST https://baxx.dev/protected/v1/status | json_pp
+  curl -u {{.Email}} -XPOST https://baxx.dev/protected/status | json_pp
 
 PS:
 It is very likely that this email goes to the spam folder 
@@ -193,7 +205,7 @@ If you want to cancel you have to do that in your paypal account.
 
 You can check the account status with:
 
-  curl -u {{.Email}} -XPOST https://baxx.dev/protected/v1/status | json_pp
+  curl -u {{.Email}} -XPOST https://baxx.dev/protected/status | json_pp
 
 --
 baxx.dev

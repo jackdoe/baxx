@@ -93,18 +93,18 @@ func (c *Client) query(path string, user string, pass string, req interface{}, d
 
 func (c *Client) Register(input *CreateUserInput) (*UserStatusOutput, error) {
 	out := &UserStatusOutput{}
-	err := c.query("v1/register", "", "", input, out)
+	err := c.query("register", "", "", input, out)
 	return out, err
 }
 
 func (c *Client) Status(input *CreateUserInput) (*UserStatusOutput, error) {
 	out := &UserStatusOutput{}
-	err := c.query("protected/v1/status", input.Email, input.Password, map[string]string{}, out)
+	err := c.query("protected/status", input.Email, input.Password, map[string]string{}, out)
 	return out, err
 }
 
 func (c *Client) ReplaceEmail(input *CreateUserInput, newEmail string) (*UserStatusOutput, error) {
 	out := &UserStatusOutput{}
-	err := c.query("protected/v1/replace/email", input.Email, input.Password, ChangeEmailInput{NewEmail: newEmail}, out)
+	err := c.query("protected/replace/email", input.Email, input.Password, ChangeEmailInput{NewEmail: newEmail}, out)
 	return out, err
 }

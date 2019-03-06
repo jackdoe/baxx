@@ -44,6 +44,7 @@ type UserStatusOutput struct {
 	StartedSubscription   *time.Time     `json:"started_subscription"`
 	CancelledSubscription *time.Time     `json:"cancelled_subscription"`
 	PaymentID             string         `json:"payment_id"`
+	LastVerificationID    string         `json:"-"`
 	Tokens                []*TokenOutput `json:"tokens"`
 	Quota                 uint64         `json:"quota"`
 	QuotaUsed             uint64         `json:"used"`

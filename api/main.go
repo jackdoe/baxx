@@ -41,6 +41,11 @@ func initDatabase(db *gorm.DB) {
 		log.Fatal(err)
 	}
 
+	// not unique index, we can have many links for same email, they could expire
+	if err := db.Model(&VerificationLink{}).AddIndex("idx_vl_email", "email").Error; err != nil {
+		log.Fatal(err)
+	}
+
 	if err := db.Model(&User{}).AddUniqueIndex("idx_email", "email").Error; err != nil {
 		log.Fatal(err)
 	}
@@ -81,12 +86,16 @@ func getUserStatus(db *gorm.DB, user *User) (*UserStatusOutput, error) {
 		used += t.SizeUsed
 	}
 
+	vl := &VerificationLink{}
+	db.Where("email = ?", user.Email).Last(vl)
+
 	return &UserStatusOutput{
 		EmailVerified:         user.EmailVerified,
 		StartedSubscription:   user.StartedSubscription,
 		CancelledSubscription: user.CancelledSubscription,
 		Tokens:                tokensTransformed,
 		Quota:                 user.Quota,
+		LastVerificationID:    vl.ID,
 		QuotaUsed:             used,
 		Paid:                  user.Paid(),
 		PaymentID:             user.PaymentID,
@@ -253,7 +262,7 @@ func main() {
 		return auth.AuthResult{Success: true}
 	}))
 
-	r.POST("/v1/register", func(c *gin.Context) {
+	r.POST("/register", func(c *gin.Context) {
 		var json CreateUserInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
@@ -270,7 +279,7 @@ func main() {
 		c.JSON(http.StatusOK, out)
 	})
 
-	authorized.POST("/v1/status", func(c *gin.Context) {
+	authorized.POST("/status", func(c *gin.Context) {
 		user := c.MustGet("user").(*User)
 		status, err := getUserStatus(db, user)
 		if err != nil {
@@ -281,7 +290,7 @@ func main() {
 		c.JSON(http.StatusOK, status)
 	})
 
-	authorized.POST("/v1/replace/password", func(c *gin.Context) {
+	authorized.POST("/replace/password", func(c *gin.Context) {
 		user := c.MustGet("user").(*User)
 		var json ChangePasswordInput
 		if err := c.ShouldBindJSON(&json); err != nil {
@@ -304,7 +313,7 @@ func main() {
 		c.JSON(http.StatusOK, &Success{true})
 	})
 
-	authorized.POST("/v1/replace/verification", func(c *gin.Context) {
+	authorized.POST("/replace/verification", func(c *gin.Context) {
 		user := c.MustGet("user").(*User)
 		verificationLink := user.GenerateVerificationLink()
 		if err := db.Save(verificationLink).Error; err != nil {
@@ -316,7 +325,7 @@ func main() {
 		c.JSON(http.StatusOK, &Success{true})
 	})
 
-	authorized.POST("/v1/replace/email", func(c *gin.Context) {
+	authorized.POST("/replace/email", func(c *gin.Context) {
 		user := c.MustGet("user").(*User)
 
 		var json ChangeEmailInput
@@ -361,7 +370,7 @@ func main() {
 		c.JSON(http.StatusOK, &Success{true})
 	})
 
-	authorized.POST("/v1/create/token", func(c *gin.Context) {
+	authorized.POST("/create/token", func(c *gin.Context) {
 		user := c.MustGet("user").(*User)
 		var json CreateTokenInput
 		if err := c.ShouldBindJSON(&json); err != nil {
@@ -382,7 +391,7 @@ func main() {
 		c.JSON(http.StatusOK, out)
 	})
 
-	authorized.POST("/v1/delete/token", func(c *gin.Context) {
+	authorized.POST("/delete/token", func(c *gin.Context) {
 		user := c.MustGet("user").(*User)
 		var json DeleteTokenInput
 		if err := c.ShouldBindJSON(&json); err != nil {
@@ -430,7 +439,7 @@ func main() {
 
 		if !isLoggedIn {
 			if t.WriteOnly && c.Request.Method != "POST" {
-				return nil, nil, errors.New("write only token, use /v1/protected/io/$TOKEN/*path")
+				return nil, nil, errors.New("write only token, use /protected/io/$TOKEN/*path")
 			}
 		}
 
@@ -440,7 +449,7 @@ func main() {
 		}
 
 		if !u.Paid() {
-			err = errors.New("payment not received yet or subscription is cancelled, go to https://baxx.dev/v1/sub/" + u.PaymentID + " or if you already did, contact me at jack@baxx.dev")
+			err = errors.New("payment not received yet or subscription is cancelled, go to https://baxx.dev/sub/" + u.PaymentID + " or if you already did, contact me at jack@baxx.dev")
 			return nil, nil, err
 		}
 
@@ -538,7 +547,7 @@ func main() {
 		c.String(http.StatusOK, LSAL(files))
 	}
 
-	mutateSinglePATH := "/v1/io/:token/*path"
+	mutateSinglePATH := "/io/:token/*path"
 
 	authorized.GET(mutateSinglePATH, download)
 	r.GET(mutateSinglePATH, download)
@@ -550,7 +559,7 @@ func main() {
 	r.DELETE(mutateSinglePATH, deleteFile)
 
 	for _, a := range []string{"dir", "ls"} {
-		mutateManyPATH := "/v1/" + a + "/:token/*path"
+		mutateManyPATH := "/" + a + "/:token/*path"
 		authorized.GET(mutateManyPATH, listFiles)
 		r.GET(mutateManyPATH, listFiles)
 	}
@@ -617,7 +626,7 @@ func main() {
 		return nil
 	})
 
-	r.GET("/v1/sub/:paymentID", func(c *gin.Context) {
+	r.GET("/sub/:paymentID", func(c *gin.Context) {
 		prefix := "https://www.paypal.com/cgi-bin/webscr"
 		if *psandbox {
 			prefix = "https://ipnpb.sandbox.paypal.com/cgi-bin/webscr"
@@ -625,10 +634,10 @@ func main() {
 		url := prefix + "?cmd=_xclick-subscriptions&business=jack%40baxx.dev&a3=5&p3=1&t3=M&item_name=baxx.dev+-+backup+as+a+service&return=https%3A%2F%2Fbaxx.dev%2Fthanks_for_paying&a1=0.1&p1=1&t1=M&src=1&sra=1&no_note=1&no_note=1&currency_code=EUR&lc=GB&charset=UTF%2d8¬ify_url=https%3A%2F%2Fbaxx.dev%2Fipn%2F" + c.Param("paymentID")
 		c.Redirect(http.StatusFound, url)
 	})
-	r.GET("/v1/help", func(c *gin.Context) {
+	r.GET("/help", func(c *gin.Context) {
 		c.String(http.StatusOK, help.Render(help.EMAIL_AFTER_REGISTRATION, EMPTY_STATUS))
 	})
-	r.GET("/v1/verify/:id", func(c *gin.Context) {
+	r.GET("/verify/:id", func(c *gin.Context) {
 		v := &VerificationLink{}
 		now := time.Now()
 

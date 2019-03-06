@@ -59,12 +59,6 @@ type User struct {
 	UpdatedAt             time.Time  `json:"-"`
 }
 
-type NotificationRule struct {
-	ID     uint64 `gorm:"primary_key" json:"-"`
-	UserID uint64 `gorm:"not null" json:"-"`
-	Name   string `gorm:"not null" json:"-"`
-}
-
 func (user *User) Paid() bool {
 	if user.StartedSubscription == nil {
 		return false
