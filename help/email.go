@@ -126,7 +126,11 @@ use -H "Accept: application/json" if you want json back by default it
 prints human readable text
 
 
-WriteOnly tokens require BasicAuth and /protected prefix.
+## WriteOnly Tokens
+
+Write Only tokens require BasicAuth and /protected prefix.
+The idea is that you can put them in in-secure places and not worry
+about someone reading your data if they get stolen.
 
 ## Download from WriteOnly token:
 
