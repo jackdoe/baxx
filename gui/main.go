@@ -17,28 +17,6 @@ var logo = `██████╗  █████╗ ██╗  ██╗██
 ██████╔╝██║  ██║██╔╝ ██╗██╔╝ ██╗
 ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝`
 
-/*
-var logo = `
-bbbbbbbb
-b::::::b
-b::::::b
-b::::::b
- b:::::b
- b:::::bbbbbbbbb      aaaaaaaaaaaaa   xxxxxxx      xxxxxxxxxxxxxx      xxxxxxx
- b::::::::::::::bb    a::::::::::::a   x:::::x    x:::::x  x:::::x    x:::::x
- b::::::::::::::::b   aaaaaaaaa:::::a   x:::::x  x:::::x    x:::::x  x:::::x
- b:::::bbbbb:::::::b           a::::a    x:::::xx:::::x      x:::::xx:::::x
- b:::::b    b::::::b    aaaaaaa:::::a     x::::::::::x        x::::::::::x
- b:::::b     b:::::b  aa::::::::::::a      x::::::::x          x::::::::x
- b:::::b     b:::::b a::::aaaa::::::a      x::::::::x          x::::::::x
- b:::::b     b:::::ba::::a    a:::::a     x::::::::::x        x::::::::::x
- b:::::bbbbbb::::::ba::::a    a:::::a    x:::::xx:::::x      x:::::xx:::::x
- b::::::::::::::::b a:::::aaaa::::::a   x:::::x  x:::::x    x:::::x  x:::::x
- b:::::::::::::::b   a::::::::::aa:::a x:::::x    x:::::x  x:::::x    x:::::x
- bbbbbbbbbbbbbbbb     aaaaaaaaaa  aaaaxxxxxxx      xxxxxxxxxxxxxx      xxxxxxx
-`
-*/
-
 func popup(ui tui.UI, root *tui.Box, closeIsExit bool, onClose func(), title string, msg ...string) {
 	text := tui.NewVBox()
 
@@ -186,28 +164,11 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 		}
 
 		if p1 == "" {
-			popup(ui, root, false, nil, "ERROR", `
-Password is required.
-
-If you are not using a password manager
-please use good passwords, such as: 
-
-  'mickey mouse and metallica'
-
-https://www.xkcd.com/936/`)
+			popup(ui, root, false, nil, "ERROR", Render(GUI_PASS_REQUIRED, nil))
 			return
 		}
 		if email == "" {
-			popup(ui, root, false, nil, "ERROR", `
-Email is required.
-
-It we will not send you any marketing messages,
-it will be used just for business, such as:
- * sending notifications when backups are
-   delayed, smaller than normal
- * payment is received
- * payment is not received
-`)
+			popup(ui, root, false, nil, "ERROR", Render(GUI_EMAIL_REQUIRED, nil))
 			return
 		}
 		_, err := bc.Status(&bcommon.CreateUserInput{Email: email, Password: p1})

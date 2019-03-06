@@ -71,7 +71,10 @@ func getUserStatus(db *gorm.DB, user *User) (*UserStatusOutput, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	tokensTransformed := []*TokenOutput{}
+	for _, t := range tokens {
+		tokensTransformed = append(tokensTransformed, &TokenOutput{ID: t.ID, WriteOnly: t.WriteOnly, NumberOfArchives: t.NumberOfArchives, CreatedAt: t.CreatedAt})
+	}
 	used := uint64(0)
 	for _, t := range tokens {
 		used += t.SizeUsed
@@ -81,7 +84,7 @@ func getUserStatus(db *gorm.DB, user *User) (*UserStatusOutput, error) {
 		EmailVerified:         user.EmailVerified,
 		StartedSubscription:   user.StartedSubscription,
 		CancelledSubscription: user.CancelledSubscription,
-		Tokens:                tokens,
+		Tokens:                tokensTransformed,
 		Quota:                 user.Quota,
 		QuotaUsed:             used,
 		Paid:                  user.Paid(),

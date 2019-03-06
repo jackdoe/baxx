@@ -1,10 +1,6 @@
 package common
 
 import (
-	"errors"
-	"fmt"
-	"github.com/badoux/checkmail"
-	"github.com/jackdoe/baxx/user"
 	"time"
 )
 
@@ -30,30 +26,24 @@ type Success struct {
 	Success bool `json:"success"`
 }
 
-func ValidateEmail(email string) error {
-	err := checkmail.ValidateFormat(email)
-	if err != nil {
-		return errors.New(fmt.Sprintf("invalid email address (%s)", err.Error()))
-	}
-	return nil
-}
-func ValidatePassword(p string) error {
-	if len(p) < 8 {
-		return errors.New("password is too short, refer to https://www.xkcd.com/936/")
-	}
-	return nil
+type TokenOutput struct {
+	ID               string    `gorm:"primary_key"  json:"token"`
+	WriteOnly        bool      `gorm:"not null" json:"write_only"`
+	NumberOfArchives uint64    `gorm:"not null" json:"keep_n_versions"`
+	SizeUsed         uint64    `gorm:"not null;default:0" json:"size_used"`
+	CreatedAt        time.Time `json:"created_at"`
 }
 
 type UserStatusOutput struct {
-	EmailVerified         *time.Time    `json:"email_verified"`
-	Paid                  bool          `json:"paid"`
-	StartedSubscription   *time.Time    `json:"started_subscription"`
-	CancelledSubscription *time.Time    `json:"cancelled_subscription"`
-	PaymentID             string        `json:"payment_id"`
-	Tokens                []*user.Token `json:"tokens"`
-	Quota                 uint64        `json:"quota"`
-	QuotaUsed             uint64        `json:"used"`
-	Email                 string        `json:"email"`
+	EmailVerified         *time.Time     `json:"email_verified"`
+	Paid                  bool           `json:"paid"`
+	StartedSubscription   *time.Time     `json:"started_subscription"`
+	CancelledSubscription *time.Time     `json:"cancelled_subscription"`
+	PaymentID             string         `json:"payment_id"`
+	Tokens                []*TokenOutput `json:"tokens"`
+	Quota                 uint64         `json:"quota"`
+	QuotaUsed             uint64         `json:"used"`
+	Email                 string         `json:"email"`
 }
 
 type DeleteToken struct {
@@ -67,5 +57,5 @@ type QueryError struct {
 var EMPTY_STATUS = &UserStatusOutput{
 	PaymentID: "WILL-BE-IN-YOUR-EMAIL",
 	Email:     "your.email@example.com",
-	Tokens:    []*user.Token{&user.Token{ID: "TOKEN-UUID-A", WriteOnly: true, NumberOfArchives: 3}, &user.Token{ID: "TOKEN-UUID-B", WriteOnly: false, NumberOfArchives: 3}},
+	Tokens:    []*TokenOutput{&TokenOutput{ID: "TOKEN-UUID-A", WriteOnly: true, NumberOfArchives: 3}, &TokenOutput{ID: "TOKEN-UUID-B", WriteOnly: false, NumberOfArchives: 3}},
 }

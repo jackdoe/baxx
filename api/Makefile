@@ -1,2 +1,2 @@
 all:
-	go run action_log.go main.go mail.go -sandbox -debug
+	go run action_log.go main.go mail.go util.go -sandbox -debug
