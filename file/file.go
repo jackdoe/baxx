@@ -33,7 +33,7 @@ type FileMetadata struct {
 
 type FileVersion struct {
 	ID             uint64 `gorm:"primary_key" json:"id"`
-	DuplicatedSave uint64 `gorm:"not null" json:"version"`
+	DuplicatedSave uint64 `gorm:"not null" json:"duplicate_save"`
 
 	// denormalized for simplicity
 	TokenID        uint64 `gorm:"not null" json:"-"`
