@@ -217,7 +217,7 @@ func LSAL(files []FileMetadataAndVersion) string {
 	}
 
 	keys := []string{}
-	for p, _ := range grouped {
+	for p := range grouped {
 		keys = append(keys, p)
 	}
 	sort.Strings(keys)

@@ -35,7 +35,7 @@ func TestFileQuota(t *testing.T) {
 	defer db.Close()
 	initDatabase(db)
 	status, user, err := registerUser(db, CreateUserInput{Email: "jack@prymr.nl", Password: " abcabcabc"})
-	log.Printf(help.Render(help.EMAIL_AFTER_REGISTRATION, status))
+	log.Print(help.Render(help.EMAIL_AFTER_REGISTRATION, status))
 
 	if err != nil {
 		t.Fatal(err)

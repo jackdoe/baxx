@@ -323,7 +323,7 @@ func main() {
 			return
 		}
 
-		c.JSON(http.StatusOK, &Success{true})
+		c.JSON(http.StatusOK, &Success{Success: true})
 	})
 
 	authorized.POST("/replace/verification", func(c *gin.Context) {
@@ -335,7 +335,7 @@ func main() {
 			return
 		}
 
-		c.JSON(http.StatusOK, &Success{true})
+		c.JSON(http.StatusOK, &Success{Success: true})
 	})
 
 	authorized.POST("/replace/email", func(c *gin.Context) {
@@ -380,7 +380,7 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 
-		c.JSON(http.StatusOK, &Success{true})
+		c.JSON(http.StatusOK, &Success{Success: true})
 	})
 
 	authorized.POST("/create/token", func(c *gin.Context) {
@@ -433,7 +433,7 @@ func main() {
 
 		actionLog(db, user.ID, "token", "delete", c.Request)
 
-		c.JSON(http.StatusOK, &Success{true})
+		c.JSON(http.StatusOK, &Success{Success: true})
 	})
 
 	getViewTokenLoggedOrNot := func(c *gin.Context) (*Token, *User, error) {
@@ -530,7 +530,7 @@ func main() {
 		}
 
 		actionLog(db, t.UserID, "file", "delete", c.Request, "")
-		c.JSON(http.StatusOK, &Success{true})
+		c.JSON(http.StatusOK, &Success{Success: true})
 	}
 
 	listFiles := func(c *gin.Context) {

@@ -19,11 +19,7 @@ func hashAndSalt(pwd string) string {
 func comparePasswords(hashedPwd string, plainPwd string) bool {
 	byteHash := []byte(hashedPwd)
 	err := bcrypt.CompareHashAndPassword(byteHash, []byte(plainPwd))
-	if err != nil {
-		return false
-	}
-
-	return true
+	return err == nil
 }
 
 type PaymentHistory struct {
@@ -97,7 +93,7 @@ func (user *User) ListTokens(db *gorm.DB) ([]*Token, error) {
 }
 
 func getUUID() string {
-	return fmt.Sprintf("%s", uuid.Must(uuid.NewV4()))
+	return uuid.Must(uuid.NewV4()).String()
 }
 
 func (user *User) BeforeCreate(scope *gorm.Scope) error {
@@ -106,16 +102,16 @@ func (user *User) BeforeCreate(scope *gorm.Scope) error {
 }
 
 type Token struct {
-	ID     uint64 `gorm:"primary_key"  json:"token"`
-	UUID   string `gorm:"not null"  json:"token"`
-	Salt   string `gorm:"not null";type:"varchar(32)" json:"-"`
-	UserID uint64 `gorm:"not null" json:"-"`
+	ID     uint64 `gorm:"primary_key"`
+	UUID   string `gorm:"not null"`
+	Salt   string `gorm:"not null;type:varchar(32)"`
+	UserID uint64 `gorm:"not null"`
 
-	WriteOnly        bool   `gorm:"not null" json:"write_only"`
-	NumberOfArchives uint64 `gorm:"not null" json:"keep_n_versions"`
-	SizeUsed         uint64 `gorm:"not null;default:0" json:"size_used"`
+	WriteOnly        bool   `gorm:"not null"`
+	NumberOfArchives uint64 `gorm:"not null"`
+	SizeUsed         uint64 `gorm:"not null;default:0"`
 	CreatedAt        time.Time
-	UpdatedAt        time.Time `json:"-"`
+	UpdatedAt        time.Time
 }
 
 func (token *Token) BeforeCreate(scope *gorm.Scope) error {

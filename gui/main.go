@@ -303,7 +303,7 @@ func postRegistration(ui tui.UI, bc *baxx.Client, email, pass string) *tui.Box {
 				time.Sleep(1 * time.Second)
 				i++
 			case <-stop:
-				break
+				return
 			}
 		}
 	}()
