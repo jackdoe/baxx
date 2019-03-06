@@ -24,6 +24,7 @@ needed the data it was either corrupt or 0 bytes, or was missing.
  Lets work together to make usable backup service!
 
 ## Encryption
+
  Your data is compressed and encrypted when received, the encryption
  key is auto generated uuid, and the purpose of the encryption is
  simply to obscure the data in case the machines are hacked, hacker
