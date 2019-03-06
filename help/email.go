@@ -84,13 +84,23 @@ Current Tokens:
  cat path/to/file | curl --data-binary @- \
    https://baxx.dev/v1/io/$TOKEN/path/to/file
 
+ Same filepath can have up to #N Versions depending on the token
+ configuration.
+
+ Uploading the same sha256 resulting in reusing existing version
+ and also does not consume quota.
+
 * File Download:
 
  curl https://baxx.dev/v1/io/$TOKEN/path/to/file > file
 
+ Downloads the last upload version
+
 * File Delete:
 
  curl -XDELETE https://baxx.dev/v1/io/$TOKEN/path/to/file
+
+ deletes all versions of a file
 
 * List Files in path LIKE /path/to%:
 
