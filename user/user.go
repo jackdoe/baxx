@@ -114,13 +114,6 @@ type Token struct {
 	UpdatedAt        time.Time
 }
 
-func (token *Token) BeforeCreate(scope *gorm.Scope) error {
-	id := uuid.Must(uuid.NewV4())
-
-	scope.SetColumn("ID", fmt.Sprintf("%s", id))
-	return nil
-}
-
 func (user *User) GetQuotaLeft(db *gorm.DB) (int64, error) {
 	used, err := user.GetQuotaUsed(db)
 	if err != nil {
