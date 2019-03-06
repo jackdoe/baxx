@@ -157,7 +157,7 @@ func (user *User) CreateToken(db *gorm.DB, writeOnly bool, numOfArchives uint64)
 	}
 
 	if len(tokens) >= int(CONFIG.MaxTokens) {
-		return nil, errors.New(fmt.Sprintf("max tokens created (max=%d)", CONFIG.MaxTokens))
+		return nil, fmt.Errorf("max tokens created (max=%d)", CONFIG.MaxTokens)
 	}
 
 	if err := db.Create(t).Error; err != nil {

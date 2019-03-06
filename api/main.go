@@ -462,7 +462,7 @@ func main() {
 		}
 
 		if !u.Paid() {
-			err = errors.New("payment not received yet or subscription is cancelled, go to https://baxx.dev/sub/" + u.PaymentID + " or if you already did, contact me at jack@baxx.dev")
+			err = fmt.Errorf("payment not received yet or subscription is cancelled, go to https://baxx.dev/sub/%s or if you already did, contact me at jack@baxx.dev", u.PaymentID)
 			return nil, nil, err
 		}
 
@@ -676,14 +676,14 @@ func main() {
 
 		if time.Now().Unix()-int64(v.SentAt) > (24 * 3600) {
 			tx.Rollback()
-			warnErr(c, errors.New(fmt.Sprintf("verification link expired %#v", v)))
+			warnErr(c, fmt.Errorf("verification link expired %#v", v))
 			c.String(http.StatusOK, help.Render(help.HTML_LINK_EXPIRED, v))
 			return
 		}
 
 		u := &User{}
 		if err := tx.Where("id = ?", v.UserID).Take(u).Error; err != nil {
-			warnErr(c, errors.New(fmt.Sprintf("weird state, verification's user not found %#v", v)))
+			warnErr(c, fmt.Errorf("weird state, verification's user not found %#v", v))
 			tx.Rollback()
 			c.String(http.StatusInternalServerError, help.Render(help.HTML_LINK_ERROR, "verification link's user not found, this is very weird"))
 			return
@@ -691,7 +691,7 @@ func main() {
 
 		if u.Email != v.Email {
 			tx.Rollback()
-			warnErr(c, errors.New(fmt.Sprintf("weird state, user changed email %#v %#v", v, u)))
+			warnErr(c, fmt.Errorf("weird state, user changed email %#v %#v", v, u))
 			c.String(http.StatusInternalServerError, help.Render(help.HTML_LINK_ERROR, "user email already changed, this is very weird"))
 			return
 		}
