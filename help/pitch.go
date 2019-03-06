@@ -46,6 +46,6 @@ Anyway, dont trust it and use encryption when sending data.
 
 ## Open Source
 
-The whole thing will be open sourced (soon)
+https://github.com/jackdoe/baxx
 
 `)
