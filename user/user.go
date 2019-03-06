@@ -97,8 +97,7 @@ func getUUID() string {
 }
 
 func (user *User) BeforeCreate(scope *gorm.Scope) error {
-	scope.SetColumn("PaymentID", getUUID())
-	return nil
+	return scope.SetColumn("PaymentID", getUUID())
 }
 
 type Token struct {
