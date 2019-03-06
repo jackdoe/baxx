@@ -22,10 +22,11 @@ baxx.dev
 `)
 
 var EMAIL_AFTER_REGISTRATION = Parse(`Hi,
-Thanks for registering to baxx.dev.
 
 The service I offer is still in Alpha stage, but I really appreciate
 the support.
+
+# Subscription
 
 ## Plan (only one for now):
 
@@ -36,11 +37,15 @@ the support.
 
   Here be Dragons! Data can be lost!
 
+## Subscribe
+
 In order to use baxx.dev you need subscription,
 At the moment I support only paypal.com, please visit:
 
 https://baxx.dev/sub/{{.PaymentID}}
 To be redirected to paypal.com.
+
+## Verify your email
 
 Email verification is also required, you should've received the
 verification link in another email.
@@ -50,15 +55,14 @@ Or you could also click on:
 https://baxx.dev/verify/{{.LastVerificationID}}
 
 {{ end }}
-
 Thanks again!
 
-## Tokens
+# Tokens
 
  Tokens are like backup namespaces, you can have the same
  file in different tokens and it won't conflict.
 
-Current Tokens:
+## Current Tokens:
 
 {{ range .Tokens }}
   TOKEN: {{.UUID}}
@@ -66,31 +70,31 @@ Current Tokens:
   Keep N Versions {{ .NumberOfArchives }}
 
 {{end}}
-* Create New Tokens:
+## Create New Tokens:
 
  curl -u {{ .Email }} -d '{"write_only":false, "keep_n_versions":7}' \
    https://baxx.dev/protected/create/token
 
- + Write Only:
+ Write Only:
    tokens can only add but not get files (without password)
 
- + Keep #N Versions:
+ Keep #N Versions:
    How many versions per file (with different sha256) to keep.
    Useful for database or modified files archives like, e.g:
 
-    mysqldump | curl curl --data-binary @- \
-     https://baxx.dev/io/$TOKEN/mysql.gz
+   mysqldump | curl --data-binary @- \
+    https://baxx.dev/io/$TOKEN/mysql.gz
 
-* Delete tokens
+## Delete tokens
 
  curl -u {{ .Email }} -d '{"uuid": "TOKEN-UUID"}' \
    https://baxx.dev/protected/delete/token
 
  this will delete the token and all the files in it
 
-## File operations
+# File operations
 
-* File Upload:
+## File Upload:
 
  cat path/to/file | curl --data-binary @- \
    https://baxx.dev/io/$TOKEN/path/to/file
@@ -101,19 +105,19 @@ Current Tokens:
  Uploading the same sha256 resulting in reusing existing version
  and also does not consume quota.
 
-* File Download:
+## File Download:
 
  curl https://baxx.dev/io/$TOKEN/path/to/file > file
 
  Downloads the last upload version
 
-* File Delete:
+## File Delete:
 
  curl -XDELETE https://baxx.dev/io/$TOKEN/path/to/file
 
  deletes all versions of a file
 
-* List Files in path LIKE /path/to%:
+## List Files in path LIKE /path/to%:
 
  curl https://baxx.dev/ls/$TOKEN/path/to
 
@@ -123,37 +127,37 @@ Current Tokens:
 
 WriteOnly tokens require BasicAuth and /protected prefix.
 
-* Download from WriteOnly token:
+## Download from WriteOnly token:
 
  curl -u {{ .Email }} \
    https://baxx.dev/protected/io/$TOKEN/path/to/file
 
-* Delete with WriteOnly token:
+## Delete with WriteOnly token:
 
  curl -u {{ .Email }} -XDELETE \
    https://baxx.dev/io/$TOKEN/path/to/file
 
-* List with WriteOnly token:
+## List with WriteOnly token:
 
  curl -u {{ .Email }} \
    https://baxx.dev/protected/ls/$TOKEN/path/to/
 
 
-## Profile Management
+# Profile Management
 
-* Register:
+## Register:
 
  curl -d '{"email":"{{.Email}}", "password":"mickey mouse"}' \
   https://baxx.dev/register | json_pp
 
-* Change Password
+## Change Password
 
  curl -u {{.Email}} -d'{"new_password": "donald mouse"}' \
   https://baxx.dev/protected/replace/password | json_pp
 
  (use https://www.xkcd.com/936/)
 
-* Change Email
+## Change Email
 
  curl -u {{.Email}} -d'{"new_email": "x@example.com"}' \
   https://baxx.dev/protected/replace/email | json_pp
@@ -162,7 +166,7 @@ WriteOnly tokens require BasicAuth and /protected prefix.
  also use the replace/email endpoint to resend the
  verification email.
 
-* User Status
+## User Status
 
  curl -u {{.Email}} -XPOST https://baxx.dev/protected/status
 

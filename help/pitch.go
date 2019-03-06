@@ -1,6 +1,6 @@
 package help
 
-var PITCH = Parse(`## baxx.dev is a simple backup service with unix philosophy in mind
+var PITCH = Parse(`# baxx.dev is a simple backup service with unix philosophy in mind
 
   tackling what is fundamental problem with backups:
    * anomaly detection

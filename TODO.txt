@@ -49,7 +49,7 @@
    + delete files
  + change password
  + email
- + fix send verification link
+ + fix send verification link (show something that it is sending)
 
 * help
  + baxx.dev/help/register*
@@ -61,7 +61,6 @@
 * simplify
  + remove /v1/ [ done Wed  6 Mar 14:53:51 CET 2019 ]
  + add the verification link also in the registration email [ done Wed  6 Mar 14:53:51 CET 2019 ]
- 
 
 * tests
   there are zero tests at the moment
