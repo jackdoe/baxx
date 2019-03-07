@@ -223,7 +223,7 @@ func main() {
 	var ps3region = flag.String("s3-region", "ams3", "s3 region")
 	var ps3endpoint = flag.String("s3-endpoint", "ams3.digitaloceanspaces.com", "s3 endpoint")
 	var ps3bucket = flag.String("s3-bucket", "baxx", "s3 bucket")
-	var ps3keyid = flag.String("s3-key-id", "baxx.dev", "s3 key id")
+	var ps3keyid = flag.String("s3-key-id", "", "s3 key id")
 	var ps3secret = flag.String("s3-secret", "", "s3 secret")
 	var ps3token = flag.String("s3-token", "", "s3 token")
 	var pdbtype = flag.String("db-type", "sqlite3", "database type, sqlite3 or mysql")

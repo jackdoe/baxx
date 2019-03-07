@@ -15,6 +15,7 @@ type StoreConfig struct {
 	AccessKeyID     string
 	SecretAccessKey string
 	SessionToken    string
+	DisableSSL      bool
 }
 
 var CONFIG = &Config{

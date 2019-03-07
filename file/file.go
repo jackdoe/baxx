@@ -44,10 +44,9 @@ func (s *Store) getTemporaryName(tokenid uint64) string {
 
 func NewStore(conf *StoreConfig) *Store {
 	creds := credentials.NewStaticCredentials(conf.AccessKeyID, conf.SecretAccessKey, conf.SessionToken)
-	b := true
 	sess := session.Must(session.NewSession(&aws.Config{
 		Credentials: creds,
-		DisableSSL:  &b,
+		DisableSSL:  &conf.DisableSSL,
 		Endpoint:    &conf.Endpoint,
 		Region:      &conf.Region,
 	}))

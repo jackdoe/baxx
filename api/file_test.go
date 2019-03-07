@@ -32,6 +32,7 @@ func TestFileQuota(t *testing.T) {
 		SecretAccessKey: "b",
 		SessionToken:    "c",
 		TemporaryRoot:   dir,
+		DisableSSL:      true,
 	})
 
 	defer os.RemoveAll(dir)
