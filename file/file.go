@@ -243,6 +243,10 @@ func FindAndOpenFile(s *Store, db *gorm.DB, t *Token, p string) (*FileVersion, f
 		os.Remove(tempName)
 	}
 
+	// XXX: saving the file locally so we can download it concurrently
+	// Download() takes WriterAt because of the chunks and even
+	// though we can use inmemory buffer, it might get too big
+	// so just save the file on disk and then delete it
 	_, err = s.downloader.Download(file,
 		&s3.GetObjectInput{
 			Bucket: aws.String(s.bucket),

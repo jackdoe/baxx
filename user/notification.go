@@ -21,8 +21,8 @@ type Example struct {
 }
 
 type EmailNotification struct {
-	ID uint64 `gorm:"primary_key" json:"-"`
-
+	ID      uint64 `gorm:"primary_key" json:"-"`
+	UUID    string `gorm:"not null" json:"-"`
 	Example string `gorm:"not null;type:text" json:"-"`
 
 	EmailText    string `gorm:"not null;type:text" json:"-"`
