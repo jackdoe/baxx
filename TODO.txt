@@ -29,6 +29,12 @@
  + configure
  + send email when rule matches
 
+* storage
+ + add support for configurable storage
+ + local filesystem
+ + s3
+ + riak/..
+
 * users
  + change password [ done Sat  2 Mar 16:27:39 CET 2019 ]
  + change email [ done Sat  2 Mar 16:27:39 CET 2019 ]
@@ -50,6 +56,7 @@
  + change password
  + email
  + fix send verification link (show something that it is sending)
+ + add login screen
 
 * help
  + baxx.dev/help/register*
