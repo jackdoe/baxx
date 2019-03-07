@@ -612,7 +612,7 @@ func main() {
 		r.GET(mutateManyPATH, listFiles)
 	}
 
-	mutateManyPATH := "/sha256/:token/sha256"
+	mutateManyPATH := "/sha256/:token/:sha256"
 	authorized.GET(mutateManyPATH, lookupSHA)
 	r.GET(mutateManyPATH, lookupSHA)
 
