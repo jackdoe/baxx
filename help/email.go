@@ -189,6 +189,12 @@ will have to also get access to the database as well.
 
 Anyway, dont trust it and use encryption when uploading.
 
+# Examples
+
+## upload everything
+
+find . -type f -exec curl --data-binary @{} \
+              https://baxx.dev/io/$TOKEN/{} \;
 --
 baxx.dev
 `)

@@ -508,6 +508,24 @@ func main() {
 		done()
 	}
 
+	lookupSHA := func(c *gin.Context) {
+		t, _, err := getViewTokenLoggedOrNot(c)
+		if err != nil {
+			warnErr(c, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		fv, fm, err := FindFileBySHA(db, t, c.Param("sha256"))
+		if err != nil {
+			warnErr(c, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"sha": fv.SHA256, "path": fm.Path, "name": fm.Filename})
+	}
+
 	upload := func(c *gin.Context) {
 		body := c.Request.Body
 		defer body.Close()
@@ -593,6 +611,10 @@ func main() {
 		authorized.GET(mutateManyPATH, listFiles)
 		r.GET(mutateManyPATH, listFiles)
 	}
+
+	mutateManyPATH := "/sha256/:token/sha256"
+	authorized.GET(mutateManyPATH, lookupSHA)
+	r.GET(mutateManyPATH, lookupSHA)
 
 	ipn.Listener(r, "/ipn/:paymentID", func(c *gin.Context, err error, body string, n *ipn.Notification) error {
 		if err != nil {
