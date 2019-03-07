@@ -230,7 +230,7 @@ func FindFile(db *gorm.DB, t *Token, p string) (*FileVersion, *FileMetadata, err
 func FindFileBySHA(db *gorm.DB, t *Token, sha string) (*FileVersion, *FileMetadata, error) {
 	// FIXME(jackdoe): make sure the found file is actually the latest version
 	fv := &FileVersion{}
-	if err := db.Where("token_id = ? AND sha = ?", t.ID, sha).Take(fv).Error; err != nil {
+	if err := db.Where("token_id = ? AND sha256 = ?", t.ID, sha).Take(fv).Error; err != nil {
 		return nil, nil, err
 	}
 
