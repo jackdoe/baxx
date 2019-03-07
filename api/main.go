@@ -529,7 +529,7 @@ func main() {
 			return
 		}
 
-		c.String(http.StatusOK, fmt.Sprintf("%s  %s/%s", fv.SHA256, fm.Path, fm.Filename))
+		c.String(http.StatusOK, fmt.Sprintf("%s  %s/%s\n", fv.SHA256, fm.Path, fm.Filename))
 	}
 
 	upload := func(c *gin.Context) {
