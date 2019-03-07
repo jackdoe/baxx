@@ -88,6 +88,7 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 	confirmPassword.SetEchoMode(tui.EchoModePassword)
 
 	form := tui.NewGrid(0, 0)
+	isRegisterMode := true
 	form.AppendRow(tui.NewLabel("Email"))
 	form.AppendRow(user)
 	form.AppendRow(tui.NewSpacer())
@@ -98,6 +99,7 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 	form.AppendRow(confirmPassword)
 
 	register := tui.NewButton("[Register]")
+	login := tui.NewButton("[Login]")
 
 	quit := tui.NewButton("[Quit]")
 	help := tui.NewButton("[Help]")
@@ -106,6 +108,7 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 	buttonsRegister := tui.NewHBox(
 		tui.NewSpacer(),
 		tui.NewPadder(1, 0, register),
+		tui.NewPadder(1, 0, login),
 		tui.NewSpacer(),
 	)
 
@@ -148,7 +151,7 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 
 	root := content
 	chain := &tui.SimpleFocusChain{}
-	chain.Set(user, password, confirmPassword, register, help, pitch, tos, quit)
+	chain.Set(user, password, confirmPassword, register, login, help, pitch, tos, quit)
 	ui.SetFocusChain(chain)
 
 	quit.OnActivated(func(b *tui.Button) {
@@ -167,7 +170,60 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 		popup(ui, root, false, nil, "Terms Of Service", Render(TERMS_AND_CONDITIONS, nil))
 	})
 
+	login.OnActivated(func(b *tui.Button) {
+		if isRegisterMode {
+			// copy pasta
+			form.RemoveRows()
+			form.AppendRow(tui.NewLabel("Email"))
+			form.AppendRow(user)
+			form.AppendRow(tui.NewSpacer())
+			form.AppendRow(tui.NewLabel("Password"))
+			form.AppendRow(password)
+			form.AppendRow(tui.NewSpacer())
+			user.SetFocused(true)
+			isRegisterMode = false
+			b.SetFocused(false)
+			chain.Set(user, password, register, login, help, pitch, tos, quit)
+			ui.SetFocusChain(chain)
+
+			return
+		}
+		p1 := password.Text()
+		email := user.Text()
+		_, err := bc.Status(&bcommon.CreateUserInput{Email: email, Password: p1})
+		if err == nil {
+			onRegister(email, p1)
+		} else {
+			_, err := bc.Register(&bcommon.CreateUserInput{Email: email, Password: p1})
+			if err != nil {
+				popup(ui, root, false, nil, "ERROR", apiError(err))
+			} else {
+				onRegister(email, p1)
+			}
+		}
+
+	})
+
 	register.OnActivated(func(b *tui.Button) {
+		if !isRegisterMode {
+			// copy pasta
+			form.RemoveRows()
+			form.AppendRow(tui.NewLabel("Email"))
+			form.AppendRow(user)
+			form.AppendRow(tui.NewSpacer())
+			form.AppendRow(tui.NewLabel("Password"))
+			form.AppendRow(password)
+			form.AppendRow(tui.NewSpacer())
+			form.AppendRow(tui.NewLabel("Confirm Password"))
+			form.AppendRow(confirmPassword)
+			isRegisterMode = true
+			user.SetFocused(true)
+			b.SetFocused(false)
+			chain.Set(user, password, confirmPassword, register, login, help, pitch, tos, quit)
+			ui.SetFocusChain(chain)
+			return
+		}
+
 		p1 := password.Text()
 		p2 := confirmPassword.Text()
 		email := user.Text()
