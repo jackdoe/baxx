@@ -56,7 +56,7 @@
  + change password
  + email
  + fix send verification link (show something that it is sending)
- + add login screen
+ + add login screen [ done Thu  7 Mar 20:55:18 CET 2019 ]
 
 * help
  + baxx.dev/help/register*
