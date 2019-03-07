@@ -529,7 +529,7 @@ func main() {
 			return
 		}
 
-		c.String(http.StatusOK, fmt.Sprintf("%s  %s/%s\n", fv.SHA256, fm.Path, fm.Filename))
+		c.String(http.StatusOK, fmt.Sprintf("%s  %s\n", fv.SHA256, fm.FullPath()))
 	}
 
 	upload := func(c *gin.Context) {
@@ -559,7 +559,7 @@ func main() {
 			return
 		}
 
-		c.String(http.StatusOK, fmt.Sprintf("%s  %s/%s\n", fv.SHA256, fm.Path, fm.Filename))
+		c.String(http.StatusOK, fmt.Sprintf("%s  %s\n", fv.SHA256, fm.FullPath()))
 	}
 
 	deleteFile := func(c *gin.Context) {

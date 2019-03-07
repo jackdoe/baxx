@@ -73,6 +73,13 @@ type FileMetadata struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+func (fm *FileMetadata) FullPath() string {
+	if fm.Path == "/" {
+		return fmt.Sprintf("/%s", fm.Filename)
+	}
+	return fmt.Sprintf("%s/%s", fm.Path, fm.Filename)
+}
+
 type FileVersion struct {
 	ID             uint64 `gorm:"primary_key" json:"id"`
 	DuplicatedSave uint64 `gorm:"not null" json:"duplicate_save"`
