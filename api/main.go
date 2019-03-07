@@ -523,7 +523,13 @@ func main() {
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"sha": fv.SHA256, "path": fm.Path, "name": fm.Filename})
+		accepted := c.NegotiateFormat("application/json")
+		if accepted == "application/json" {
+			c.JSON(http.StatusOK, gin.H{"sha": fv.SHA256, "path": fm.Path, "name": fm.Filename})
+			return
+		}
+
+		c.String(http.StatusOK, fmt.Sprintf("%s  %s/%s", fv.SHA256, fm.Path, fm.Filename))
 	}
 
 	upload := func(c *gin.Context) {
