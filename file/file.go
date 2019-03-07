@@ -7,13 +7,18 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	. "github.com/jackdoe/baxx/config"
 	. "github.com/jackdoe/baxx/user"
 	"github.com/jinzhu/gorm"
 	"github.com/pierrec/lz4"
 	"github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
 	"io"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -21,6 +26,44 @@ import (
 	"strings"
 	"time"
 )
+
+type Store struct {
+	temporaryRoot string
+	bucket        string
+	sess          *session.Session
+	uploader      *s3manager.Uploader
+	downloader    *s3manager.Downloader
+	batcher       *s3manager.BatchDelete
+}
+
+func (s *Store) getTemporaryName(tokenid uint64) string {
+	dir := path.Join(s.temporaryRoot, "baxx")
+	os.MkdirAll(dir, 0700)
+	return path.Join(dir, fmt.Sprintf("%d.%d.%s", time.Now().UnixNano(), tokenid, uuid.Must(uuid.NewV4())))
+}
+
+func NewStore(conf *StoreConfig) *Store {
+	creds := credentials.NewStaticCredentials(conf.AccessKeyID, conf.SecretAccessKey, conf.SessionToken)
+	b := true
+	sess := session.Must(session.NewSession(&aws.Config{
+		Credentials: creds,
+		DisableSSL:  &b,
+		Endpoint:    &conf.Endpoint,
+		Region:      &conf.Region,
+	}))
+
+	uploader := s3manager.NewUploader(sess)
+	downloader := s3manager.NewDownloader(sess)
+	batcher := s3manager.NewBatchDelete(sess)
+	return &Store{
+		bucket:        conf.Bucket,
+		temporaryRoot: conf.TemporaryRoot,
+		sess:          sess,
+		batcher:       batcher,
+		uploader:      uploader,
+		downloader:    downloader,
+	}
+}
 
 type FileMetadata struct {
 	ID        uint64    `gorm:"primary_key" json:"-"`
@@ -47,8 +90,8 @@ type FileVersion struct {
 	UpdatedAtNs uint64    `json:"-"`
 }
 
-func (fv *FileVersion) FSPath() string {
-	return locate(fv.TokenID, fv.SHA256)
+func (v *FileVersion) key() string {
+	return fmt.Sprintf("%d.%d.%s", v.ID, v.TokenID, v.SHA256)
 }
 
 func split(s string) (string, string) {
@@ -56,12 +99,6 @@ func split(s string) (string, string) {
 	name := filepath.Base(s)
 	dir := filepath.Dir(s)
 	return dir, name
-}
-
-func locate(tokenid uint64, f string) string {
-	dir := path.Join(CONFIG.FileRoot, "baxx", fmt.Sprintf("%d", tokenid), f[0:2], f[2:4])
-	os.MkdirAll(dir, 0700)
-	return path.Join(dir, f)
 }
 
 func saveUploadedFile(key string, temporary string, body io.Reader) (string, int64, error) {
@@ -117,7 +154,7 @@ func decompressAndDecrypt(key string, r io.Reader) (io.Reader, error) {
 	// or if someone steals the data
 }
 
-func DeleteFile(db *gorm.DB, t *Token, p string) error {
+func DeleteFile(s *Store, db *gorm.DB, t *Token, p string) error {
 	tx := db.Begin()
 
 	_, fm, err := FindFile(tx, t, p)
@@ -131,14 +168,19 @@ func DeleteFile(db *gorm.DB, t *Token, p string) error {
 		tx.Rollback()
 		return err
 	}
-	removeFiles := []string{}
+	removeFiles := []s3manager.BatchDeleteObject{}
 	// go and delete all versions
 
 	for _, rm := range versions {
 		if t.SizeUsed >= rm.Size {
 			t.SizeUsed -= rm.Size
 		}
-		removeFiles = append(removeFiles, rm.FSPath())
+		removeFiles = append(removeFiles, s3manager.BatchDeleteObject{
+			Object: &s3.DeleteObjectInput{
+				Key:    aws.String(rm.key()),
+				Bucket: aws.String(s.bucket),
+			},
+		})
 		if err := tx.Delete(rm).Error; err != nil {
 			tx.Rollback()
 			return err
@@ -156,14 +198,16 @@ func DeleteFile(db *gorm.DB, t *Token, p string) error {
 		return err
 	}
 
-	// goooo
-	if err := tx.Commit().Error; err != nil {
+	if err := s.batcher.Delete(aws.BackgroundContext(), &s3manager.DeleteObjectsIterator{
+		Objects: removeFiles,
+	}); err != nil {
+		tx.Rollback()
 		return err
 	}
 
-	for _, f := range removeFiles {
-		log.Printf("removing %s, because of file delete operation", f)
-		os.Remove(f)
+	// goooo
+	if err := tx.Commit().Error; err != nil {
+		return err
 	}
 	return nil
 
@@ -184,22 +228,36 @@ func FindFile(db *gorm.DB, t *Token, p string) (*FileVersion, *FileMetadata, err
 	return fv, fm, nil
 }
 
-func FindAndOpenFile(db *gorm.DB, t *Token, p string) (*FileVersion, *os.File, io.Reader, error) {
+func FindAndOpenFile(s *Store, db *gorm.DB, t *Token, p string) (*FileVersion, func(), io.Reader, error) {
 	fv, _, err := FindFile(db, t, p)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	file, err := os.Open(fv.FSPath())
+	tempName := s.getTemporaryName(t.ID)
+	file, err := os.OpenFile(tempName, os.O_CREATE|os.O_RDWR, 0600)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	done := func() {
+		file.Close()
+		os.Remove(tempName)
+	}
+
+	_, err = s.downloader.Download(file,
+		&s3.GetObjectInput{
+			Bucket: aws.String(s.bucket),
+			Key:    aws.String(fv.key()),
+		})
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	reader, err := decompressAndDecrypt(t.Salt, file)
 	if err != nil {
-		file.Close()
 		return nil, nil, nil, err
 	}
-	return fv, file, reader, nil
+	return fv, done, reader, nil
 
 }
 
@@ -276,7 +334,7 @@ func ListVersionsFile(db *gorm.DB, t *Token, p string) ([]*FileVersion, error) {
 	return versions, nil
 }
 
-func DeleteToken(db *gorm.DB, token *Token) error {
+func DeleteToken(s *Store, db *gorm.DB, token *Token) error {
 	// delete metadata
 	tx := db.Begin()
 	if err := tx.Delete(FileMetadata{}, "token_id = ?", token.ID).Error; err != nil {
@@ -291,13 +349,25 @@ func DeleteToken(db *gorm.DB, token *Token) error {
 		return err
 	}
 
+	removeFiles := []s3manager.BatchDeleteObject{}
+
 	for _, v := range versions {
-		log.Printf("token delete removing %s", v.FSPath())
-		os.Remove(v.FSPath())
+		removeFiles = append(removeFiles, s3manager.BatchDeleteObject{
+			Object: &s3.DeleteObjectInput{
+				Key:    aws.String(v.key()),
+				Bucket: aws.String(s.bucket),
+			},
+		})
 	}
 
 	// delete token
 	if err := tx.Delete(Token{}, "id = ?", token.ID).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := s.batcher.Delete(aws.BackgroundContext(), &s3manager.DeleteObjectsIterator{
+		Objects: removeFiles,
+	}); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -309,9 +379,9 @@ func DeleteToken(db *gorm.DB, token *Token) error {
 	return nil
 }
 
-func SaveFile(db *gorm.DB, t *Token, user *User, body io.Reader, p string) (*FileVersion, error) {
+func SaveFile(s *Store, db *gorm.DB, t *Token, user *User, body io.Reader, p string) (*FileVersion, error) {
 	dir, name := split(p)
-	tempName := locate(t.ID, fmt.Sprintf("%d.%s", time.Now().UnixNano(), uuid.Must(uuid.NewV4())))
+	tempName := s.getTemporaryName(t.ID)
 	defer os.Remove(tempName)
 	sha, size, err := saveUploadedFile(t.Salt, tempName, body)
 	if err != nil {
@@ -321,7 +391,6 @@ func SaveFile(db *gorm.DB, t *Token, user *User, body io.Reader, p string) (*Fil
 	fm := &FileMetadata{}
 
 	if err := tx.FirstOrCreate(&fm, FileMetadata{TokenID: t.ID, Path: dir, Filename: name}).Error; err != nil {
-
 		tx.Rollback()
 		return nil, err
 	}
@@ -374,7 +443,7 @@ func SaveFile(db *gorm.DB, t *Token, user *User, body io.Reader, p string) (*Fil
 	}
 
 	limit := int(t.NumberOfArchives)
-	removeFiles := []string{}
+	removeFiles := []s3manager.BatchDeleteObject{}
 	if len(versions) > limit {
 		toDelete := versions[0:(len(versions) - limit)]
 		for _, rm := range toDelete {
@@ -382,7 +451,13 @@ func SaveFile(db *gorm.DB, t *Token, user *User, body io.Reader, p string) (*Fil
 				t.SizeUsed -= rm.Size
 			}
 
-			removeFiles = append(removeFiles, rm.FSPath())
+			removeFiles = append(removeFiles, s3manager.BatchDeleteObject{
+				Object: &s3.DeleteObjectInput{
+					Key:    aws.String(rm.key()),
+					Bucket: aws.String(s.bucket),
+				},
+			})
+
 			if err := tx.Delete(rm).Error; err != nil {
 				tx.Rollback()
 				return nil, err
@@ -405,10 +480,27 @@ func SaveFile(db *gorm.DB, t *Token, user *User, body io.Reader, p string) (*Fil
 		tx.Rollback()
 		return nil, errors.New("quota limit reached")
 	}
-
-	err = os.Rename(tempName, locate(t.ID, sha))
+	f, err := os.Open(tempName)
 	if err != nil {
-		os.Remove(tempName)
+		tx.Rollback()
+		return nil, err
+	}
+	defer f.Close()
+
+	result, err := s.uploader.Upload(&s3manager.UploadInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(fv.key()),
+		Body:   f,
+	})
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	log.Infof("file uploaded to, %s\n", aws.StringValue(&result.Location))
+	log.Infof("removing , limit: %d, versions: %d %+v", limit, len(versions), removeFiles)
+	if err := s.batcher.Delete(aws.BackgroundContext(), &s3manager.DeleteObjectsIterator{
+		Objects: removeFiles,
+	}); err != nil {
 		tx.Rollback()
 		return nil, err
 	}
@@ -417,11 +509,6 @@ func SaveFile(db *gorm.DB, t *Token, user *User, body io.Reader, p string) (*Fil
 	if err := tx.Commit().Error; err != nil {
 		// well at ths point we might have the file already saved..
 		return nil, err
-	}
-
-	for _, f := range removeFiles {
-		log.Printf("removing %s, limit: %d, versions: %d", f, limit, len(versions))
-		os.Remove(f)
 	}
 
 	return fv, nil

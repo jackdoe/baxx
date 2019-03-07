@@ -19,11 +19,22 @@ import (
 
 func TestFileQuota(t *testing.T) {
 	dir, err := ioutil.TempDir("", "test_file")
+
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	store := file.NewStore(&StoreConfig{
+		Endpoint:        "baxx.localhost:9000",
+		Region:          "localhost",
+		Bucket:          "baxx",
+		AccessKeyID:     "a",
+		SecretAccessKey: "b",
+		SessionToken:    "c",
+		TemporaryRoot:   dir,
+	})
+
 	defer os.RemoveAll(dir)
-	CONFIG.FileRoot = dir
 
 	tmpfn := filepath.Join(dir, "tmpfile")
 	db, err := gorm.Open("sqlite3", tmpfn)
@@ -60,11 +71,11 @@ func TestFileQuota(t *testing.T) {
 
 	for i := 0; i < 20; i++ {
 		s := fmt.Sprintf("a b c d %d", i)
-		_, err := file.SaveFile(db, token, user, bytes.NewBuffer([]byte(s)), filePath)
+		_, err := file.SaveFile(store, db, token, user, bytes.NewBuffer([]byte(s)), filePath)
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, file, reader, err := file.FindAndOpenFile(db, token, filePath)
+		_, done, reader, err := file.FindAndOpenFile(store, db, token, filePath)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -77,11 +88,11 @@ func TestFileQuota(t *testing.T) {
 		if string(b) != s {
 			t.Fatalf("expected %s got %s", s, string(b))
 		}
-		file.Close()
+		done()
 
 	}
 
-	_, err = file.SaveFile(db, token, user, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
+	_, err = file.SaveFile(store, db, token, user, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +129,7 @@ func TestFileQuota(t *testing.T) {
 		t.Fatalf("expected1 versions got %d", len(versions))
 	}
 
-	err = file.DeleteFile(db, token, filePath)
+	err = file.DeleteFile(store, db, token, filePath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +139,7 @@ func TestFileQuota(t *testing.T) {
 		t.Fatalf("expected 7 got %d", used)
 	}
 
-	err = file.DeleteFile(db, token, filePath+"second")
+	err = file.DeleteFile(store, db, token, filePath+"second")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,7 +154,7 @@ func TestFileQuota(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = file.SaveFile(db, token, user, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
+	_, err = file.SaveFile(store, db, token, user, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,7 +162,7 @@ func TestFileQuota(t *testing.T) {
 	left, _ := user.GetQuotaLeft(db)
 	log.Printf("left: %d", left)
 
-	_, err = file.SaveFile(db, token, user, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), filePath+"second")
+	_, err = file.SaveFile(store, db, token, user, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), filePath+"second")
 	if err.Error() != "quota limit reached" {
 		t.Fatalf("expected quota limit reached got %s", err.Error())
 	}
@@ -174,7 +185,7 @@ func TestFileQuota(t *testing.T) {
 
 	created = append(created, token)
 	for _, to := range created {
-		err := file.DeleteToken(db, to)
+		err := file.DeleteToken(store, db, to)
 		if err != nil {
 			t.Fatal(err)
 		}

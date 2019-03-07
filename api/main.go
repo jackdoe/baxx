@@ -219,7 +219,13 @@ func registerUser(db *gorm.DB, json CreateUserInput) (*UserStatusOutput, *User, 
 
 func main() {
 	var pbind = flag.String("bind", "127.0.0.1:9123", "bind")
-	var proot = flag.String("root", "/tmp", "root")
+	var proot = flag.String("root", "/tmp", "temporary file root")
+	var ps3region = flag.String("s3-region", "ams3", "s3 region")
+	var ps3endpoint = flag.String("s3-endpoint", "ams3.digitaloceanspaces.com", "s3 endpoint")
+	var ps3bucket = flag.String("s3-bucket", "baxx", "s3 bucket")
+	var ps3keyid = flag.String("s3-key-id", "baxx.dev", "s3 key id")
+	var ps3secret = flag.String("s3-secret", "", "s3 secret")
+	var ps3token = flag.String("s3-token", "", "s3 token")
 	var pdbtype = flag.String("db-type", "sqlite3", "database type, sqlite3 or mysql")
 	var pdburl = flag.String("db-url", "/tmp/gorm.db", "database url")
 	var psendgridkey = flag.String("sendgrid", "", "sendgrid api key")
@@ -227,12 +233,18 @@ func main() {
 	var psandbox = flag.Bool("sandbox", false, "sandbox")
 	var prelease = flag.Bool("release", false, "release")
 	flag.Parse()
-	// because of the passwords in the parameters
 
-	CONFIG.FileRoot = *proot
 	CONFIG.MaxTokens = 100
 	CONFIG.SendGridKey = *psendgridkey
-
+	store := NewStore(&StoreConfig{
+		Endpoint:        *ps3endpoint,
+		Region:          *ps3region,
+		Bucket:          *ps3bucket,
+		AccessKeyID:     *ps3keyid,
+		SecretAccessKey: *ps3secret,
+		SessionToken:    *ps3token,
+		TemporaryRoot:   *proot,
+	})
 	title := []string{}
 	if *prelease {
 		gin.SetMode(gin.ReleaseMode)
@@ -250,6 +262,11 @@ func main() {
 	}
 	title = append(title, *pdbtype)
 	title = append(title, *proot)
+	title = append(title, *ps3region)
+	title = append(title, *ps3bucket)
+	title = append(title, *ps3endpoint)
+
+	// because of the passwords in the parameters
 	gspt.SetProcTitle(fmt.Sprintf("[baxx.dev %s]", strings.Join(title, " ")))
 
 	db, err := gorm.Open(*pdbtype, *pdburl)
@@ -425,7 +442,7 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		if err := DeleteToken(db, token); err != nil {
+		if err := DeleteToken(store, db, token); err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -477,18 +494,18 @@ func main() {
 			return
 		}
 
-		fo, file, reader, err := FindAndOpenFile(db, t, c.Param("path"))
+		fo, done, reader, err := FindAndOpenFile(store, db, t, c.Param("path"))
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		defer file.Close()
 		c.Header("Content-Length", fmt.Sprintf("%d", fo.Size))
 		c.Header("Content-Transfer-Encoding", "binary")
 		c.Header("Content-Disposition", "attachment; filename="+fo.SHA256+".sha") // make sure people dont use it for loading js
 		c.Header("Content-Type", "application/octet-stream")
 		c.DataFromReader(http.StatusOK, int64(fo.Size), "octet/stream", reader, map[string]string{})
+		done()
 	}
 
 	upload := func(c *gin.Context) {
@@ -502,7 +519,7 @@ func main() {
 			return
 		}
 		p := c.Param("path")
-		fv, err := SaveFile(db, t, user, body, p)
+		fv, err := SaveFile(store, db, t, user, body, p)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -523,7 +540,7 @@ func main() {
 			return
 		}
 
-		if err := DeleteFile(db, t, c.Param("path")); err != nil {
+		if err := DeleteFile(store, db, t, c.Param("path")); err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
