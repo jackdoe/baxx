@@ -543,7 +543,7 @@ func main() {
 			return
 		}
 		p := c.Param("path")
-		fv, err := SaveFile(store, db, t, user, body, p)
+		fv, fm, err := SaveFile(store, db, t, user, body, p)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -553,7 +553,13 @@ func main() {
 		// check if over quota
 
 		actionLog(db, t.UserID, "file", "upload", c.Request, fmt.Sprintf("FileVersion: %d/%d", fv.ID, fv.FileMetadataID))
-		c.JSON(http.StatusOK, fv)
+		accepted := c.NegotiateFormat("application/json")
+		if accepted == "application/json" {
+			c.JSON(http.StatusOK, fv)
+			return
+		}
+
+		c.String(http.StatusOK, fmt.Sprintf("%s  %s/%s\n", fv.SHA256, fm.Path, fm.Filename))
 	}
 
 	deleteFile := func(c *gin.Context) {

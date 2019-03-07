@@ -397,20 +397,20 @@ func DeleteToken(s *Store, db *gorm.DB, token *Token) error {
 	return nil
 }
 
-func SaveFile(s *Store, db *gorm.DB, t *Token, user *User, body io.Reader, p string) (*FileVersion, error) {
+func SaveFile(s *Store, db *gorm.DB, t *Token, user *User, body io.Reader, p string) (*FileVersion, *FileMetadata, error) {
 	dir, name := split(p)
 	tempName := s.getTemporaryName(t.ID)
 	defer os.Remove(tempName)
 	sha, size, err := saveUploadedFile(t.Salt, tempName, body)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	tx := db.Begin()
 	fm := &FileMetadata{}
 
 	if err := tx.FirstOrCreate(&fm, FileMetadata{TokenID: t.ID, Path: dir, Filename: name}).Error; err != nil {
 		tx.Rollback()
-		return nil, err
+		return nil, nil, err
 	}
 
 	// create file origin
@@ -427,7 +427,7 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, user *User, body io.Reader, p str
 		fv.UpdatedAtNs = uint64(time.Now().UnixNano())
 		if err := tx.Save(fv).Error; err != nil {
 			tx.Rollback()
-			return nil, err
+			return nil, nil, err
 		}
 
 		// only count once if file is created
@@ -435,20 +435,20 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, user *User, body io.Reader, p str
 
 		if err := tx.Save(fv).Error; err != nil {
 			tx.Rollback()
-			return nil, err
+			return nil, nil, err
 		}
 	} else {
 		fv.DuplicatedSave++
 		fv.UpdatedAtNs = uint64(time.Now().UnixNano())
 		if err := tx.Save(fv).Error; err != nil {
 			tx.Rollback()
-			return nil, err
+			return nil, nil, err
 		}
 
 		if err := tx.Commit().Error; err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		return fv, nil
+		return fv, nil, nil
 	}
 
 	// create file metadata if we did not create it
@@ -457,7 +457,7 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, user *User, body io.Reader, p str
 	versions, err := ListVersionsFile(tx, t, p)
 	if err != nil {
 		tx.Rollback()
-		return nil, err
+		return nil, nil, err
 	}
 
 	limit := int(t.NumberOfArchives)
@@ -478,56 +478,55 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, user *User, body io.Reader, p str
 
 			if err := tx.Delete(rm).Error; err != nil {
 				tx.Rollback()
-				return nil, err
+				return nil, nil, err
 			}
 		}
 	}
 
 	if err := tx.Save(t).Error; err != nil {
 		tx.Rollback()
-		return nil, err
+		return nil, nil, err
 	}
 
 	left, err := user.GetQuotaLeft(tx)
 	if err != nil {
 		tx.Rollback()
-		return nil, err
+		return nil, nil, err
 	}
 
 	if left < 0 {
 		tx.Rollback()
-		return nil, errors.New("quota limit reached")
+		return nil, nil, errors.New("quota limit reached")
 	}
 	f, err := os.Open(tempName)
 	if err != nil {
 		tx.Rollback()
-		return nil, err
+		return nil, nil, err
 	}
 	defer f.Close()
 
-	result, err := s.uploader.Upload(&s3manager.UploadInput{
+	_, err = s.uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(fv.key()),
 		Body:   f,
 	})
 	if err != nil {
 		tx.Rollback()
-		return nil, err
+		return nil, nil, err
 	}
-	log.Infof("file uploaded to, %s\n", aws.StringValue(&result.Location))
-	log.Infof("removing , limit: %d, versions: %d %+v", limit, len(versions), removeFiles)
+	log.Infof("removing limit: %d, versions: %d %+v", limit, len(versions), removeFiles)
 	if err := s.batcher.Delete(aws.BackgroundContext(), &s3manager.DeleteObjectsIterator{
 		Objects: removeFiles,
 	}); err != nil {
 		tx.Rollback()
-		return nil, err
+		return nil, nil, err
 	}
 
 	// goooo
 	if err := tx.Commit().Error; err != nil {
 		// well at ths point we might have the file already saved..
-		return nil, err
+		return nil, nil, err
 	}
 
-	return fv, nil
+	return fv, fm, nil
 }

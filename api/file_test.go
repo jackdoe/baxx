@@ -72,7 +72,7 @@ func TestFileQuota(t *testing.T) {
 
 	for i := 0; i < 20; i++ {
 		s := fmt.Sprintf("a b c d %d", i)
-		_, err := file.SaveFile(store, db, token, user, bytes.NewBuffer([]byte(s)), filePath)
+		_, _, err := file.SaveFile(store, db, token, user, bytes.NewBuffer([]byte(s)), filePath)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -93,7 +93,7 @@ func TestFileQuota(t *testing.T) {
 
 	}
 
-	_, err = file.SaveFile(store, db, token, user, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
+	_, _, err = file.SaveFile(store, db, token, user, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,7 +155,7 @@ func TestFileQuota(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = file.SaveFile(store, db, token, user, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
+	_, _, err = file.SaveFile(store, db, token, user, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +163,7 @@ func TestFileQuota(t *testing.T) {
 	left, _ := user.GetQuotaLeft(db)
 	log.Printf("left: %d", left)
 
-	_, err = file.SaveFile(store, db, token, user, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), filePath+"second")
+	_, _, err = file.SaveFile(store, db, token, user, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), filePath+"second")
 	if err.Error() != "quota limit reached" {
 		t.Fatalf("expected quota limit reached got %s", err.Error())
 	}

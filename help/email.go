@@ -195,6 +195,15 @@ Anyway, dont trust it and use encryption when uploading.
 
 find . -type f -exec curl --data-binary @{} \
               https://baxx.dev/io/$TOKEN/{} \;
+
+## upload only the files that have difference in shasum
+
+for i i in $(find . -type f); do \
+ sha=$(shasum -a 256 $i | cut -f 1 -d ' ')
+ (curl -s https://baxx.dev/sha256/$TOKEN/$sha -f 2>/dev/null && echo SKIP $i) || \
+ (curl --data-binary @$i https://baxx.dev/io/$TOKEN/$i -f)
+done
+
 --
 baxx.dev
 `)
