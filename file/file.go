@@ -396,7 +396,7 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, localFile *LocalFile) (*FileVersi
 			return nil, nil, err
 		}
 
-		return fv, nil, nil
+		return fv, fm, nil
 	}
 
 	_, err := s.uploader.Upload(&s3manager.UploadInput{
