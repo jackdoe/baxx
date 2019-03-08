@@ -1,6 +1,7 @@
 package common
 
 import (
+	"os"
 	"time"
 )
 
@@ -59,4 +60,12 @@ var EMPTY_STATUS = &UserStatusOutput{
 	PaymentID: "WILL-BE-IN-YOUR-EMAIL",
 	Email:     "your.email@example.com",
 	Tokens:    []*TokenOutput{&TokenOutput{UUID: "TOKEN-UUID-A", WriteOnly: true, NumberOfArchives: 3}, &TokenOutput{UUID: "TOKEN-UUID-B", WriteOnly: false, NumberOfArchives: 3}},
+}
+
+type LocalFile struct {
+	File           *os.File
+	SHA            string
+	Size           uint64
+	TempName       string
+	OriginFullPath string
 }

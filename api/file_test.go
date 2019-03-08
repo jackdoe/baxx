@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	. "github.com/jackdoe/baxx/baxxio"
 	. "github.com/jackdoe/baxx/common"
 	. "github.com/jackdoe/baxx/config"
 	"github.com/jackdoe/baxx/file"
@@ -18,11 +19,12 @@ import (
 )
 
 func TestFileQuota(t *testing.T) {
-	dir, err := ioutil.TempDir("", "test_file")
-
+	dir, err := ioutil.TempDir("", "test_file_")
 	if err != nil {
 		t.Fatal(err)
 	}
+	CONFIG.TemporaryRoot = dir
+	defer os.RemoveAll(dir)
 
 	store := file.NewStore(&StoreConfig{
 		Endpoint:        "baxx.localhost:9000",
@@ -31,11 +33,8 @@ func TestFileQuota(t *testing.T) {
 		AccessKeyID:     "a",
 		SecretAccessKey: "b",
 		SessionToken:    "c",
-		TemporaryRoot:   dir,
 		DisableSSL:      true,
 	})
-
-	defer os.RemoveAll(dir)
 
 	tmpfn := filepath.Join(dir, "tmpfile")
 	db, err := gorm.Open("sqlite3", tmpfn)
@@ -72,11 +71,17 @@ func TestFileQuota(t *testing.T) {
 
 	for i := 0; i < 20; i++ {
 		s := fmt.Sprintf("a b c d %d", i)
-		_, _, err := file.SaveFile(store, db, token, user, bytes.NewBuffer([]byte(s)), filePath)
+		_, _, err := SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(s)), filePath)
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, done, reader, err := file.FindAndOpenFile(store, db, token, filePath)
+
+		localFile, err := CreateTemporaryFile(token.ID, filePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		_, reader, err := file.FindAndDecodeFile(store, db, token, localFile)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -89,11 +94,11 @@ func TestFileQuota(t *testing.T) {
 		if string(b) != s {
 			t.Fatalf("expected %s got %s", s, string(b))
 		}
-		done()
-
+		localFile.File.Close()
+		os.Remove(localFile.TempName)
 	}
 
-	_, _, err = file.SaveFile(store, db, token, user, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
+	_, _, err = SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,27 +156,52 @@ func TestFileQuota(t *testing.T) {
 	}
 
 	user.Quota = 10
+	user.QuotaInode = 2
 	if err := db.Save(user).Error; err != nil {
 		t.Fatal(err)
 	}
 
-	_, _, err = file.SaveFile(store, db, token, user, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
+	_, _, err = SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
+	if err != nil {
+		t.Fatal(err)
+	}
+	left, inodeLeft, _ := user.GetQuotaLeft(db)
+	log.Printf("left: %d inodes: %d", left, inodeLeft)
+	if inodeLeft != 1 {
+		t.Fatalf("expected 1 got %d", inodeLeft)
+	}
+
+	_, _, err = SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), filePath+"second")
+	if err.Error() != "quota limit reached" {
+		t.Fatalf("expected quota limit reached got %s", err.Error())
+	}
+
+	_, inodeLeft, _ = user.GetQuotaLeft(db)
+	if inodeLeft != 1 {
+		t.Fatalf("(after error) expected 1 got %d", inodeLeft)
+	}
+
+	user.Quota = 500
+	if err := db.Save(user).Error; err != nil {
+		t.Fatal(err)
+	}
+	_, _, err = SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), filePath+"second")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	left, _ := user.GetQuotaLeft(db)
-	log.Printf("left: %d", left)
-
-	_, _, err = file.SaveFile(store, db, token, user, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), filePath+"second")
-	if err.Error() != "quota limit reached" {
-		t.Fatalf("expected quota limit reached got %s", err.Error())
+	left, inodeLeft, _ = user.GetQuotaLeft(db)
+	if inodeLeft != 0 {
+		t.Fatalf("expected 1 got %d", inodeLeft)
 	}
-	left, _ = user.GetQuotaLeft(db)
-	log.Printf("left: %d", left)
+	log.Printf("left: %d inodes: %d", left, inodeLeft)
+	_, _, err = SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), filePath+"second")
+	if err.Error() != "inode quota limit reached" {
+		t.Fatalf("expected inode quota limit reached got %s", err.Error())
+	}
 
 	CONFIG.MaxTokens = 10
-	created := []*Token{}
+	created := []*file.Token{}
 	for i := 0; i < 8; i++ {
 		to, err := user.CreateToken(db, false, 1)
 		if err != nil {

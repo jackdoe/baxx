@@ -4,9 +4,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-
 	"github.com/erikdubbelboer/gspt"
 	"github.com/gin-gonic/gin"
+	. "github.com/jackdoe/baxx/baxxio"
 	. "github.com/jackdoe/baxx/common"
 	. "github.com/jackdoe/baxx/config"
 	. "github.com/jackdoe/baxx/file"
@@ -18,7 +18,9 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	log "github.com/sirupsen/logrus"
+	"io"
 	"net/http"
+	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -177,7 +179,7 @@ func registerUser(db *gorm.DB, json CreateUserInput) (*UserStatusOutput, *User, 
 		return nil, nil, errors.New("user already exists")
 	}
 
-	user := &User{Email: json.Email, Quota: CONFIG.DefaultQuota}
+	user := &User{Email: json.Email, Quota: CONFIG.DefaultQuota, QuotaInode: CONFIG.DefaultInodeQuota}
 	user.SetPassword(json.Password)
 	if err := tx.Create(user).Error; err != nil {
 		tx.Rollback()
@@ -236,6 +238,7 @@ func main() {
 
 	CONFIG.MaxTokens = 100
 	CONFIG.SendGridKey = *psendgridkey
+	CONFIG.TemporaryRoot = *proot
 	store := NewStore(&StoreConfig{
 		Endpoint:        *ps3endpoint,
 		Region:          *ps3region,
@@ -243,7 +246,6 @@ func main() {
 		AccessKeyID:     *ps3keyid,
 		SecretAccessKey: *ps3secret,
 		SessionToken:    *ps3token,
-		TemporaryRoot:   *proot,
 	})
 	title := []string{}
 	if *prelease {
@@ -493,8 +495,19 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		localFile, err := CreateTemporaryFile(t.ID, c.Param("path"))
+		if err != nil {
+			warnErr(c, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 
-		fo, done, reader, err := FindAndOpenFile(store, db, t, c.Param("path"))
+		defer func() {
+			localFile.File.Close()
+			os.Remove(localFile.TempName)
+		}()
+
+		fo, reader, err := FindAndDecodeFile(store, db, t, localFile)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -505,7 +518,6 @@ func main() {
 		c.Header("Content-Disposition", "attachment; filename="+fo.SHA256+".sha") // make sure people dont use it for loading js
 		c.Header("Content-Type", "application/octet-stream")
 		c.DataFromReader(http.StatusOK, int64(fo.Size), "octet/stream", reader, map[string]string{})
-		done()
 	}
 
 	lookupSHA := func(c *gin.Context) {
@@ -543,7 +555,7 @@ func main() {
 			return
 		}
 		p := c.Param("path")
-		fv, fm, err := SaveFile(store, db, t, user, body, p)
+		fv, fm, err := SaveFileProcess(store, db, user, t, body, p)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -697,9 +709,11 @@ func main() {
 		url := prefix + "?cmd=_xclick-subscriptions&business=jack%40baxx.dev&a3=5&p3=1&t3=M&item_name=baxx.dev+-+backup+as+a+service&return=https%3A%2F%2Fbaxx.dev%2Fthanks_for_paying&a1=0.1&p1=1&t1=M&src=1&sra=1&no_note=1&no_note=1&currency_code=EUR&lc=GB&charset=UTF%2d8¬ify_url=https%3A%2F%2Fbaxx.dev%2Fipn%2F" + c.Param("paymentID")
 		c.Redirect(http.StatusFound, url)
 	})
+
 	r.GET("/help", func(c *gin.Context) {
 		c.String(http.StatusOK, help.Render(help.EMAIL_AFTER_REGISTRATION, EMPTY_STATUS))
 	})
+
 	r.GET("/verify/:id", func(c *gin.Context) {
 		v := &VerificationLink{}
 		now := time.Now()
@@ -762,4 +776,41 @@ func main() {
 	})
 
 	log.Fatal(r.Run(*pbind))
+}
+
+func SaveFileProcess(s *Store, db *gorm.DB, user *User, t *Token, body io.Reader, p string) (*FileVersion, *FileMetadata, error) {
+	localFile, err := CreateTemporaryFile(t.ID, p)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer os.Remove(localFile.TempName)
+	defer localFile.File.Close()
+
+	sha, size, err := SaveUploadedFile(t.Salt, localFile.File, body)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	leftSize, leftInodes, err := user.GetQuotaLeft(db)
+	if err != nil {
+		return nil, nil, err
+	}
+	if leftSize < size {
+		return nil, nil, errors.New("quota limit reached")
+	}
+
+	if leftInodes < 1 {
+		return nil, nil, errors.New("inode quota limit reached")
+	}
+
+	localFile.SHA = sha
+	localFile.Size = uint64(size)
+	_, err = localFile.File.Seek(0, io.SeekStart)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	fv, fm, err := SaveFile(s, db, t, localFile)
+
+	return fv, fm, err
 }

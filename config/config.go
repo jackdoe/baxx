@@ -1,17 +1,18 @@
 package config
 
 type Config struct {
-	MaxTokens    uint64
-	DefaultQuota uint64
-	SendGridKey  string
-	Testing      bool
+	MaxTokens         uint64
+	DefaultQuota      uint64
+	DefaultInodeQuota uint64
+	TemporaryRoot     string
+	SendGridKey       string
+	Testing           bool
 }
 
 type StoreConfig struct {
 	Endpoint        string
 	Region          string
 	Bucket          string
-	TemporaryRoot   string
 	AccessKeyID     string
 	SecretAccessKey string
 	SessionToken    string
@@ -19,8 +20,9 @@ type StoreConfig struct {
 }
 
 var CONFIG = &Config{
-	MaxTokens:    100,
-	DefaultQuota: 10 * 1024 * 1024 * 1024,
-	Testing:      false,
-	SendGridKey:  "",
+	MaxTokens:         100,
+	DefaultQuota:      10 * 1024 * 1024 * 1024,
+	DefaultInodeQuota: 1000,
+	Testing:           false,
+	SendGridKey:       "",
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	. "github.com/jackdoe/baxx/config"
+	. "github.com/jackdoe/baxx/file"
 	"github.com/jinzhu/gorm"
 	"github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -46,6 +47,7 @@ type User struct {
 	PaymentID             string     `gorm:"not null" json:"-"`
 	Email                 string     `gorm:"not null" json:"-"`
 	Quota                 uint64     `gorm:"not null;default:10737418240" json:"quota"`
+	QuotaInode            uint64     `gorm:"not null;default:1000" json:"quota_inode"`
 	EmailVerified         *time.Time `json:"-"`
 	StartedSubscription   *time.Time `json:"-"`
 	CancelledSubscription *time.Time `json:"-"`
@@ -100,38 +102,31 @@ func (user *User) BeforeCreate(scope *gorm.Scope) error {
 	return scope.SetColumn("PaymentID", getUUID())
 }
 
-type Token struct {
-	ID     uint64 `gorm:"primary_key"`
-	UUID   string `gorm:"not null"`
-	Salt   string `gorm:"not null;type:varchar(32)"`
-	UserID uint64 `gorm:"not null"`
-
-	WriteOnly        bool   `gorm:"not null"`
-	NumberOfArchives uint64 `gorm:"not null"`
-	SizeUsed         uint64 `gorm:"not null;default:0"`
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
-}
-
-func (user *User) GetQuotaLeft(db *gorm.DB) (int64, error) {
-	used, err := user.GetQuotaUsed(db)
+func (user *User) GetQuotaLeft(db *gorm.DB) (int64, int64, error) {
+	usedSize, usedInodes, err := user.GetQuotaUsed(db)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
-	return int64(user.Quota) - int64(used), nil
+	return int64(user.Quota) - int64(usedSize), int64(user.QuotaInode) - int64(usedInodes), nil
 }
 
-func (user *User) GetQuotaUsed(db *gorm.DB) (int64, error) {
+func (user *User) GetQuotaUsed(db *gorm.DB) (int64, int64, error) {
 	tokens, err := user.ListTokens(db)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
-	used := uint64(0)
+	usedSpace := uint64(0)
+	usedInodes := uint64(0)
 	for _, t := range tokens {
-		used += t.SizeUsed
+		usedSpace += t.SizeUsed
+		c, err := CountFilesPerToken(db, t)
+		if err != nil {
+			return 0, 0, err
+		}
+		usedInodes += c
 	}
-	return int64(used), nil
+	return int64(usedSpace), int64(usedInodes), nil
 }
 
 func (user *User) CreateToken(db *gorm.DB, writeOnly bool, numOfArchives uint64) (*Token, error) {

@@ -2,44 +2,43 @@ package file
 
 import (
 	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/sha256"
-	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	. "github.com/jackdoe/baxx/baxxio"
+	. "github.com/jackdoe/baxx/common"
 	. "github.com/jackdoe/baxx/config"
-	. "github.com/jackdoe/baxx/user"
 	"github.com/jinzhu/gorm"
-	"github.com/pierrec/lz4"
-	"github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 	"io"
-	"os"
-	"path"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
 )
 
-type Store struct {
-	temporaryRoot string
-	bucket        string
-	sess          *session.Session
-	uploader      *s3manager.Uploader
-	downloader    *s3manager.Downloader
-	batcher       *s3manager.BatchDelete
+type Token struct {
+	ID     uint64 `gorm:"primary_key"`
+	UUID   string `gorm:"not null"`
+	Salt   string `gorm:"not null;type:varchar(32)"`
+	UserID uint64 `gorm:"not null"`
+
+	WriteOnly        bool   `gorm:"not null"`
+	NumberOfArchives uint64 `gorm:"not null"`
+	SizeUsed         uint64 `gorm:"not null;default:0"`
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
-func (s *Store) getTemporaryName(tokenid uint64) string {
-	dir := path.Join(s.temporaryRoot, "baxx")
-	os.MkdirAll(dir, 0700)
-	return path.Join(dir, fmt.Sprintf("%d.%d.%s", time.Now().UnixNano(), tokenid, uuid.Must(uuid.NewV4())))
+type Store struct {
+	bucket     string
+	sess       *session.Session
+	uploader   *s3manager.Uploader
+	downloader *s3manager.Downloader
+	batcher    *s3manager.BatchDelete
 }
 
 func NewStore(conf *StoreConfig) *Store {
@@ -55,12 +54,11 @@ func NewStore(conf *StoreConfig) *Store {
 	downloader := s3manager.NewDownloader(sess)
 	batcher := s3manager.NewBatchDelete(sess)
 	return &Store{
-		bucket:        conf.Bucket,
-		temporaryRoot: conf.TemporaryRoot,
-		sess:          sess,
-		batcher:       batcher,
-		uploader:      uploader,
-		downloader:    downloader,
+		bucket:     conf.Bucket,
+		sess:       sess,
+		batcher:    batcher,
+		uploader:   uploader,
+		downloader: downloader,
 	}
 }
 
@@ -105,59 +103,6 @@ func split(s string) (string, string) {
 	name := filepath.Base(s)
 	dir := filepath.Dir(s)
 	return dir, name
-}
-
-func saveUploadedFile(key string, temporary string, body io.Reader) (string, int64, error) {
-	sha := sha256.New()
-	tee := io.TeeReader(body, sha)
-	block, err := aes.NewCipher([]byte(key))
-	if err != nil {
-		return "", 0, err
-	}
-
-	dest, err := os.Create(temporary)
-	if err != nil {
-		return "", 0, err
-	}
-	var iv [aes.BlockSize]byte
-
-	stream := cipher.NewOFB(block, iv[:])
-	encryptedWriter := &cipher.StreamWriter{S: stream, W: dest}
-	// compress -> encrypt
-	lz4Writer := lz4.NewWriter(encryptedWriter)
-	size, err := io.Copy(lz4Writer, tee)
-	if err != nil {
-		dest.Close()
-		os.Remove(temporary)
-		return "", 0, err
-	}
-
-	// XXX: not to be trusted, attacker can flip bits
-	// the only reason we encrypt is so we dont accidentally receive unencrypted data
-	// or if someone steals the data
-
-	lz4Writer.Close()
-	encryptedWriter.Close()
-	dest.Close()
-	shasum := fmt.Sprintf("%x", sha.Sum(nil))
-
-	return shasum, size, nil
-}
-
-func decompressAndDecrypt(key string, r io.Reader) (io.Reader, error) {
-	block, err := aes.NewCipher([]byte(key))
-	if err != nil {
-		return nil, err
-	}
-	var iv [aes.BlockSize]byte
-	stream := cipher.NewOFB(block, iv[:])
-	// compress -> encrypt -> decrypt -> decompress
-	decryptReader := &cipher.StreamReader{S: stream, R: r}
-	lz4Reader := lz4.NewReader(decryptReader)
-	return lz4Reader, nil
-	// XXX: not to be trusted, attacker can flip bits
-	// the only reason we encrypt is so we dont accidentally receive unencrypted data
-	// or if someone steals the data
 }
 
 func DeleteFile(s *Store, db *gorm.DB, t *Token, p string) error {
@@ -249,41 +194,43 @@ func FindFileBySHA(db *gorm.DB, t *Token, sha string) (*FileVersion, *FileMetada
 	return fv, fm, nil
 }
 
-func FindAndOpenFile(s *Store, db *gorm.DB, t *Token, p string) (*FileVersion, func(), io.Reader, error) {
-	fv, fm, err := FindFile(db, t, p)
-	if err != nil {
-		return nil, nil, nil, err
+func CountFilesPerToken(db *gorm.DB, t *Token) (uint64, error) {
+	c := uint64(0)
+	if err := db.Model(&FileVersion{}).Where("token_id = ?", t.ID).Count(&c).Error; err != nil {
+		return 0, err
 	}
-	tempName := s.getTemporaryName(t.ID)
-	file, err := os.OpenFile(tempName, os.O_CREATE|os.O_RDWR, 0600)
-	if err != nil {
-		return nil, nil, nil, err
-	}
+	return c, nil
+}
 
-	done := func() {
-		file.Close()
-		os.Remove(tempName)
+func FindAndDecodeFile(s *Store, db *gorm.DB, t *Token, localFile *LocalFile) (*FileVersion, io.Reader, error) {
+	fv, fm, err := FindFile(db, t, localFile.OriginFullPath)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	// XXX: saving the file locally so we can download it concurrently
 	// Download() takes WriterAt because of the chunks and even
 	// though we can use inmemory buffer, it might get too big
 	// so just save the file on disk and then delete it
-	_, err = s.downloader.Download(file,
+	_, err = s.downloader.Download(localFile.File,
 		&s3.GetObjectInput{
 			Bucket: aws.String(s.bucket),
 			Key:    aws.String(s3key(fm.TokenID, fm.ID, fv.SHA256)),
 		})
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
-	reader, err := decompressAndDecrypt(t.Salt, file)
+	_, err = localFile.File.Seek(0, io.SeekStart)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
-	return fv, done, reader, nil
 
+	reader, err := DecompressAndDecrypt(t.Salt, localFile.File)
+	if err != nil {
+		return nil, nil, err
+	}
+	return fv, reader, nil
 }
 
 type FileMetadataAndVersion struct {
@@ -408,29 +355,14 @@ func DeleteToken(s *Store, db *gorm.DB, token *Token) error {
 	return nil
 }
 
-func SaveFile(s *Store, db *gorm.DB, t *Token, user *User, body io.Reader, p string) (*FileVersion, *FileMetadata, error) {
-	dir, name := split(p)
-	tempName := s.getTemporaryName(t.ID)
-
-	defer os.Remove(tempName)
-
-	sha, size, err := saveUploadedFile(t.Salt, tempName, body)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	left, err := user.GetQuotaLeft(db)
-	if err != nil {
-		return nil, nil, err
-	}
-	if left < size {
-		return nil, nil, errors.New("quota limit reached")
-	}
-
+func SaveFile(s *Store, db *gorm.DB, t *Token, localFile *LocalFile) (*FileVersion, *FileMetadata, error) {
+	dir, name := split(localFile.OriginFullPath)
 	fm := &FileMetadata{}
 	if err := db.FirstOrCreate(&fm, FileMetadata{TokenID: t.ID, Path: dir, Filename: name}).Error; err != nil {
 		return nil, nil, err
 	}
+	sha := localFile.SHA
+	size := localFile.Size
 
 	// create file origin
 	fv := &FileVersion{}
@@ -466,16 +398,10 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, user *User, body io.Reader, p str
 		return fv, nil, nil
 	}
 
-	f, err := os.Open(tempName)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer f.Close()
-
-	_, err = s.uploader.Upload(&s3manager.UploadInput{
+	_, err := s.uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(s3key(fm.TokenID, fm.ID, sha)),
-		Body:   f,
+		Body:   localFile.File,
 	})
 	if err != nil {
 		return nil, nil, err
@@ -485,7 +411,7 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, user *User, body io.Reader, p str
 
 	// check how many versions we have of this file
 	tx := db.Begin()
-	versions, err := ListVersionsFile(tx, t, p)
+	versions, err := ListVersionsFile(tx, t, localFile.OriginFullPath)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -495,9 +421,8 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, user *User, body io.Reader, p str
 	if len(versions) > limit {
 		toDelete := versions[0:(len(versions) - limit)]
 		for _, rm := range toDelete {
-			if t.SizeUsed >= rm.Size {
-				t.SizeUsed -= rm.Size
-			}
+			// can get negative
+			t.SizeUsed -= rm.Size
 
 			removeFiles = append(removeFiles, s3manager.BatchDeleteObject{
 				Object: &s3.DeleteObjectInput{
