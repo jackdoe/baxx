@@ -23,7 +23,7 @@ type ChangePasswordInput struct {
 }
 
 type DeleteTokenInput struct {
-	UUID string `binding:"required" json:"token"`
+	UUID string `binding:"required" json:"uuid"`
 }
 
 type Success struct {
