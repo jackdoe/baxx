@@ -419,7 +419,7 @@ func main() {
 		}
 
 		actionLog(db, user.ID, "token", "create", c.Request)
-		out := &TokenOutput{Name: token.Name, UUID: token.UUID, WriteOnly: token.WriteOnly, NumberOfArchives: token.NumberOfArchives, CreatedAt: token.CreatedAt}
+		out := &TokenOutput{Name: token.Name, UUID: token.UUID, WriteOnly: token.WriteOnly, NumberOfArchives: token.NumberOfArchives, CreatedAt: token.CreatedAt, SizeUsed: token.SizeUsed}
 		c.JSON(http.StatusOK, out)
 	})
 
@@ -437,9 +437,12 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-
-		token.NumberOfArchives = json.NumberOfArchives
-		token.WriteOnly = json.WriteOnly
+		if json.NumberOfArchives > 0 {
+			token.NumberOfArchives = json.NumberOfArchives
+		}
+		if json.WriteOnly != nil {
+			token.WriteOnly = *json.WriteOnly
+		}
 		token.Name = json.Name
 		if err := db.Save(token).Error; err != nil {
 			warnErr(c, err)
@@ -448,7 +451,7 @@ func main() {
 		}
 
 		actionLog(db, user.ID, "token", "change", c.Request)
-		out := &TokenOutput{Name: token.Name, UUID: token.UUID, WriteOnly: token.WriteOnly, NumberOfArchives: token.NumberOfArchives, CreatedAt: token.CreatedAt}
+		out := &TokenOutput{Name: token.Name, UUID: token.UUID, WriteOnly: token.WriteOnly, NumberOfArchives: token.NumberOfArchives, CreatedAt: token.CreatedAt, SizeUsed: token.SizeUsed}
 		c.JSON(http.StatusOK, out)
 	})
 

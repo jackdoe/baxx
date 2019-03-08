@@ -29,7 +29,7 @@ type DeleteTokenInput struct {
 }
 
 type ModifyTokenInput struct {
-	WriteOnly        bool   `json:"write_only"`
+	WriteOnly        *bool  `json:"write_only"`
 	Name             string `json:"name"`
 	NumberOfArchives uint64 `json:"keep_n_versions"`
 	UUID             string `binding:"required" json:"token"`
