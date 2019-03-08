@@ -191,13 +191,12 @@ Anyway, dont trust it and use encryption when uploading.
 
 # Examples
 
-## upload everything
+## upload everything from a directory
 
 find . -type f -exec curl --data-binary @{} \
               https://baxx.dev/io/$TOKEN/{} \;
 
 ## upload only the files that have difference in shasum
-
 
 for i in $(find . -type f); do \
  echo -n "$i.."
