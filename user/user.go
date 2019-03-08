@@ -46,7 +46,6 @@ type User struct {
 	PaymentID             string     `gorm:"not null" json:"-"`
 	Email                 string     `gorm:"not null" json:"-"`
 	Quota                 uint64     `gorm:"not null;default:10737418240" json:"quota"`
-	QuotaUsed             uint64     `gorm:"not null;default:0" json:"quota_used"`
 	EmailVerified         *time.Time `json:"-"`
 	StartedSubscription   *time.Time `json:"-"`
 	CancelledSubscription *time.Time `json:"-"`
@@ -67,6 +66,7 @@ func (user *User) Paid() bool {
 	return delta.Hours() < (24 * 30)
 
 }
+
 func (user *User) GenerateVerificationLink() *VerificationLink {
 	return &VerificationLink{
 		ID:     getUUID(),

@@ -17,6 +17,8 @@
  + quota [size added, done Wed  6 Mar 14:12:33 CET 2019 ]
  + api to compare shasums (like ls but output same as 'shasum *'
    you can do `comm` diff between shasum and what is stored)
+
+
  
 * tokens
  + list api [ listed in /status Sat  2 Mar 16:30:59 CET 2019 ]
@@ -24,6 +26,7 @@
    - with support to move files
      to another token [ wontfix: not now ]
  + limit [ done Wed  6 Mar 14:12:33 CET 2019 ]
+ + quota number of files per token
 
 * notifications
  + destinations
