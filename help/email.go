@@ -198,9 +198,11 @@ find . -type f -exec curl --data-binary @{} \
 
 ## upload only the files that have difference in shasum
 
-for i i in $(find . -type f); do \
+
+for i in $(find . -type f); do \
+ echo -n "$i.."
  sha=$(shasum -a 256 $i | cut -f 1 -d ' ')
- (curl -s https://baxx.dev/sha256/$TOKEN/$sha -f 2>/dev/null && echo SKIP $i) || \
+ (curl -s https://baxx.dev/sha256/$TOKEN/$sha -f && echo SKIP $i) || \
  (curl --data-binary @$i https://baxx.dev/io/$TOKEN/$i -f)
 done
 
