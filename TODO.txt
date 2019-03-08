@@ -18,12 +18,13 @@
  + quota number of files per user [ Fri  8 Mar 17:09:13 CET 2019 ]
  + api to compare shasums (like ls but output same as 'shasum *'
    you can do `comm` diff between shasum and what is stored)
+   [ done Fri  8 Mar 21:12:46 CET 2019 ]
 
 
  
 * tokens
  + list api [ listed in /status Sat  2 Mar 16:30:59 CET 2019 ]
- + add name/description
+ + add name [ done Fri  8 Mar 21:12:46 CET 2019 ]
  + delete api [ done Wed  6 Mar 14:12:33 CET 2019 ]
    - with support to move files
      to another token [ wontfix: not now ]
