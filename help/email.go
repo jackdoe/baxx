@@ -209,6 +209,21 @@ for i in $(find . -type f); do \
  (curl --data-binary @$i https://baxx.dev/io/$TOKEN/$i -f)
 done
 
+
+## shell alias
+
+export TOKEN=...
+baxx() {
+    for i in $*; do
+        curl --data-binary @$i https://baxx.dev/io/$TOKEN/$i
+    done
+}
+
+then simply do
+$ baxx file_test.go mail.go
+5433    Fri Mar  8 20:04:11 2019        /file_test.go@v80
+713     Fri Mar  8 20:04:11 2019        /mail.go@v81
+
 --
 baxx.dev
 `)
