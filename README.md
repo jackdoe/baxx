@@ -43,28 +43,28 @@ check it out `ssh register@baxx.dev`
 │                                            │
 │                   [Quit]                   │
 └────────────────────────────────────────────┘
-                                                                                                                                                                                               
-┌──────────────────────────────────────────────────────────────────────────┐                                                         
-│                                                                          │                                                         
-│ ██████╗  █████╗ ██╗  ██╗██╗  ██╗                                         │                                                         
-│ ██╔══██╗██╔══██╗╚██╗██╔╝╚██╗██╔╝                                         │                                                         
-│ ██████╔╝███████║ ╚███╔╝  ╚███╔╝                                          │                                                         
-│ ██╔══██╗██╔══██║ ██╔██╗  ██╔██╗                                          │                                                         
-│ ██████╔╝██║  ██║██╔╝ ██╗██╔╝ ██╗                                         │                                                         
-│ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝                                         │                                                         
-│                                                                          │                                                         
-│                                                                          │                                                         
-│ Email: example@example.com                                               │                                                         
-│ Verification pending.                                                    │                                                         
-│ Please check your spam folder.                                           │                                                         
-│                                                                          │                                                         
-│ Subscription:                                                            │                                                         
-│ Activate at https://baxx.dev/sub/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX    │                                                         
-│                                                                          │                                                         
-│ Refreshing.. -                                                           │                                                         
-│                                                                          │                                                         
-│                [█Help] [Resend Verification Email]  [Quit]               │                                                         
-└──────────────────────────────────────────────────────────────────────────┘                                                         
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│                                                                          │
+│ ██████╗  █████╗ ██╗  ██╗██╗  ██╗                                         │
+│ ██╔══██╗██╔══██╗╚██╗██╔╝╚██╗██╔╝                                         │
+│ ██████╔╝███████║ ╚███╔╝  ╚███╔╝                                          │
+│ ██╔══██╗██╔══██║ ██╔██╗  ██╔██╗                                          │
+│ ██████╔╝██║  ██║██╔╝ ██╗██╔╝ ██╗                                         │
+│ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝                                         │
+│                                                                          │
+│                                                                          │
+│ Email: example@example.com                                               │
+│ Verification pending.                                                    │
+│ Please check your spam folder.                                           │
+│                                                                          │
+│ Subscription:                                                            │
+│ Activate at https://baxx.dev/sub/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX    │
+│                                                                          │
+│ Refreshing.. -                                                           │
+│                                                                          │
+│                [█Help] [Resend Verification Email]  [Quit]               │
+└──────────────────────────────────────────────────────────────────────────┘
 
 
 # API
