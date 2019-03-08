@@ -529,7 +529,7 @@ func main() {
 			return
 		}
 
-		c.String(http.StatusOK, fmt.Sprintf("%s  %s\n", fv.SHA256, fm.FullPath()))
+		c.String(http.StatusOK, FileLine(fm, fv))
 	}
 
 	upload := func(c *gin.Context) {
@@ -558,8 +558,7 @@ func main() {
 			c.JSON(http.StatusOK, fv)
 			return
 		}
-
-		c.String(http.StatusOK, fmt.Sprintf("%s  %s\n", fv.SHA256, fm.FullPath()))
+		c.String(http.StatusOK, FileLine(fm, fv))
 	}
 
 	deleteFile := func(c *gin.Context) {
