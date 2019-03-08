@@ -66,14 +66,14 @@ different tokens and it won't conflict.
 
 {{ range .Tokens }}
   TOKEN: {{.UUID}}
-  Write Only: {{ .WriteOnly }}
-  Keep N Versions {{ .NumberOfArchives }}
-
+    {{ if .Name }}Name: {{ .Name }}{{ end }}
+    Write Only: {{ .WriteOnly }}
+    Keep N Versions {{ .NumberOfArchives }}
 {{end}}
 ## Create New Tokens:
 
 curl -u {{ .Email }} \
- -d '{"write_only":false, "keep_n_versions":7}' \
+ -d '{"write_only":false, "keep_n_versions":7, "name": "example"}' \
  https://baxx.dev/protected/create/token
 
 Write Only:
@@ -85,10 +85,14 @@ Keep #N Versions:
 
  mysqldump | curl --data-binary @- \
   https://baxx.dev/io/$TOKEN/mysql.gz
+## Modify tokens
 
+curl -u {{ .Email }} \
+ -d '{"write_only":false,token:"TOKEN-UUID","name":"example"}' \
+ https://baxx.dev/protected/modify/token
 ## Delete tokens
 
-curl -u {{ .Email }} -d '{"uuid": "TOKEN-UUID"}' \
+curl -u {{ .Email }} -d '{"token": "TOKEN-UUID"}' \
  https://baxx.dev/protected/delete/token
 
 this will delete the token and all the files in it

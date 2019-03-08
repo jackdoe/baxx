@@ -24,6 +24,7 @@ type Token struct {
 	ID     uint64 `gorm:"primary_key"`
 	UUID   string `gorm:"not null"`
 	Salt   string `gorm:"not null;type:varchar(32)"`
+	Name   string `gorm:"null;type:varchar(255)"`
 	UserID uint64 `gorm:"not null"`
 
 	WriteOnly        bool   `gorm:"not null"`

@@ -129,13 +129,14 @@ func (user *User) GetQuotaUsed(db *gorm.DB) (int64, int64, error) {
 	return int64(usedSpace), int64(usedInodes), nil
 }
 
-func (user *User) CreateToken(db *gorm.DB, writeOnly bool, numOfArchives uint64) (*Token, error) {
+func (user *User) CreateToken(db *gorm.DB, writeOnly bool, numOfArchives uint64, name string) (*Token, error) {
 	t := &Token{
 		UUID:             getUUID(),
 		Salt:             strings.Replace(getUUID(), "-", "", -1),
 		UserID:           user.ID,
 		WriteOnly:        writeOnly,
 		NumberOfArchives: numOfArchives,
+		Name:             name,
 	}
 
 	tokens, err := user.ListTokens(db)
@@ -169,6 +170,17 @@ func FindToken(db *gorm.DB, token string) (*Token, *User, error) {
 	}
 
 	return t, u, nil
+}
+
+func FindTokenForUser(db *gorm.DB, token string, user *User) (*Token, error) {
+	t := &Token{}
+
+	query := db.Where("uuid = ? AND user_id = ?", token, user.ID).Take(t)
+	if query.Error != nil {
+		return nil, query.Error
+	}
+
+	return t, nil
 }
 
 func FindUser(db *gorm.DB, user string, pass string) (*User, bool, error) {

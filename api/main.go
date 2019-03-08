@@ -82,7 +82,7 @@ func getUserStatus(db *gorm.DB, user *User) (*UserStatusOutput, error) {
 	}
 	tokensTransformed := []*TokenOutput{}
 	for _, t := range tokens {
-		tokensTransformed = append(tokensTransformed, &TokenOutput{UUID: t.UUID, WriteOnly: t.WriteOnly, NumberOfArchives: t.NumberOfArchives, CreatedAt: t.CreatedAt})
+		tokensTransformed = append(tokensTransformed, &TokenOutput{UUID: t.UUID, Name: t.Name, WriteOnly: t.WriteOnly, NumberOfArchives: t.NumberOfArchives, CreatedAt: t.CreatedAt})
 	}
 	used := uint64(0)
 	for _, t := range tokens {
@@ -192,12 +192,12 @@ func registerUser(db *gorm.DB, json CreateUserInput) (*UserStatusOutput, *User, 
 		return nil, nil, err
 	}
 
-	_, err = user.CreateToken(tx, true, 7)
+	_, err = user.CreateToken(tx, true, 7, "generic-write-only-7")
 	if err != nil {
 		tx.Rollback()
 		return nil, nil, err
 	}
-	_, err = user.CreateToken(tx, false, 7)
+	_, err = user.CreateToken(tx, false, 7, "generic-read-write-7")
 	if err != nil {
 		tx.Rollback()
 		return nil, nil, err
@@ -411,7 +411,7 @@ func main() {
 			return
 		}
 
-		token, err := user.CreateToken(db, json.WriteOnly, json.NumberOfArchives)
+		token, err := user.CreateToken(db, json.WriteOnly, json.NumberOfArchives, json.Name)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -419,7 +419,36 @@ func main() {
 		}
 
 		actionLog(db, user.ID, "token", "create", c.Request)
-		out := &TokenOutput{UUID: token.UUID, WriteOnly: token.WriteOnly, NumberOfArchives: token.NumberOfArchives, CreatedAt: token.CreatedAt}
+		out := &TokenOutput{Name: token.Name, UUID: token.UUID, WriteOnly: token.WriteOnly, NumberOfArchives: token.NumberOfArchives, CreatedAt: token.CreatedAt}
+		c.JSON(http.StatusOK, out)
+	})
+
+	authorized.POST("/change/token", func(c *gin.Context) {
+		user := c.MustGet("user").(*User)
+		var json ModifyTokenInput
+		if err := c.ShouldBindJSON(&json); err != nil {
+			warnErr(c, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		token, err := FindTokenForUser(db, json.UUID, user)
+		if err != nil {
+			warnErr(c, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		token.NumberOfArchives = json.NumberOfArchives
+		token.WriteOnly = json.WriteOnly
+		token.Name = json.Name
+		if err := db.Save(token).Error; err != nil {
+			warnErr(c, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		actionLog(db, user.ID, "token", "change", c.Request)
+		out := &TokenOutput{Name: token.Name, UUID: token.UUID, WriteOnly: token.WriteOnly, NumberOfArchives: token.NumberOfArchives, CreatedAt: token.CreatedAt}
 		c.JSON(http.StatusOK, out)
 	})
 
@@ -431,19 +460,13 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		token, u, err := FindToken(db, json.UUID)
+		token, err := FindTokenForUser(db, json.UUID, user)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		if u.ID != user.ID {
-			err := errors.New("wrong token/user combination")
-			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
 		if err := DeleteToken(store, db, token); err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -457,19 +480,20 @@ func main() {
 
 	getViewTokenLoggedOrNot := func(c *gin.Context) (*Token, *User, error) {
 		token := c.Param("token")
-		t, u, err := FindToken(db, token)
-		if err != nil {
-			return nil, nil, err
-		}
-
+		var t *Token
+		var u *User
 		x, isLoggedIn := c.Get("user")
 		if isLoggedIn {
-			if u.ID != x.(*User).ID {
-				return nil, nil, errors.New("wrong token/user combination")
+			u = x.(*User)
+			t, err = FindTokenForUser(db, token, u)
+			if err != nil {
+				return nil, nil, err
 			}
-		}
-
-		if !isLoggedIn {
+		} else {
+			t, u, err = FindToken(db, token)
+			if err != nil {
+				return nil, nil, err
+			}
 			if t.WriteOnly && c.Request.Method != "POST" {
 				return nil, nil, errors.New("write only token, use /protected/io/$TOKEN/*path")
 			}

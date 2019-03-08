@@ -23,6 +23,7 @@
  
 * tokens
  + list api [ listed in /status Sat  2 Mar 16:30:59 CET 2019 ]
+ + add name/description
  + delete api [ done Wed  6 Mar 14:12:33 CET 2019 ]
    - with support to move files
      to another token [ wontfix: not now ]
