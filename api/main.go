@@ -648,7 +648,7 @@ func main() {
 			if err := DeleteFileWithPath(store, db, t, p); err == nil {
 				n++
 			}
-			files, err := ListFilesInPath(db, t, p)
+			files, err := ListFilesInPath(db, t, p, true)
 			if err == nil {
 				for _, f := range files {
 					if err := DeleteFile(store, db, t, f.FileMetadata); err == nil {
@@ -682,7 +682,7 @@ func main() {
 			p = p + "/"
 		}
 
-		files, err := ListFilesInPath(db, t, p)
+		files, err := ListFilesInPath(db, t, p, false)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
