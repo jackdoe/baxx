@@ -105,6 +105,7 @@ func split(s string) (string, string) {
 	dir := filepath.Dir(s)
 	return dir, name
 }
+
 func DeleteFileWithPath(s *Store, db *gorm.DB, t *Token, p string) error {
 	_, fm, err := FindFile(db, t, p)
 	if err != nil {

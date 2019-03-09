@@ -635,7 +635,7 @@ func main() {
 		force := false
 		var json Force
 		if err := c.ShouldBindJSON(&json); err == nil {
-			if json.Force != nil {
+			if json.Force == nil {
 				force = false
 			} else {
 				force = *json.Force
