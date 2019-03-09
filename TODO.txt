@@ -66,6 +66,7 @@
  + email
  + fix send verification link (show something that it is sending)
  + add login screen [ done Thu  7 Mar 20:55:18 CET 2019 ]
+ + bug when pasting password longer than 11 characters it stops at 11
  + when you scroll buffer there is no upper/lower bound
 
 * help
