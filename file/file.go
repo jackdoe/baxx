@@ -281,6 +281,9 @@ func LSAL(files []FileMetadataAndVersion) string {
 func ListFilesInPath(db *gorm.DB, t *Token, p string, strict bool) ([]FileMetadataAndVersion, error) {
 	metadata := []*FileMetadata{}
 	p = strings.TrimSuffix(p, "/")
+	if p == "" {
+		p = "/"
+	}
 	if strict {
 		if err := db.Where("token_id = ? AND path = ?", t.ID, p).Order("id").Find(&metadata).Error; err != nil {
 			return nil, err
