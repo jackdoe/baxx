@@ -206,7 +206,7 @@ for i in $(find . -type f); do \
  echo -n "$i.."
  sha=$(shasum -a 256 $i | cut -f 1 -d ' ')
  (curl -s https://baxx.dev/sha256/$TOKEN/$sha -f && echo SKIP $i) || \
- (curl --data-binary @$i https://baxx.dev/io/$TOKEN/$i -f)
+ (curl -T $i https://baxx.dev/io/$TOKEN/$i -f)
 done
 
 
@@ -215,7 +215,7 @@ done
 export TOKEN=...
 baxx() {
     for i in $*; do
-        curl --data-binary @$i https://baxx.dev/io/$TOKEN/$i
+        curl -T $i https://baxx.dev/io/$TOKEN/$i
     done
 }
 

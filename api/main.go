@@ -497,7 +497,8 @@ func main() {
 			if err != nil {
 				return nil, nil, err
 			}
-			if t.WriteOnly && c.Request.Method != "POST" {
+			writing := c.Request.Method == "POST" || c.Request.Method == "PUT"
+			if t.WriteOnly && !writing {
 				return nil, nil, errors.New("write only token, use /protected/io/$TOKEN/*path")
 			}
 		}
