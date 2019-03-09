@@ -127,12 +127,12 @@ func sendVerificationLink(db *gorm.DB, verificationLink *VerificationLink) error
 	return nil
 }
 
-func sendPaymentThanks(email string) error {
+func sendPaymentThanks(email string, paymentid string) error {
 	err := sendmail(sendMailConfig{
 		from:    "jack@baxx.dev",
 		to:      []string{email},
 		subject: "Thanks for subscribing!",
-		body:    help.Render(help.EMAIL_PAYMENT_THANKS, map[string]string{"Email": email}),
+		body:    help.Render(help.EMAIL_PAYMENT_THANKS, map[string]string{"Email": email, "PaymentID": paymentid}),
 	})
 	if err != nil {
 		log.Warnf("failed to send: %s", err.Error())
@@ -723,7 +723,7 @@ func main() {
 		if cancel {
 			go sendPaymentCancelMail(u.Email, u.PaymentID)
 		} else if subscribe {
-			go sendPaymentThanks(u.Email)
+			go sendPaymentThanks(u.Email, u.PaymentID)
 		}
 		return nil
 	})
@@ -734,6 +734,15 @@ func main() {
 			prefix = "https://ipnpb.sandbox.paypal.com/cgi-bin/webscr"
 		}
 		url := prefix + "?cmd=_xclick-subscriptions&business=jack%40baxx.dev&a3=5&p3=1&t3=M&item_name=baxx.dev+-+backup+as+a+service&return=https%3A%2F%2Fbaxx.dev%2Fthanks_for_paying&a1=0.1&p1=1&t1=M&src=1&sra=1&no_note=1&no_note=1&currency_code=EUR&lc=GB&charset=UTF%2d8¬notify_url=https%3A%2F%2Fbaxx.dev%2Fipn%2F" + c.Param("paymentID")
+		c.Redirect(http.StatusFound, url)
+	})
+
+	r.GET("/unsub/:paymentID", func(c *gin.Context) {
+		prefix := "https://www.paypal.com/cgi-bin/webscr"
+		if *psandbox {
+			prefix = "https://ipnpb.sandbox.paypal.com/cgi-bin/webscr"
+		}
+		url := prefix + "?cmd=_subscr-find&alias=2KG9SK2ZXX2A4"
 		c.Redirect(http.StatusFound, url)
 	})
 
