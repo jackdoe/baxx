@@ -82,10 +82,10 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 	user.SetFocused(true)
 
 	password := tui.NewEntry()
-	password.SetEchoMode(tui.EchoModeNormal)
+	password.SetEchoMode(tui.EchoModePassword)
 
 	confirmPassword := tui.NewEntry()
-	confirmPassword.SetEchoMode(tui.EchoModeNormal)
+	confirmPassword.SetEchoMode(tui.EchoModePassword)
 
 	form := tui.NewGrid(0, 0)
 	isRegisterMode := true
