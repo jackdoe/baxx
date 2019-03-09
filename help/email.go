@@ -204,30 +204,45 @@ Anyway, dont trust it and use encryption when uploading.
 
 ## upload everything from a directory
 
-find . -type f -exec curl --data-binary @{} \
-              https://baxx.dev/io/$TOKEN/{} \;
+find . -type f -exec curl --data-binary @{}      \
+              https://baxx.dev/io/$BAXX_TOKEN/{} \;
 
 ## upload only the files that have difference in shasum
 
 for i in $(find . -type f); do \
  echo -n "$i.."
  sha=$(shasum -a 256 $i | cut -f 1 -d ' ')
- (curl -s https://baxx.dev/sha256/$TOKEN/$sha -f && echo SKIP $i) || \
- (curl -T $i https://baxx.dev/io/$TOKEN/$i -f)
+ (curl -s https://baxx.dev/sha256/$BAXX_TOKEN/$sha -f && echo SKIP $i) || \
+ (curl -T $i https://baxx.dev/io/$BAXX_TOKEN/$i -f)
 done
 
 
 ## shell alias
 
-export TOKEN=...
-baxx() {
-    for i in $*; do
-        curl -T $i https://baxx.dev/io/$TOKEN/$i
-    done
+export BAXX_TOKEN=...
+baxx_put() {
+    if [ $# -ne 2 ]; then
+        echo "usage: $0 file dest"
+    else
+        file=$1
+        dest=$2
+        curl -T $file https://baxx.dev/io/$BAXX_TOKEN/$dest
+    fi
 }
 
+baxx_get() {
+    if [ $# -ne 2 ]; then
+        echo "usage: $0 file dest"
+    else
+        file=$1
+        dest=$2
+        echo curl https://baxx.dev/io/$BAXX_TOKEN/$file > $dest
+    fi
+}
+
+
 baxx_ls() {
-    curl -u {{ .Email }} https://baxx.dev/ls/$TOKEN/$*
+    curl https://baxx.dev/ls/$BAXX_TOKEN/$*
 }
 
 

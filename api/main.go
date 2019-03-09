@@ -300,11 +300,12 @@ func main() {
 
 	r.Use(func(c *gin.Context) {
 		user, pass := BasicAuthDecode(c)
-		u, _, err := FindUser(db, user, pass)
-		if err == nil {
-			c.Set("user", u)
+		if user != "" {
+			u, _, err := FindUser(db, user, pass)
+			if err == nil {
+				c.Set("user", u)
+			}
 		}
-
 	})
 
 	authorized := r.Group("/protected")

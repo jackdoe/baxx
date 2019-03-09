@@ -367,7 +367,7 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, localFile *LocalFile) (*FileVersi
 
 	// create file origin
 	fv := &FileVersion{}
-	res := db.Where("token_id = ? AND sha256 = ?", t.ID, sha).Take(fv)
+	res := db.Where("token_id = ? AND sha256 = ? AND file_metadata_id", t.ID, sha, fm.ID).Take(fv)
 	if res.RecordNotFound() {
 		// create new one
 		fv.SHA256 = sha
