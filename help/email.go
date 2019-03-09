@@ -89,7 +89,7 @@ Keep #N Versions:
 
 curl -u {{ .Email }} \
  -d '{"write_only":false,token:"TOKEN-UUID","name":"example"}' \
- https://baxx.dev/protected/modify/token
+ https://baxx.dev/protected/change/token
 ## Delete tokens
 
 curl -u {{ .Email }} -d '{"token": "TOKEN-UUID"}' \
@@ -132,14 +132,14 @@ prints human readable text
 
 ## WriteOnly Tokens
 
-Write Only tokens require BasicAuth and /protected prefix.
+Write Only tokens require BasicAuth.
 The idea is that you can put them in in-secure places and not worry
 about someone reading your data if they get stolen.
 
 ## Download from WriteOnly token:
 
 curl -u {{ .Email }} \
- https://baxx.dev/protected/io/$TOKEN/path/to/file
+ https://baxx.dev/io/$TOKEN/path/to/file
 
 ## Delete with WriteOnly token:
 
@@ -149,7 +149,7 @@ curl -u {{ .Email }} -XDELETE \
 ## List with WriteOnly token:
 
 curl -u {{ .Email }} \
- https://baxx.dev/protected/ls/$TOKEN/path/to/
+ https://baxx.dev/ls/$TOKEN/path/to/
 
 
 # Profile Management
@@ -218,6 +218,11 @@ baxx() {
         curl -T $i https://baxx.dev/io/$TOKEN/$i
     done
 }
+
+baxx_ls() {
+    curl -u {{ .Email }} https://baxx.dev/ls/$TOKEN/$*
+}
+
 
 then simply do
 $ baxx file_test.go mail.go

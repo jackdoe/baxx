@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"errors"
 	"flag"
 	"fmt"
@@ -13,7 +14,6 @@ import (
 	"github.com/jackdoe/baxx/help"
 	"github.com/jackdoe/baxx/ipn"
 	. "github.com/jackdoe/baxx/user"
-	auth "github.com/jackdoe/gin-basic-auth-dynamic"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -219,6 +219,22 @@ func registerUser(db *gorm.DB, json CreateUserInput) (*UserStatusOutput, *User, 
 	return status, user, nil
 }
 
+func BasicAuthDecode(c *gin.Context) (string, string) {
+	auth := strings.SplitN(c.GetHeader("Authorization"), " ", 2)
+
+	if len(auth) != 2 || auth[0] != "Basic" {
+		return "", ""
+	}
+
+	payload, _ := base64.StdEncoding.DecodeString(auth[1])
+	pair := strings.SplitN(string(payload), ":", 2)
+
+	if len(pair) != 2 {
+		return "", ""
+	}
+	return pair[0], pair[1]
+}
+
 func main() {
 	var pbind = flag.String("bind", "127.0.0.1:9123", "bind")
 	var proot = flag.String("root", "/tmp", "temporary file root")
@@ -282,17 +298,24 @@ func main() {
 
 	r := gin.Default()
 
-	authorized := r.Group("/protected")
-	authorized.Use(auth.BasicAuth(func(context *gin.Context, realm, user, pass string) auth.AuthResult {
+	r.Use(func(c *gin.Context) {
+		user, pass := BasicAuthDecode(c)
 		u, _, err := FindUser(db, user, pass)
 		if err != nil {
-			warnErr(context, err)
-			return auth.AuthResult{Success: false, Text: `{"error":"not authorized"}`}
+			c.Set("user", u)
 		}
-		context.Set("user", u)
 
-		return auth.AuthResult{Success: true}
-	}))
+	})
+
+	authorized := r.Group("/protected")
+
+	authorized.Use(func(c *gin.Context) {
+		_, loggedIn := c.Get("user")
+		if !loggedIn {
+			c.Header("WWW-Authenticate", "Authorization Required")
+			c.String(401, `{"error": "Authorization Required"`)
+		}
+	})
 
 	r.POST("/register", func(c *gin.Context) {
 		var json CreateUserInput
@@ -499,7 +522,7 @@ func main() {
 			}
 			writing := c.Request.Method == "POST" || c.Request.Method == "PUT"
 			if t.WriteOnly && !writing {
-				return nil, nil, errors.New("write only token, use /protected/io/$TOKEN/*path")
+				return nil, nil, errors.New("write only token, use basic auth curl -u your.email /io/$TOKEN/*path")
 			}
 		}
 
@@ -648,26 +671,17 @@ func main() {
 
 	mutateSinglePATH := "/io/:token/*path"
 
-	authorized.GET(mutateSinglePATH, download)
 	r.GET(mutateSinglePATH, download)
-
-	authorized.POST(mutateSinglePATH, upload)
 	r.POST(mutateSinglePATH, upload)
-
-	authorized.PUT(mutateSinglePATH, upload)
 	r.PUT(mutateSinglePATH, upload)
-
-	authorized.DELETE(mutateSinglePATH, deleteFile)
 	r.DELETE(mutateSinglePATH, deleteFile)
 
 	for _, a := range []string{"dir", "ls"} {
 		mutateManyPATH := "/" + a + "/:token/*path"
-		authorized.GET(mutateManyPATH, listFiles)
 		r.GET(mutateManyPATH, listFiles)
 	}
 
 	mutateManyPATH := "/sha256/:token/:sha256"
-	authorized.GET(mutateManyPATH, lookupSHA)
 	r.GET(mutateManyPATH, lookupSHA)
 
 	ipn.Listener(r, "/ipn/:paymentID", func(c *gin.Context, err error, body string, n *ipn.Notification) error {

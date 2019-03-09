@@ -82,10 +82,10 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 	user.SetFocused(true)
 
 	password := tui.NewEntry()
-	password.SetEchoMode(tui.EchoModePassword)
+	password.SetEchoMode(tui.EchoModeNormal)
 
 	confirmPassword := tui.NewEntry()
-	confirmPassword.SetEchoMode(tui.EchoModePassword)
+	confirmPassword.SetEchoMode(tui.EchoModeNormal)
 
 	form := tui.NewGrid(0, 0)
 	isRegisterMode := true
@@ -227,7 +227,6 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 		p1 := password.Text()
 		p2 := confirmPassword.Text()
 		email := user.Text()
-
 		if p1 != p2 {
 			popup(ui, root, false, nil, "ERROR", "passwords must match")
 			return

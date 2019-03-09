@@ -56,6 +56,8 @@
    (add support for multiple secrets?) [ not now ]
    [ deleted Tue  5 Mar 21:49:48 CET 2019 ]
 
+ + forgotten password
+
 * gui (can make it like midnight commander)
  + manage tokens
    + list files
