@@ -301,14 +301,13 @@ func main() {
 	r.Use(func(c *gin.Context) {
 		user, pass := BasicAuthDecode(c)
 		u, _, err := FindUser(db, user, pass)
-		if err != nil {
+		if err == nil {
 			c.Set("user", u)
 		}
 
 	})
 
 	authorized := r.Group("/protected")
-
 	authorized.Use(func(c *gin.Context) {
 		_, loggedIn := c.Get("user")
 		if !loggedIn {
