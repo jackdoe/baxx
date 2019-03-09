@@ -25,7 +25,7 @@
  + api to compare shasums (like ls but output same as 'shasum *'
    you can do `comm` diff between shasum and what is stored)
    [ done Fri  8 Mar 21:12:46 CET 2019 ]
- + dont require /protected/ if password is supplied anyway
+ + dont require /protected/ if password is supplied anyway [ done Sat  9 Mar 17:12:10 CET 2019 ]
 
  
 * tokens
