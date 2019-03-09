@@ -712,6 +712,7 @@ func main() {
 			cancel = true
 		} else {
 			log.Warnf("unknown txn type, ignoring: %s", n.TxnType)
+			return nil
 			// not sure what to do, just ignore
 		}
 
