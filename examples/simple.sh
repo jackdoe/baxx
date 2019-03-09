@@ -16,10 +16,10 @@ baxx_get() {
     else
         file=$1
         dest=$2
-        echo curl -s https://baxx.dev/io/$BAXX_TOKEN/$file 
+        curl -s https://baxx.dev/io/$BAXX_TOKEN/$file > $dest 
     fi
 }
 
 baxx_ls() {
-    curl -H "Accept: application/json" https://baxx.dev/ls/$BAXX_TOKEN/
+    curl https://baxx.dev/ls/$BAXX_TOKEN/
 }
