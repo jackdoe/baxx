@@ -104,6 +104,8 @@ this will delete the token and all the files in it
 cat path/to/file | curl --data-binary @- \
  https://baxx.dev/io/$TOKEN/path/to/file
 
+curl -T path/to/file https://baxx.dev/io/$TOKEN/path/to/file
+
 Same filepath can have up to #N Versions depending on the token
 configuration.
 
