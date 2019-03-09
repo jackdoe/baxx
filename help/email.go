@@ -62,6 +62,11 @@ Thanks again!
 Tokens are like backup namespaces, you can have the same file in
 different tokens and it won't conflict.
 
+There are 2 kinds of tokens, ReadWrite and WriteOnly,
+ReadWrite tokens dont require any credentials for create, delete and
+list files, WriteOnly tokens require credentials for *list* and
+*delete*
+
 ## Current Tokens:
 
 {{ range .Tokens }}
