@@ -125,9 +125,11 @@ Downloads the last upload version
 
 ## File Delete:
 
+Delete single file:
 curl -XDELETE https://baxx.dev/io/$TOKEN/path/to/file
 
-deletes all versions of a file
+Delete all files in a directory, but not the subdirectories:
+curl -d '{"force":true}' https://baxx.dev/io/$TOKEN/path
 
 ## List Files in path LIKE /path/to%:
 
@@ -236,7 +238,7 @@ baxx_get() {
     else
         file=$1
         dest=$2
-        echo curl https://baxx.dev/io/$BAXX_TOKEN/$file > $dest
+        curl https://baxx.dev/io/$BAXX_TOKEN/$file > $dest
     fi
 }
 
