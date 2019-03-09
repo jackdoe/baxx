@@ -632,14 +632,41 @@ func main() {
 			return
 		}
 
-		if err := DeleteFile(store, db, t, c.Param("path")); err != nil {
-			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
+		force := false
+		var json Force
+		if err := c.ShouldBindJSON(&json); err == nil {
+			if json.Force != nil {
+				force = false
+			} else {
+				force = *json.Force
+			}
+		}
+		p := c.Param("path")
+		n := 0
+
+		if force {
+			if err := DeleteFileWithPath(store, db, t, p); err == nil {
+				n++
+			}
+			files, err := ListFilesInPath(db, t, p)
+			if err == nil {
+				for _, f := range files {
+					if err := DeleteFile(store, db, t, f.FileMetadata); err == nil {
+						n++
+					}
+				}
+			}
+		} else {
+			if err := DeleteFileWithPath(store, db, t, p); err != nil {
+				warnErr(c, err)
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			n = 1
 		}
 
 		actionLog(db, t.UserID, "file", "delete", c.Request, "")
-		c.JSON(http.StatusOK, &Success{Success: true})
+		c.JSON(http.StatusOK, &DeleteSuccess{Success: true, Count: n})
 	}
 
 	listFiles := func(c *gin.Context) {

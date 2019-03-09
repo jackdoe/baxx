@@ -28,6 +28,10 @@ type DeleteTokenInput struct {
 	UUID string `binding:"required" json:"token"`
 }
 
+type Force struct {
+	Force *bool `json:"force"`
+}
+
 type ModifyTokenInput struct {
 	WriteOnly        *bool  `json:"write_only"`
 	Name             string `json:"name"`
@@ -37,6 +41,11 @@ type ModifyTokenInput struct {
 
 type Success struct {
 	Success bool `json:"success"`
+}
+
+type DeleteSuccess struct {
+	Success bool `json:"success"`
+	Count   int  `json:"deleted"`
 }
 
 type TokenOutput struct {

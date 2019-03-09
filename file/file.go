@@ -105,17 +105,18 @@ func split(s string) (string, string) {
 	dir := filepath.Dir(s)
 	return dir, name
 }
-
-func DeleteFile(s *Store, db *gorm.DB, t *Token, p string) error {
-	tx := db.Begin()
-
-	_, fm, err := FindFile(tx, t, p)
+func DeleteFileWithPath(s *Store, db *gorm.DB, t *Token, p string) error {
+	_, fm, err := FindFile(db, t, p)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
+	return DeleteFile(s, db, t, fm)
+}
 
-	versions, err := ListVersionsFile(tx, t, p)
+func DeleteFile(s *Store, db *gorm.DB, t *Token, fm *FileMetadata) error {
+	tx := db.Begin()
+
+	versions, err := ListVersionsFile(tx, t, fm)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -297,13 +298,7 @@ func ListFilesInPath(db *gorm.DB, t *Token, p string) ([]FileMetadataAndVersion,
 	return out, nil
 }
 
-func ListVersionsFile(db *gorm.DB, t *Token, p string) ([]*FileVersion, error) {
-	dir, name := split(p)
-	fm := &FileMetadata{}
-	if err := db.Where(FileMetadata{TokenID: t.ID, Path: dir, Filename: name}).Take(&fm).Error; err != nil {
-		return nil, err
-	}
-
+func ListVersionsFile(db *gorm.DB, t *Token, fm *FileMetadata) ([]*FileVersion, error) {
 	versions := []*FileVersion{}
 	if err := db.Where("file_metadata_id = ?", fm.ID).Order("updated_at_ns ASC").Find(&versions).Error; err != nil {
 		return nil, err
@@ -412,7 +407,7 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, localFile *LocalFile) (*FileVersi
 
 	// check how many versions we have of this file
 	tx := db.Begin()
-	versions, err := ListVersionsFile(tx, t, localFile.OriginFullPath)
+	versions, err := ListVersionsFile(tx, t, fm)
 	if err != nil {
 		return nil, nil, err
 	}
