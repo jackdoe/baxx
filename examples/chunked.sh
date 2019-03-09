@@ -11,8 +11,8 @@ baxx_chunk_put() {
         for ext in aa ab ac ad ae; do
             part=baxx.$PID.$ext
             sha=$(shasum -a 256 $part | cut -f 1 -d ' ')
-            (curl -s https://baxx.dev/sha256/$BAXX_TOKEN/$sha -f > /dev/null 2>&1  && echo -n "skipping $file $part") || \
-                (echo -n "$file $part .." ; curl -T $part https://baxx.dev/io/$BAXX_TOKEN/chunked/$dest.$ext && rm $part && echo -n .. [ done ])
+            (curl -s https://baxx.dev/sha256/$BAXX_TOKEN/$sha -f > /dev/null 2>&1  && echo -n "skipping $file $part" && rm $part) || \
+                (echo -n "$file $part .." ; curl -f -T $part https://baxx.dev/io/$BAXX_TOKEN/chunked/$dest.$ext > /dev/null 2>&1 && rm $part && echo -n .. [ done ])
             echo
         done 
     fi
