@@ -34,7 +34,7 @@ func popup(ui tui.UI, root *tui.Box, closeIsExit bool, onClose func(), title str
 		padder,
 		close,
 	)
-	p.SetBorder(true)
+	p.SetBorder(false)
 	p.SetTitle(fmt.Sprintf("baxx.dev - %s", title))
 	p.SetSizePolicy(tui.Maximum, tui.Maximum)
 	bye := func() {
