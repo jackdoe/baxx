@@ -312,7 +312,7 @@ func main() {
 		_, loggedIn := c.Get("user")
 		if !loggedIn {
 			c.Header("WWW-Authenticate", "Authorization Required")
-			c.String(401, `{"error": "Authorization Required"`)
+			c.String(401, `{"error": "Not Authorized (auth required, or wrong password)"}`)
 		}
 	})
 
@@ -521,7 +521,7 @@ func main() {
 			}
 			writing := c.Request.Method == "POST" || c.Request.Method == "PUT"
 			if t.WriteOnly && !writing {
-				return nil, nil, errors.New("write only token, use basic auth curl -u your.email /io/$TOKEN/*path")
+				return nil, nil, fmt.Errorf("write only token, use basic auth curl -X%s-u your.email https://baxx.dev/{io,ls}/$TOKEN/*path", c.Request.Method)
 			}
 		}
 
