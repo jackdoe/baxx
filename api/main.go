@@ -741,6 +741,10 @@ func main() {
 		c.String(http.StatusOK, help.Render(help.EMAIL_AFTER_REGISTRATION, EMPTY_STATUS))
 	})
 
+	r.GET("/thanks_for_paying", func(c *gin.Context) {
+		c.String(http.StatusOK, help.Render(help.EMAIL_WAIT_PAYPAL, EMPTY_STATUS))
+	})
+
 	r.GET("/verify/:id", func(c *gin.Context) {
 		v := &VerificationLink{}
 		now := time.Now()

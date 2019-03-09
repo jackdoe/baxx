@@ -261,3 +261,15 @@ curl -u {{.Email}} -XPOST https://baxx.dev/protected/status | json_pp
 --
 baxx.dev
 `)
+
+var EMAIL_WAIT_PAYPAL = Parse(`Hi,
+
+Thanks for subscribing, it usually takes 1-2 minutes to receive
+the notification from paypal, and then your account should be
+enabled, if not please send me an email to jack@baxx.dev.
+
+curl -u {{.Email}} -XPOST https://baxx.dev/protected/status | json_pp
+
+--
+baxx.dev
+`)
