@@ -321,7 +321,7 @@ func postRegistration(ui tui.UI, bc *baxx.Client, email, pass string) *tui.Box {
 		if status.Paid {
 			subscribed.SetText("Active")
 		} else {
-			subscribed.SetText("Activate at https://baxx.dev/sub/" + status.PaymentID)
+			subscribed.SetText("Activate at https://baxx.dev/sub/" + status.PaymentID + "\nIt takes 1-2 minutes after paying to enable the account.")
 		}
 		if status.Paid && status.EmailVerified != nil {
 			stop <- true
