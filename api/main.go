@@ -669,19 +669,17 @@ func main() {
 	}
 
 	mutateSinglePATH := "/io/:token/*path"
-
 	r.GET(mutateSinglePATH, download)
 	r.POST(mutateSinglePATH, upload)
 	r.PUT(mutateSinglePATH, upload)
 	r.DELETE(mutateSinglePATH, deleteFile)
 
 	for _, a := range []string{"dir", "ls"} {
-		mutateManyPATH := "/" + a + "/:token/*path"
-		r.GET(mutateManyPATH, listFiles)
+		lsPath := "/" + a + "/:token/*path"
+		r.GET(lsPath, listFiles)
 	}
 
-	mutateManyPATH := "/sha256/:token/:sha256"
-	r.GET(mutateManyPATH, lookupSHA)
+	r.GET("/sha256/:token/:sha256", lookupSHA)
 
 	ipn.Listener(r, "/ipn/:paymentID", func(c *gin.Context, err error, body string, n *ipn.Notification) error {
 		if err != nil {
