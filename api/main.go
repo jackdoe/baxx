@@ -653,6 +653,9 @@ func main() {
 	authorized.POST(mutateSinglePATH, upload)
 	r.POST(mutateSinglePATH, upload)
 
+	authorized.PUT(mutateSinglePATH, upload)
+	r.PUT(mutateSinglePATH, upload)
+
 	authorized.DELETE(mutateSinglePATH, deleteFile)
 	r.DELETE(mutateSinglePATH, deleteFile)
 
