@@ -253,8 +253,9 @@ Even though the service is just in alpha state, it is much
 appreciated!
 
 If you want to cancel you have to do that in your paypal account,
-or go to https://baxx.dev/unsub/{{ .PaymentID }} which will
-redirect you there.
+or go to:
+https://baxx.dev/unsub/{{ .PaymentID }}
+which will redirect you there.
 
 You can check the account status with:
 
