@@ -67,7 +67,6 @@ check it out `ssh register@baxx.dev`
 └──────────────────────────────────────────────────────────────────────────┘
 
 
-# API
 Hi,
 
 The service I offer is still in Alpha stage, but I really appreciate
@@ -104,6 +103,11 @@ Thanks again!
 Tokens are like backup namespaces, you can have the same file in
 different tokens and it won't conflict.
 
+There are 2 kinds of tokens, ReadWrite and WriteOnly,
+ReadWrite tokens dont require any credentials for create, delete and
+list files, WriteOnly tokens require credentials for *list* and
+*delete*.
+
 ## Current Tokens:
 
 
@@ -136,7 +140,7 @@ Keep #N Versions:
 
 curl -u your.email@example.com \
  -d '{"write_only":false,token:"TOKEN-UUID","name":"example"}' \
- https://baxx.dev/protected/modify/token
+ https://baxx.dev/protected/change/token
 ## Delete tokens
 
 curl -u your.email@example.com -d '{"token": "TOKEN-UUID"}' \
@@ -150,6 +154,8 @@ this will delete the token and all the files in it
 
 cat path/to/file | curl --data-binary @- \
  https://baxx.dev/io/$TOKEN/path/to/file
+
+curl -T path/to/file https://baxx.dev/io/$TOKEN/path/to/file
 
 Same filepath can have up to #N Versions depending on the token
 configuration.
@@ -179,14 +185,14 @@ prints human readable text
 
 ## WriteOnly Tokens
 
-Write Only tokens require BasicAuth and /protected prefix.
+Write Only tokens require BasicAuth.
 The idea is that you can put them in in-secure places and not worry
 about someone reading your data if they get stolen.
 
 ## Download from WriteOnly token:
 
 curl -u your.email@example.com \
- https://baxx.dev/protected/io/$TOKEN/path/to/file
+ https://baxx.dev/io/$TOKEN/path/to/file
 
 ## Delete with WriteOnly token:
 
@@ -196,7 +202,7 @@ curl -u your.email@example.com -XDELETE \
 ## List with WriteOnly token:
 
 curl -u your.email@example.com \
- https://baxx.dev/protected/ls/$TOKEN/path/to/
+ https://baxx.dev/ls/$TOKEN/path/to/
 
 
 # Profile Management
@@ -253,7 +259,7 @@ for i in $(find . -type f); do \
  echo -n "$i.."
  sha=$(shasum -a 256 $i | cut -f 1 -d ' ')
  (curl -s https://baxx.dev/sha256/$TOKEN/$sha -f && echo SKIP $i) || \
- (curl --data-binary @$i https://baxx.dev/io/$TOKEN/$i -f)
+ (curl -T $i https://baxx.dev/io/$TOKEN/$i -f)
 done
 
 
@@ -262,9 +268,14 @@ done
 export TOKEN=...
 baxx() {
     for i in $*; do
-        curl --data-binary @$i https://baxx.dev/io/$TOKEN/$i
+        curl -T $i https://baxx.dev/io/$TOKEN/$i
     done
 }
+
+baxx_ls() {
+    curl -u your.email@example.com https://baxx.dev/ls/$TOKEN/$*
+}
+
 
 then simply do
 $ baxx file_test.go mail.go
@@ -273,4 +284,5 @@ $ baxx file_test.go mail.go
 
 --
 baxx.dev
+
 ```
