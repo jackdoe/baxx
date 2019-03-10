@@ -1,0 +1,49 @@
+From 9addd5bbe425a096257198e9832720dfd0e551a7 Mon Sep 17 00:00:00 2001
+From: wuxiaoqing <xiaoqing.wu@chaitin.com>
+Date: Wed, 27 Jun 2018 17:28:45 +0800
+Subject: [PATCH] fix paste truncate
+
+---
+ tscreen.go | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/tscreen.go b/tscreen.go
+index 4c64e83..c6b7391 100644
+--- a/tscreen.go
++++ b/tscreen.go
+@@ -1134,7 +1134,7 @@ func (t *tScreen) parseRune(buf *bytes.Buffer) (bool, bool) {
+ 			t.escaped = false
+ 		}
+ 		ev := NewEventKey(KeyRune, rune(b[0]), mod)
+-		t.PostEvent(ev)
++		t.PostEventWait(ev)
+ 		buf.ReadByte()
+ 		return true, true
+ 	}
+@@ -1160,7 +1160,7 @@ func (t *tScreen) parseRune(buf *bytes.Buffer) (bool, bool) {
+ 					t.escaped = false
+ 				}
+ 				ev := NewEventKey(KeyRune, r, mod)
+-				t.PostEvent(ev)
++				t.PostEventWait(ev)
+ 			}
+ 			for nin > 0 {
+ 				buf.ReadByte()
+@@ -1187,11 +1187,14 @@ func (t *tScreen) scanInput(buf *bytes.Buffer, expire bool) {
+ 
+ 		partials := 0
+ 
++		t.Unlock()
+ 		if part, comp := t.parseRune(buf); comp {
++			t.Lock()
+ 			continue
+ 		} else if part {
+ 			partials++
+ 		}
++		t.Lock()
+ 
+ 		if part, comp := t.parseFunctionKey(buf); comp {
+ 			continue
+-- 
+2.19.1
+

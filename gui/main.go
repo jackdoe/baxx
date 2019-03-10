@@ -130,8 +130,6 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 		tui.NewPadder(1, 1, tui.NewLabel(logo)),
 		tui.NewPadder(1, 0, tui.NewLabel(Render(GUI_INTRO, nil))),
 		tui.NewPadder(1, 1, form),
-		tui.NewPadder(1, 0, tui.NewLabel("[[ Even though password length is unlimited,\ndue to bug in tcell, pasting fits only\n12 characters ]]")),
-		tui.NewPadder(1, 0, tui.NewLabel("")),
 		tui.NewPadder(1, 0, tui.NewLabel("Registering means you agree with\nthe terms of service!")),
 		tui.NewPadder(1, 0, tui.NewLabel("")),
 		buttonsRegister,
