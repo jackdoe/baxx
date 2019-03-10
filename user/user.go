@@ -25,7 +25,7 @@ func comparePasswords(hashedPwd string, plainPwd string) bool {
 
 type PaymentHistory struct {
 	ID        uint64    `gorm:"primary_key" json:"-"`
-	UserID    uint64    `gorm:"not null" json:"-"`
+	UserID    uint64    `gorm:"type:bigint not null REFERENCES users(id)" json:"-"`
 	IPN       string    `gorm:"not null;type:text" json:"-"`
 	IPNRAW    string    `gorm:"not null;type:text" json:"-"`
 	UpdatedAt time.Time `json:"-"`
@@ -34,7 +34,7 @@ type PaymentHistory struct {
 
 type VerificationLink struct {
 	ID         string     `gorm:"primary_key" json:"-"`
-	UserID     uint64     `gorm:"not null" json:"-"`
+	UserID     uint64     `gorm:"type:bigint not null REFERENCES users(id)" json:"-"`
 	Email      string     `gorm:"not null" json:"-"`
 	VerifiedAt *time.Time `gorm:"null" json:"-"`
 	SentAt     uint64     `gorm:"not null" json:"-"`
