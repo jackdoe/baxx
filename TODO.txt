@@ -16,6 +16,7 @@
      + 80% mem usage [ done Sun 10 Mar 18:51:09 CET 2019 ]
 
    + keep using dropwizard s3 while we get more customers
+   + fix foreign keys
 
   current infra:
                                           dropplet running gui docker image on port 22

@@ -558,11 +558,11 @@ func main() {
 			return
 		}
 
-		accepted := c.NegotiateFormat("application/json")
-		if accepted == "application/json" {
-			c.JSON(http.StatusOK, gin.H{"sha": fv.SHA256, "path": fm.Path, "name": fm.Filename})
-			return
-		}
+		// accepted := c.NegotiateFormat("application/json")
+		// if accepted == "application/json" {
+		// 	c.JSON(http.StatusOK, gin.H{"sha": fv.SHA256, "path": fm.Path, "name": fm.Filename})
+		// 	return
+		// }
 
 		c.String(http.StatusOK, FileLine(fm, fv))
 	}
@@ -660,11 +660,12 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		accepted := c.NegotiateFormat("application/json")
-		if accepted == "application/json" {
-			c.JSON(http.StatusOK, files)
-			return
-		}
+
+		// accepted := c.NegotiateFormat("application/json")
+		// if accepted == "application/json" {
+		// 	c.JSON(http.StatusOK, files)
+		// 	return
+		// }
 		c.String(http.StatusOK, LSAL(files))
 	}
 
