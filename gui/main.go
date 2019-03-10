@@ -92,7 +92,7 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 
 	form := tui.NewGrid(0, 0)
 	isRegisterMode := true
-	form.AppendRow(tui.NewLabel("Email"))
+	form.AppendRow(tui.NewLabel("E-mail"))
 	form.AppendRow(user)
 	form.AppendRow(tui.NewSpacer())
 	form.AppendRow(tui.NewLabel("Password"))
