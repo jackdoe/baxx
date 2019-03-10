@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	baxx "github.com/jackdoe/baxx/client"
 	bcommon "github.com/jackdoe/baxx/common"
@@ -376,9 +377,12 @@ func postRegistration(ui tui.UI, bc *baxx.Client, email, pass string) *tui.Box {
 }
 
 func main() {
+	var pserver = flag.String("server", "https://baxx.dev", "bind")
+	flag.Parse()
+
 	statusUpdate := make(chan string)
 
-	bc := baxx.NewClient(nil, "https://baxx.dev", statusUpdate)
+	bc := baxx.NewClient(nil, *pserver, statusUpdate)
 	status := tui.NewStatusBar("")
 	go func() {
 		for {

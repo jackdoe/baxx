@@ -4,15 +4,34 @@
  + send email when rule matches
 
 * infra
- * first phase
+ * first phase [ digital ocean ]
+   + setup load balancer
    + first create more droplets
-     a.baxx.dev, b.baxx.dev running only baxx.api
-
+     a.baxx.dev, b.baxx.dev, c.baxx.dev running only baxx.api
+   + setup gui.baxx.dev for passwordless ssh
    + move baxx to use postgres
    + get managed postgres
    + setup monitoring
+     + 80% disk usage
+
 
    + keep using dropwizard s3 while we get more customers
+
+  current infra:
+
+    [ digital ocean lb ] 10$                  [ gui.baxx.dev ]
+  ssl terminate, letsencrypt                     |
+        /          |                              +-- running passwordless baxx.gui
+       /           \                                  for register@gui.baxx.dev
+     a.baxx.dev    b.baxx.dev  ... [ 5$ per dropplet ]
+     |   \         /   |
+     |    \ managed    |
+     |      postgres   |
+      .     15$       .
+       ,           ,
+          [do s3]
+             5$
+  each dropplet
 
  * second phase
    + buy 3x40tb machines from hetzner [ 78E per month for 32G ram, 40TB, quad]
