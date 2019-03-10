@@ -250,7 +250,11 @@ type FileMetadataAndVersion struct {
 }
 
 func FileLine(fm *FileMetadata, fv *FileVersion) string {
-	return fmt.Sprintf("%d\t%s\t%s@v%d\t%s\n", fv.Size, fv.CreatedAt.Format(time.ANSIC), fm.FullPath(), fv.ID, fv.SHA256)
+	isCurrent := ""
+	if fm.LastVersionID == fv.ID {
+		isCurrent = "*"
+	}
+	return fmt.Sprintf("%d\t%s\t%s@v%d%s\t%s\n", fv.Size, fv.CreatedAt.Format(time.ANSIC), fm.FullPath(), fv.ID, isCurrent, fv.SHA256)
 }
 
 func prettySize(b uint64) string {
