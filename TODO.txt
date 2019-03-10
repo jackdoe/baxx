@@ -5,15 +5,15 @@
 
 * infra
  * first phase [ digital ocean ]
-   + setup load balancer
-   + first create more droplets
+   + setup load balancer [ done Sun 10 Mar 18:51:09 CET 2019 ]
+   + first create more droplets  [ done Sun 10 Mar 18:51:09 CET 2019 ]
      a.baxx.dev, b.baxx.dev, c.baxx.dev running only baxx.api
-   + setup gui.baxx.dev for passwordless ssh
-   + move baxx to use postgres
-   + get managed postgres
-   + setup monitoring
-     + 80% disk usage
-
+   + setup gui.baxx.dev for passwordless ssh  [ done Sun 10 Mar 18:51:09 CET 2019 ]
+   + move baxx to use postgres  [ done Sun 10 Mar 18:51:09 CET 2019 ]
+   + get managed postgres  [ done Sun 10 Mar 18:51:09 CET 2019 ]
+   + setup monitoring [ done Sun 10 Mar 18:51:09 CET 2019 ]
+     + 80% disk usage [ done Sun 10 Mar 18:51:09 CET 2019 ]
+     + 80% mem usage [ done Sun 10 Mar 18:51:09 CET 2019 ]
 
    + keep using dropwizard s3 while we get more customers
 
