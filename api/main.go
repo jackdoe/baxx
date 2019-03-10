@@ -233,6 +233,11 @@ func BasicAuthDecode(c *gin.Context) (string, string) {
 	return pair[0], pair[1]
 }
 
+func wantJson(c *gin.Context) bool {
+	format := c.DefaultQuery("format", "text")
+	return format == "json"
+}
+
 func main() {
 	var pbind = flag.String("bind", ":9123", "bind")
 	var proot = flag.String("root", "/tmp", "temporary file root")
@@ -558,11 +563,10 @@ func main() {
 			return
 		}
 
-		// accepted := c.NegotiateFormat("application/json")
-		// if accepted == "application/json" {
-		// 	c.JSON(http.StatusOK, gin.H{"sha": fv.SHA256, "path": fm.Path, "name": fm.Filename})
-		// 	return
-		// }
+		if wantJson(c) {
+			c.JSON(http.StatusOK, gin.H{"sha": fv.SHA256, "path": fm.Path, "name": fm.Filename})
+			return
+		}
 
 		c.String(http.StatusOK, FileLine(fm, fv))
 	}
@@ -588,8 +592,7 @@ func main() {
 		// check if over quota
 
 		actionLog(db, t.UserID, "file", "upload", c.Request, fmt.Sprintf("FileVersion: %d/%d", fv.ID, fv.FileMetadataID))
-		accepted := c.NegotiateFormat("application/json")
-		if accepted == "application/json" {
+		if wantJson(c) {
 			c.JSON(http.StatusOK, fv)
 			return
 		}
@@ -660,12 +663,10 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-
-		// accepted := c.NegotiateFormat("application/json")
-		// if accepted == "application/json" {
-		// 	c.JSON(http.StatusOK, files)
-		// 	return
-		// }
+		if wantJson(c) {
+			c.JSON(http.StatusOK, files)
+			return
+		}
 		c.String(http.StatusOK, LSAL(files))
 	}
 
