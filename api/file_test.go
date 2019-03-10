@@ -68,10 +68,10 @@ func TestFileQuota(t *testing.T) {
 	}
 
 	filePath := "/example/example.txt"
-
+	var fmFirst *file.FileMetadata
 	for i := 0; i < 20; i++ {
 		s := fmt.Sprintf("a b c d %d", i)
-		_, _, err := SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(s)), filePath)
+		_, fmFirst, err = SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(s)), filePath)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -98,12 +98,12 @@ func TestFileQuota(t *testing.T) {
 		os.Remove(localFile.TempName)
 	}
 
-	_, _, err = SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
+	_, fmSecond, err := SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	versions, err := file.ListVersionsFile(db, token, filePath)
+	versions, err := file.ListVersionsFile(db, token, fmFirst)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +116,7 @@ func TestFileQuota(t *testing.T) {
 	if used != 77 {
 		t.Fatalf("expected 77 got %d", used)
 	}
-	files, err := file.ListFilesInPath(db, token, "/example/")
+	files, err := file.ListFilesInPath(db, token, "/example/", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,7 +126,7 @@ func TestFileQuota(t *testing.T) {
 		t.Fatalf("expected 2 files got %d", len(files))
 	}
 
-	versions, err = file.ListVersionsFile(db, token, filePath+"second")
+	versions, err = file.ListVersionsFile(db, token, fmSecond)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +135,7 @@ func TestFileQuota(t *testing.T) {
 		t.Fatalf("expected1 versions got %d", len(versions))
 	}
 
-	err = file.DeleteFile(store, db, token, filePath)
+	err = file.DeleteFile(store, db, token, fmFirst)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +145,7 @@ func TestFileQuota(t *testing.T) {
 		t.Fatalf("expected 7 got %d", used)
 	}
 
-	err = file.DeleteFile(store, db, token, filePath+"second")
+	err = file.DeleteFile(store, db, token, fmSecond)
 	if err != nil {
 		t.Fatal(err)
 	}
