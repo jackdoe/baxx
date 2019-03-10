@@ -43,3 +43,5 @@ chmod 600 /home/baxx/config
 systemctl daemon-reload
 systemctl enable baxx
 service baxx start
+
+

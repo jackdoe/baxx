@@ -18,8 +18,8 @@
    + keep using dropwizard s3 while we get more customers
 
   current infra:
-
-    [ digital ocean lb ] 10$                  [ gui.baxx.dev ]
+                                          dropplet running gui docker image on port 22
+    [ digital ocean lb ] 10$                  [ gui.baxx.dev ] 5$
   ssl terminate, letsencrypt                     |
         /          |                              +-- running passwordless baxx.gui
        /           \                                  for register@gui.baxx.dev
@@ -31,7 +31,9 @@
        ,           ,
           [do s3]
              5$
-  each dropplet
+  each dropplet has its own keys for postgres/s3/sendgrid
+  sendgrid key is limited to email send only
+
 
  * second phase
    + buy 3x40tb machines from hetzner [ 78E per month for 32G ram, 40TB, quad]

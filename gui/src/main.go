@@ -1,13 +1,13 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	baxx "github.com/jackdoe/baxx/client"
 	bcommon "github.com/jackdoe/baxx/common"
 	. "github.com/jackdoe/baxx/help"
 	"github.com/marcusolsson/tui-go"
 	"log"
+	"os"
 	"time"
 )
 
@@ -377,12 +377,14 @@ func postRegistration(ui tui.UI, bc *baxx.Client, email, pass string) *tui.Box {
 }
 
 func main() {
-	var pserver = flag.String("server", "https://baxx.dev", "bind")
-	flag.Parse()
+	server := os.Getenv("BAXX_REMOTE")
+	if server == "" {
+		server = "https://baxx.dev"
+	}
 
 	statusUpdate := make(chan string)
 
-	bc := baxx.NewClient(nil, *pserver, statusUpdate)
+	bc := baxx.NewClient(nil, server, statusUpdate)
 	status := tui.NewStatusBar("")
 	go func() {
 		for {
