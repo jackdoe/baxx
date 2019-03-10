@@ -65,12 +65,13 @@ type Token struct {
 }
 
 type FileMetadata struct {
-	ID        uint64    `gorm:"primary_key" json:"-"`
-	TokenID   uint64    `gorm:"type:bigint not null REFERENCES tokens(id)" json:"-"`
-	Path      string    `gorm:"not null" json:"path"`
-	Filename  string    `gorm:"not null" json:"filename"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID            uint64    `gorm:"primary_key" json:"-"`
+	TokenID       uint64    `gorm:"type:bigint not null REFERENCES tokens(id)" json:"-"`
+	LastVersionID uint64    `gorm:"type:bigint" json:"-"`
+	Path          string    `gorm:"not null" json:"path"`
+	Filename      string    `gorm:"not null" json:"filename"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 func (fm *FileMetadata) FullPath() string {
@@ -175,8 +176,11 @@ func FindFile(db *gorm.DB, t *Token, p string) (*FileVersion, *FileMetadata, err
 		return nil, nil, err
 
 	}
+	if fm.LastVersionID == 0 {
+		return nil, nil, fmt.Errorf("file without version, probably interrupted, please reupload")
+	}
 	fv := &FileVersion{}
-	if err := db.Where("file_metadata_id = ?", fm.ID).Order("updated_at_ns DESC").First(fv).Error; err != nil {
+	if err := db.Where("id = ?", fm.LastVersionID).First(fv).Error; err != nil {
 		return nil, nil, err
 	}
 
@@ -195,6 +199,9 @@ func FindFileBySHA(db *gorm.DB, t *Token, sha string) (*FileVersion, *FileMetada
 		return nil, nil, err
 	}
 
+	if fv.ID != fm.LastVersionID {
+		return nil, nil, fmt.Errorf("sha exists, but not as latest version")
+	}
 	return fv, fm, nil
 }
 
@@ -311,7 +318,7 @@ func ListFilesInPath(db *gorm.DB, t *Token, p string, strict bool) ([]FileMetada
 
 	for _, fm := range metadata {
 		versions := []*FileVersion{}
-		if err := db.Where("file_metadata_id = ?", fm.ID).Order("updated_at_ns ASC").Find(&versions).Error; err != nil {
+		if err := db.Where("file_metadata_id = ?", fm.ID).Find(&versions).Error; err != nil {
 			return nil, err
 		}
 		out = append(out, FileMetadataAndVersion{fm, versions})
@@ -322,7 +329,7 @@ func ListFilesInPath(db *gorm.DB, t *Token, p string, strict bool) ([]FileMetada
 
 func ListVersionsFile(db *gorm.DB, t *Token, fm *FileMetadata) ([]*FileVersion, error) {
 	versions := []*FileVersion{}
-	if err := db.Where("file_metadata_id = ?", fm.ID).Order("updated_at_ns ASC").Find(&versions).Error; err != nil {
+	if err := db.Where("file_metadata_id = ?", fm.ID).Find(&versions).Error; err != nil {
 		return nil, err
 	}
 	return versions, nil
@@ -331,20 +338,13 @@ func ListVersionsFile(db *gorm.DB, t *Token, fm *FileMetadata) ([]*FileVersion, 
 func DeleteToken(s *Store, db *gorm.DB, token *Token) error {
 	// delete metadata
 	tx := db.Begin()
-	if err := tx.Delete(FileMetadata{}, "token_id = ?", token.ID).Error; err != nil {
-		tx.Rollback()
-		return err
-	}
-
 	// delete versions
+	removeFiles := []s3manager.BatchDeleteObject{}
 	versions := []*FileVersion{}
 	if err := tx.Where("token_id = ?", token.ID).Find(&versions).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
-
-	removeFiles := []s3manager.BatchDeleteObject{}
-
 	for _, v := range versions {
 		removeFiles = append(removeFiles, s3manager.BatchDeleteObject{
 			Object: &s3.DeleteObjectInput{
@@ -352,6 +352,16 @@ func DeleteToken(s *Store, db *gorm.DB, token *Token) error {
 				Bucket: aws.String(s.bucket),
 			},
 		})
+	}
+
+	if err := tx.Delete(FileVersion{}, "token_id = ?", token.ID).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Delete(FileMetadata{}, "token_id = ?", token.ID).Error; err != nil {
+		tx.Rollback()
+		return err
 	}
 
 	// delete token
@@ -425,22 +435,33 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, localFile *LocalFile) (*FileVersi
 		return nil, nil, err
 	}
 
-	// create file metadata if we did not create it
+	fm.LastVersionID = fv.ID
+	if err := db.Save(fm).Error; err != nil {
+		// XXX: leaking the upload at this point
+		return nil, nil, err
+	}
 
-	// check how many versions we have of this file
-	tx := db.Begin()
-	versions, err := ListVersionsFile(tx, t, fm)
+	// after this point the leak is OK, as the file is saved correctly
+	versions, err := ListVersionsFile(db, t, fm)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	limit := int(t.NumberOfArchives)
 	removeFiles := []s3manager.BatchDeleteObject{}
+	tx := db.Begin()
 	if len(versions) > limit {
-		toDelete := versions[0:(len(versions) - limit)]
-		for _, rm := range toDelete {
+	DELETE:
+		for _, rm := range versions {
+			if rm.ID == fv.ID {
+				continue
+			}
 			// can get negative
 			t.SizeUsed -= rm.Size
+			if err := tx.Save(t).Error; err != nil {
+				tx.Rollback()
+				return nil, nil, err
+			}
 
 			removeFiles = append(removeFiles, s3manager.BatchDeleteObject{
 				Object: &s3.DeleteObjectInput{
@@ -453,12 +474,12 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, localFile *LocalFile) (*FileVersi
 				tx.Rollback()
 				return nil, nil, err
 			}
+			break DELETE
 		}
 	}
 
-	// goooo
 	if err := tx.Commit().Error; err != nil {
-		// well at ths point we might have the file already saved..
+
 		return nil, nil, err
 	}
 

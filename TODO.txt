@@ -43,7 +43,7 @@
    + run some rack-aware binary store on them with replica=2
      and 1 node per disk (no need for raid)
    + run baxx.api in docker on each one
-   + run the host ssh on different port and run the ssh services for register@baxx.dev in docker
+   + run the host ssh on different port and run the ssh services for register@ui.baxx.dev in docker
 
    + add support for glacier that is paid extra
      + dropbox plus costs 10E for 1TB
