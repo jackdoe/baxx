@@ -29,7 +29,8 @@ type DeleteTokenInput struct {
 }
 
 type Force struct {
-	Force *bool `json:"force"`
+	Force     *bool `json:"force"`
+	Recursive *bool `json:"recursive"`
 }
 
 type ModifyTokenInput struct {

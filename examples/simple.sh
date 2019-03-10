@@ -25,6 +25,32 @@ baxx_get() {
     fi
 }
 
+baxx_delete() {
+    if [ $# -ne 1 ]; then
+        echo "usage: $0 file"
+    else
+        file=$1
+        curl -X DELETE https://baxx.dev/io/$BAXX_TOKEN/$file
+    fi
+}
+
+baxx_rmdir() {
+    if [ $# -ne 1 ]; then
+        echo "usage: $0 path"
+    else
+        file=$1
+        curl -d '{"force":true}' -X DELETE https://baxx.dev/io/$BAXX_TOKEN/$file
+    fi
+}
+
+baxx_rmrf() {
+    if [ $# -ne 1 ]; then
+        echo "usage: $0 path"
+    else
+        file=$1
+        curl -d '{"force":true,"recursive":true}' -X DELETE https://baxx.dev/io/$BAXX_TOKEN/$file
+    fi
+}
 
 baxx_ls() {
     curl https://baxx.dev/ls/$BAXX_TOKEN/$*

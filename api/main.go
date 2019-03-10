@@ -608,12 +608,15 @@ func main() {
 		}
 
 		force := false
+		recursive := false
 		var json Force
 		if err := c.ShouldBindJSON(&json); err == nil {
-			if json.Force == nil {
-				force = false
-			} else {
+			if json.Force != nil {
 				force = *json.Force
+			}
+
+			if json.Recursive != nil {
+				recursive = *json.Recursive
 			}
 		}
 		p := c.Param("path")
@@ -623,7 +626,7 @@ func main() {
 			if err := DeleteFileWithPath(store, db, t, p); err == nil {
 				n++
 			}
-			files, err := ListFilesInPath(db, t, p, true)
+			files, err := ListFilesInPath(db, t, p, !recursive)
 			if err == nil {
 				for _, f := range files {
 					if err := DeleteFile(store, db, t, f.FileMetadata); err == nil {

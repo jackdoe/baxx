@@ -209,6 +209,12 @@ Anyway, dont trust it and use encryption when uploading.
 find . -type f -exec curl --data-binary @{}      \
               https://baxx.dev/io/$BAXX_TOKEN/{} \;
 
+## upload in parallel
+
+find . -type f | xargs -P 4 -I {} -- \
+  curl -T {} https://baxx.dev/io/$TOKEN/{}
+
+
 ## upload only the files that have difference in shasum
 
 for i in $(find . -type f); do \
@@ -253,6 +259,36 @@ baxx_get() {
   dest=$2
   curl https://baxx.dev/io/$BAXX_TOKEN/$file > $dest
 fi
+}
+
+
+baxx_delete() {
+ if [ $# -ne 1 ]; then
+  echo "usage: $0 file"
+ else
+  file=$1
+  curl -X DELETE https://baxx.dev/io/$BAXX_TOKEN/$file
+ fi
+}
+
+baxx_rmdir() {
+ if [ $# -ne 1 ]; then
+  echo "usage: $0 path"
+ else
+  path=$1
+  curl -d '{"force":true}' \
+    -X DELETE https://baxx.dev/io/$BAXX_TOKEN/$path
+ fi
+}
+
+baxx_rmrf() {
+ if [ $# -ne 1 ]; then
+  echo "usage: $0 path"
+ else
+  path=$1
+  curl -d '{"force":true,"recursive":true}' \
+    -X DELETE https://baxx.dev/io/$BAXX_TOKEN/$path
+ fi
 }
 
 
