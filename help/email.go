@@ -222,6 +222,8 @@ done
 ## shell alias
 # indentation is messed up  to fit 80 chars
 
+---
+
 export BAXX_TOKEN=...
 baxx_put() {
  if [ $# -lt 2 ]; then
@@ -236,7 +238,7 @@ baxx_put() {
 
  (curl -s https://baxx.dev/sha256/$BAXX_TOKEN/$sha -f >/dev/null 2>&1 \
     && [[ "$force" != "force" ]] \
-    && echo SKIP $file .. already baxxed use \"$0 $1 $2 force\" to force) || \
+    && echo SKIP $file .. already baxxed, use \"$0 $1 $2 force\" to force) || \
  curl -T $file https://baxx.dev/io/$BAXX_TOKEN/$dest
 
  fi
@@ -258,9 +260,14 @@ baxx_ls() {
  curl https://baxx.dev/ls/$BAXX_TOKEN/$*
 }
 
+---
+
+check out https://github.com/jackdoe/baxx/tree/master/examples
+for more examples
+
 then simply do
 % baxx_put example.txt /some/dir/example.txt
-2918    Sun Mar 10 07:08:35 2019        /some/dir/example.txt@v2755     9d819bf407bc33761dcba158d4327b81aed33222c8e2a8e84bd84ae3811d8a60
+2918    Sun Mar 10 07:08:35 2019        /some/dir/example.txt@v2755
 
 % baxx_get /some/dir/example.txt example.txt.dl
 
