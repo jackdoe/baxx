@@ -236,10 +236,10 @@ baxx_put() {
 
   sha=$(shasum -a 256 $file | cut -f 1 -d ' ')
 
- (curl -s https://baxx.dev/sha256/$BAXX_TOKEN/$sha -f >/dev/null 2>&1 \
-    && [[ "$force" != "force" ]] \
-    && echo SKIP $file .. already baxxed, use \"$0 $1 $2 force\" to force) || \
- curl -T $file https://baxx.dev/io/$BAXX_TOKEN/$dest
+  (curl -s https://baxx.dev/sha256/$BAXX_TOKEN/$sha -f >/dev/null 2>&1 \
+   && [[ "$force" != "force" ]] \
+   && echo SKIP $file .. already baxxed, use \"$0 $1 $2 force\" to force) || \
+  curl -T $file https://baxx.dev/io/$BAXX_TOKEN/$dest
 
  fi
 }
