@@ -72,7 +72,7 @@ func Listener(g *gin.Engine, path string, cb func(c *gin.Context, err error, bod
 		// tell PayPal to not send more notificatins
 		err = cb(c, nil, string(body), notification)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			w.WriteHeader(http.StatusServiceUnavailable) // lets hope they retry
 		} else {
 			w.WriteHeader(http.StatusOK)
 		}
