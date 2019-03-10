@@ -1,6 +1,6 @@
 # baxx.dev
 
-check it out `ssh register@baxx.dev`
+check it out `ssh register@ui.baxx.dev`
 
 [ work in progress ]
 
