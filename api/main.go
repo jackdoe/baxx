@@ -238,6 +238,7 @@ func main() {
 	var proot = flag.String("root", "/tmp", "temporary file root")
 	var pdebug = flag.Bool("debug", false, "debug")
 	var psandbox = flag.Bool("sandbox", false, "sandbox")
+	var pinit = flag.Bool("create-tables", false, "create tables")
 	var prelease = flag.Bool("release", false, "release")
 	flag.Parse()
 
@@ -263,7 +264,9 @@ func main() {
 	db.LogMode(*pdebug)
 	defer db.Close()
 
-	initDatabase(db)
+	if *pinit {
+		initDatabase(db)
+	}
 
 	r := gin.Default()
 
