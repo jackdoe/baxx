@@ -220,38 +220,49 @@ done
 
 
 ## shell alias
+# indentation is messed up  to fit 80 chars
 
 export BAXX_TOKEN=...
 baxx_put() {
-    if [ $# -ne 2 ]; then
-        echo "usage: $0 file dest"
-    else
-        file=$1
-        dest=$2
-        curl -T $file https://baxx.dev/io/$BAXX_TOKEN/$dest
-    fi
+ if [ $# -lt 2 ]; then
+  echo "usage: $0 file dest [force]"
+ else
+
+  file=$1
+  dest=$2
+  force=${3:-noforce}
+
+  sha=$(shasum -a 256 $file | cut -f 1 -d ' ')
+
+ (curl -s https://baxx.dev/sha256/$BAXX_TOKEN/$sha -f >/dev/null 2>&1 \
+    && [[ "$force" != "force" ]] \
+    && echo SKIP $file .. already baxxed use \"$0 $1 $2 force\" to force) || \
+ curl -T $file https://baxx.dev/io/$BAXX_TOKEN/$dest
+
+ fi
 }
 
+
 baxx_get() {
-    if [ $# -ne 2 ]; then
-        echo "usage: $0 file dest"
-    else
-        file=$1
-        dest=$2
-        curl https://baxx.dev/io/$BAXX_TOKEN/$file > $dest
-    fi
+ if [ $# -ne 2 ]; then
+  echo "usage: $0 file dest"
+ else
+  file=$1
+  dest=$2
+  curl https://baxx.dev/io/$BAXX_TOKEN/$file > $dest
+fi
 }
 
 
 baxx_ls() {
-    curl https://baxx.dev/ls/$BAXX_TOKEN/$*
+ curl https://baxx.dev/ls/$BAXX_TOKEN/$*
 }
 
-
 then simply do
-$ baxx file_test.go mail.go
-5433    Fri Mar  8 20:04:11 2019        /file_test.go@v80
-713     Fri Mar  8 20:04:11 2019        /mail.go@v81
+% baxx_put example.txt /some/dir/example.txt
+2918    Sun Mar 10 07:08:35 2019        /some/dir/example.txt@v2755     9d819bf407bc33761dcba158d4327b81aed33222c8e2a8e84bd84ae3811d8a60
+
+% baxx_get /some/dir/example.txt example.txt.dl
 
 --
 baxx.dev

@@ -58,6 +58,9 @@ func popup(ui tui.UI, root *tui.Box, closeIsExit bool, onClose func(), title str
 	ui.SetKeybinding("Down", func() { scroll.Scroll(0, 1) })
 	ui.SetKeybinding("k", func() { scroll.Scroll(0, -1) })
 	ui.SetKeybinding("j", func() { scroll.Scroll(0, 1) })
+	ui.SetKeybinding("$", func() { scroll.ScrollToBottom() })
+	ui.SetKeybinding("G", func() { scroll.ScrollToBottom() })
+	ui.SetKeybinding("0", func() { scroll.ScrollToTop() })
 	ui.SetKeybinding("Esc", func() { bye() })
 	ui.SetWidget(p)
 
@@ -134,7 +137,6 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 		tui.NewPadder(1, 0, tui.NewLabel("")),
 		buttonsRegister,
 		tui.NewPadder(1, 0, tui.NewLabel("")),
-
 		buttonsTop,
 		tui.NewPadder(1, 0, tui.NewLabel("")),
 		buttonsBottom,
