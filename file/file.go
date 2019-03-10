@@ -3,6 +3,7 @@ package file
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -245,6 +246,14 @@ func FileLine(fm *FileMetadata, fv *FileVersion) string {
 	return fmt.Sprintf("%d\t%s\t%s@v%d\t%s\n", fv.Size, fv.CreatedAt.Format(time.ANSIC), fm.FullPath(), fv.ID, fv.SHA256)
 }
 
+func prettySize(b uint64) string {
+	gb := float64(b) / float64(1024*1024*1024)
+	if gb < 0.00009 {
+		return fmt.Sprintf("%.4fMB", gb*1024)
+	}
+	return fmt.Sprintf("%.4fGB", gb)
+}
+
 func LSAL(files []FileMetadataAndVersion) string {
 	buf := bytes.NewBufferString("")
 	grouped := map[string][]FileMetadataAndVersion{}
@@ -258,16 +267,18 @@ func LSAL(files []FileMetadataAndVersion) string {
 		keys = append(keys, p)
 	}
 	sort.Strings(keys)
+	total := uint64(0)
 	for _, k := range keys {
 		files := grouped[k]
-		fmt.Fprintf(buf, "%s:\n", k)
+
 		size := uint64(0)
 		for _, f := range files {
 			for _, v := range f.Versions {
 				size += v.Size
+				total += v.Size
 			}
 		}
-		fmt.Fprintf(buf, "total %d\n", size)
+		fmt.Fprintf(buf, "%s: total size: %d (%s)\n", k, size, prettySize(size))
 		for _, f := range files {
 			for _, v := range f.Versions {
 				buf.WriteString(FileLine(f.FileMetadata, v))
@@ -275,6 +286,7 @@ func LSAL(files []FileMetadataAndVersion) string {
 		}
 		fmt.Fprintf(buf, "\n")
 	}
+	fmt.Fprintf(buf, "sum total size: %d (%s)\n", total, prettySize(total))
 	return buf.String()
 }
 
