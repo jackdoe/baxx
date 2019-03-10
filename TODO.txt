@@ -3,10 +3,37 @@
  + configure
  + send email when rule matches
 
+* infra
+ * first phase
+   + first create more droplets
+     a.baxx.dev, b.baxx.dev running only baxx.api
+
+   + move baxx to use postgres
+   + get managed postgres
+   + setup monitoring
+
+   + keep using dropwizard s3 while we get more customers
+
+ * second phase
+   + buy 3x40tb machines from hetzner [ 78E per month for 32G ram, 40TB, quad]
+     = 234E + 200E setup
+
+   + run some rack-aware binary store on them with replica=2
+     and 1 node per disk (no need for raid)
+   + run baxx.api in docker on each one
+   + run the host ssh on different port and run the ssh services for register@baxx.dev in docker
+
+   + add support for glacier that is paid extra
+     + dropbox plus costs 10E for 1TB
+       dropbox pro costs 20E for 2TB
+     + glacier costs 0.0045 per gb (4.5E per TB)
+
+
 * payments
  + setup paypal ( jack@baxx.dev ) [ done Sun  3 Mar 14:13:14 CET 2019]
  + fix /thanks_for_paying [ done Sat  9 Mar 14:06:05 CET 2019 ]
- + move to webhooks
+ + move to webhooks instead of IPN
+
 * send emails
  + after registration [ done Sat  2 Mar 23:11:08 CET 2019 ]
  + setup mail verification [ done Sat  2 Mar 23:11:08 CET 2019 ]
@@ -27,7 +54,6 @@
    [ done Fri  8 Mar 21:12:46 CET 2019 ]
  + dont require /protected/ if password is supplied anyway [ done Sat  9 Mar 17:12:10 CET 2019 ]
 
- 
 * tokens
  + list api [ listed in /status Sat  2 Mar 16:30:59 CET 2019 ]
  + add name [ done Fri  8 Mar 21:12:46 CET 2019 ]

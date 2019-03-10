@@ -5,7 +5,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/erikdubbelboer/gspt"
 	"github.com/gin-gonic/gin"
 	. "github.com/jackdoe/baxx/baxxio"
 	. "github.com/jackdoe/baxx/common"
@@ -15,8 +14,7 @@ import (
 	"github.com/jackdoe/baxx/ipn"
 	. "github.com/jackdoe/baxx/user"
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
@@ -236,58 +234,29 @@ func BasicAuthDecode(c *gin.Context) (string, string) {
 }
 
 func main() {
-	var pbind = flag.String("bind", "127.0.0.1:9123", "bind")
+	var pbind = flag.String("bind", ":9123", "bind")
 	var proot = flag.String("root", "/tmp", "temporary file root")
-	var ps3region = flag.String("s3-region", "ams3", "s3 region")
-	var ps3endpoint = flag.String("s3-endpoint", "ams3.digitaloceanspaces.com", "s3 endpoint")
-	var ps3bucket = flag.String("s3-bucket", "baxx", "s3 bucket")
-	var ps3keyid = flag.String("s3-key-id", "", "s3 key id")
-	var ps3secret = flag.String("s3-secret", "", "s3 secret")
-	var ps3token = flag.String("s3-token", "", "s3 token")
-	var pdbtype = flag.String("db-type", "sqlite3", "database type, sqlite3 or mysql")
-	var pdburl = flag.String("db-url", "/tmp/gorm.db", "database url")
-	var psendgridkey = flag.String("sendgrid", "", "sendgrid api key")
 	var pdebug = flag.Bool("debug", false, "debug")
 	var psandbox = flag.Bool("sandbox", false, "sandbox")
 	var prelease = flag.Bool("release", false, "release")
 	flag.Parse()
 
 	CONFIG.MaxTokens = 100
-	CONFIG.SendGridKey = *psendgridkey
+	CONFIG.SendGridKey = os.Getenv("BAXX_SENDGRID_KEY")
 	CONFIG.TemporaryRoot = *proot
 	store := NewStore(&StoreConfig{
-		Endpoint:        *ps3endpoint,
-		Region:          *ps3region,
-		Bucket:          *ps3bucket,
-		AccessKeyID:     *ps3keyid,
-		SecretAccessKey: *ps3secret,
-		SessionToken:    *ps3token,
+		Endpoint:        os.Getenv("BAXX_S3_ENDPOINT"),
+		Region:          os.Getenv("BAXX_S3_REGION"),
+		Bucket:          os.Getenv("BAXX_S3_BUCKET"),
+		AccessKeyID:     os.Getenv("BAXX_S3_ACCESS_KEY"),
+		SecretAccessKey: os.Getenv("BAXX_S3_SECRET"),
+		SessionToken:    os.Getenv("BAXX_S3_TOKEN"),
 	})
-	title := []string{}
 	if *prelease {
 		gin.SetMode(gin.ReleaseMode)
-		title = append(title, "release")
-	} else {
-		title = append(title, "dev")
 	}
 
-	if *pdebug {
-		title = append(title, "debug")
-	}
-
-	if *psandbox {
-		title = append(title, "sandbox")
-	}
-	title = append(title, *pdbtype)
-	title = append(title, *proot)
-	title = append(title, *ps3region)
-	title = append(title, *ps3bucket)
-	title = append(title, *ps3endpoint)
-
-	// because of the passwords in the parameters
-	gspt.SetProcTitle(fmt.Sprintf("[baxx.dev %s]", strings.Join(title, " ")))
-
-	db, err := gorm.Open(*pdbtype, *pdburl)
+	db, err := gorm.Open("postgres", os.Getenv("BAXX_POSTGRES"))
 	if err != nil {
 		log.Fatal(err)
 	}

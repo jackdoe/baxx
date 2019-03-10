@@ -10,10 +10,10 @@ import (
 	"github.com/jackdoe/baxx/help"
 	. "github.com/jackdoe/baxx/user"
 	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 )
@@ -36,8 +36,7 @@ func TestFileQuota(t *testing.T) {
 		DisableSSL:      true,
 	})
 
-	tmpfn := filepath.Join(dir, "tmpfile")
-	db, err := gorm.Open("sqlite3", tmpfn)
+	db, err := gorm.Open("postgres", "host=localhost user=baxx dbname=baxx password=baxx")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -46,12 +45,12 @@ func TestFileQuota(t *testing.T) {
 	defer db.Close()
 	initDatabase(db)
 	status, user, err := registerUser(db, CreateUserInput{Email: "jack@prymr.nl", Password: " abcabcabc"})
-	log.Print(help.Render(help.EMAIL_AFTER_REGISTRATION, status))
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	log.Print(help.Render(help.EMAIL_AFTER_REGISTRATION, status))
 	/* test uploading a file */
 	log.Printf("%#v", user)
 	now := time.Now()
