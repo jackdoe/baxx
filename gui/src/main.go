@@ -398,11 +398,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	//ui.SetWidget(tui.NewVBox(
-	//	postRegistration(ui, bc, "jack@sofialondonmoskva.com", "asdasdasdasd"),
-	//	status,
-	//))
-
 	register := registrationForm(ui, bc, func(u, p string) {
 		ui.SetWidget(tui.NewVBox(
 			postRegistration(ui, bc, u, p),
