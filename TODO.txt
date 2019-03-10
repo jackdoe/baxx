@@ -35,6 +35,16 @@
   each dropplet has its own keys for postgres/s3/sendgrid
   sendgrid key is limited to email send only
 
+  + dropwizard's loadbalancer's timeout is not configurable
+  which means if a droplet is doing work for longer than 1 minute
+  or so LB returns 504
+   + just run one instance of nginx for 10$ and be done with it
+   + make the whole api streaming responses back as activity
+     like progress bar
+   + move the slow processes to completely async mode using queues
+   + disallow large operations and encourage people to use
+     small files by rejecting files bigger than 64mb or so
+     this seems like good practice anyway
 
  * second phase
    + buy 3x40tb machines from hetzner [ 78E per month for 32G ram, 40TB, quad]

@@ -315,7 +315,6 @@ func ListFilesInPath(db *gorm.DB, t *Token, p string, strict bool) ([]FileMetada
 		if err := db.Where("token_id = ? AND path like ?", t.ID, p+"%").Order("id").Find(&metadata).Error; err != nil {
 			return nil, err
 		}
-
 	}
 
 	out := []FileMetadataAndVersion{}
