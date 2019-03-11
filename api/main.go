@@ -477,8 +477,9 @@ func main() {
 		}
 		// FIXME: close?
 		c.Header("Content-Length", fmt.Sprintf("%d", fv.Size))
-		c.Header("Content-Transfer-Encoding", "binary")
+
 		c.Header("Content-Disposition", "attachment; filename="+fv.SHA256+".sha") // make sure people dont use it for loading js
+		c.Header("Content-Transfer-Encoding", "binary")
 		c.Header("Content-Type", "application/octet-stream")
 		c.DataFromReader(http.StatusOK, int64(fv.Size), "octet/stream", reader, map[string]string{})
 	}
@@ -638,7 +639,8 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-
+		c.Header("Content-Transfer-Encoding", "binary")
+		c.Header("Content-Type", "application/octet-stream")
 		c.String(http.StatusOK, out)
 	})
 
