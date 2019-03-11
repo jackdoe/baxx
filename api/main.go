@@ -15,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 	. "github.com/jackdoe/baxx/common"
 	. "github.com/jackdoe/baxx/config"
+	"github.com/jackdoe/baxx/file"
 	. "github.com/jackdoe/baxx/file"
 	"github.com/jackdoe/baxx/help"
 	"github.com/jackdoe/baxx/ipn"
@@ -103,65 +104,7 @@ func getUserStatus(db *gorm.DB, user *User) (*UserStatusOutput, error) {
 	}, nil
 }
 
-func sendVerificationLink(db *gorm.DB, verificationLink *VerificationLink) error {
-	if err := db.Save(verificationLink).Error; err != nil {
-		return err
-	}
-	err := sendmail(sendMailConfig{
-		from:    "jack@baxx.dev",
-		to:      []string{verificationLink.Email},
-		subject: "Please verify your email",
-		body:    help.Render(help.EMAIL_VALIDATION, verificationLink),
-	})
-
-	if err != nil {
-		return err
-	}
-	verificationLink.SentAt = uint64(time.Now().Unix())
-	if err := db.Save(verificationLink).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-func sendPaymentThanks(email string, paymentid string) error {
-	err := sendmail(sendMailConfig{
-		from:    "jack@baxx.dev",
-		to:      []string{email},
-		subject: "Thanks for subscribing!",
-		body:    help.Render(help.EMAIL_PAYMENT_THANKS, map[string]string{"Email": email, "PaymentID": paymentid}),
-	})
-	if err != nil {
-		log.Warnf("failed to send: %s", err.Error())
-	}
-	return err
-}
-
-func sendPaymentCancelMail(email string, paymentID string) error {
-	err := sendmail(sendMailConfig{
-		from:    "jack@baxx.dev",
-		to:      []string{email},
-		subject: "Subscription cancelled!",
-		body:    help.Render(help.EMAIL_PAYMENT_CANCEL, map[string]string{"PaymentID": paymentID, "Email": email}),
-	})
-
-	if err != nil {
-		log.Warnf("failed to send: %s", err.Error())
-	}
-	return err
-}
-
-func sendRegistrationHelp(status *UserStatusOutput) error {
-	err := sendmail(sendMailConfig{
-		from:    "jack@baxx.dev",
-		to:      []string{status.Email},
-		subject: "Welcome to baxx.dev!",
-		body:    help.Render(help.EMAIL_AFTER_REGISTRATION, status),
-	})
-	return err
-}
-
-func registerUser(db *gorm.DB, json CreateUserInput) (*UserStatusOutput, *User, error) {
+func registerUser(store *file.Store, db *gorm.DB, json CreateUserInput) (*UserStatusOutput, *User, error) {
 	if err := ValidatePassword(json.Password); err != nil {
 		return nil, nil, err
 	}
@@ -189,12 +132,12 @@ func registerUser(db *gorm.DB, json CreateUserInput) (*UserStatusOutput, *User, 
 		return nil, nil, err
 	}
 
-	_, err = user.CreateToken(tx, true, 7, "generic-write-only-7")
+	_, err = CreateTokenAndBucket(store, tx, user, true, 7, "generic-write-only-7")
 	if err != nil {
 		tx.Rollback()
 		return nil, nil, err
 	}
-	_, err = user.CreateToken(tx, false, 7, "generic-read-write-7")
+	_, err = CreateTokenAndBucket(store, tx, user, false, 7, "generic-read-write-7")
 	if err != nil {
 		tx.Rollback()
 		return nil, nil, err
@@ -302,7 +245,7 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		out, user, err := registerUser(db, json)
+		out, user, err := registerUser(store, db, json)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -412,7 +355,7 @@ func main() {
 			return
 		}
 
-		token, err := user.CreateToken(db, json.WriteOnly, json.NumberOfArchives, json.Name)
+		token, err := CreateTokenAndBucket(store, db, user, json.WriteOnly, json.NumberOfArchives, json.Name)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -532,7 +475,7 @@ func main() {
 
 		}
 
-		reader, err := store.DownloadFile(fv)
+		reader, err := store.DownloadFile(fv.StoreID)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -852,4 +795,18 @@ func SaveFileProcess(s *Store, db *gorm.DB, user *User, t *Token, body io.Reader
 	}
 
 	return SaveFile(s, db, t, p, body)
+}
+
+func CreateTokenAndBucket(s *Store, db *gorm.DB, user *User, writeOnly bool, numOfArchives uint64, name string) (*Token, error) {
+	t, err := user.CreateToken(db, writeOnly, numOfArchives, name)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.MakeBucket(t.ID)
+	if err != nil {
+		db.Delete(t)
+		return nil, err
+	}
+	return t, nil
 }

@@ -34,7 +34,6 @@ func setup() *file.Store {
 		log.Fatal(err)
 	}
 
-	store.MakeBucket()
 	return store
 }
 
@@ -48,7 +47,7 @@ func TestFileQuota(t *testing.T) {
 
 	defer db.Close()
 	initDatabase(db)
-	status, user, err := registerUser(db, CreateUserInput{Email: "jack@prymr.nl", Password: " abcabcabc"})
+	status, user, err := registerUser(store, db, CreateUserInput{Email: "jack@prymr.nl", Password: " abcabcabc"})
 
 	if err != nil {
 		t.Fatal(err)
@@ -83,7 +82,7 @@ func TestFileQuota(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		reader, err := store.DownloadFile(fv)
+		reader, err := store.DownloadFile(fv.StoreID)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -217,16 +216,16 @@ func TestFileQuota(t *testing.T) {
 		}
 	}
 
-	list := listSync(store)
+	list := listSync(store, token.ID)
 	if len(list) != 0 {
 		t.Fatalf("items in the store: %v", list)
 	}
 }
 
-func listSync(s *file.Store) []string {
+func listSync(s *file.Store, tokenID uint64) []string {
 	out := make(chan string)
 	e := make(chan error)
-	go s.ListObjects(e, out)
+	go s.ListObjects(tokenID, e, out)
 	res := []string{}
 	for v := range out {
 		res = append(res, v)

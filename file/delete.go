@@ -36,7 +36,7 @@ func DeleteToken(s *Store, db *gorm.DB, token *Token) error {
 		return err
 	}
 
-	return s.removeMany(removeFiles)
+	return s.RemoveMany(removeFiles)
 }
 
 func DeleteFileWithPath(s *Store, db *gorm.DB, t *Token, p string) error {
@@ -83,7 +83,7 @@ func DeleteFile(s *Store, db *gorm.DB, t *Token, fm *FileMetadata) error {
 	if err := tx.Commit().Error; err != nil {
 		return err
 	}
-	s.removeMany(remove)
+	s.RemoveMany(remove)
 	return nil
 
 }

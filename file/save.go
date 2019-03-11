@@ -6,7 +6,6 @@ import (
 	"io"
 
 	"github.com/jinzhu/gorm"
-	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -14,7 +13,7 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, fullpath string, body io.Reader) 
 	// get the metadata
 
 	// upload the file to s3
-	storeID := fmt.Sprintf("%d.%s", t.ID, uuid.Must(uuid.NewV4()).String())
+	storeID := GetStoreId(t.ID)
 	shah := sha256.New()
 	tee := io.TeeReader(body, shah)
 	sha := fmt.Sprintf("%x", shah.Sum(nil))
