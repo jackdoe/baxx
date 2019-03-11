@@ -25,7 +25,7 @@ func TestFileQuota(t *testing.T) {
 	}
 	CONFIG.TemporaryRoot = dir
 	defer os.RemoveAll(dir)
-
+	// test credentials from minio https://github.com/minio/minio-go
 	store, err := file.NewStore(&StoreConfig{
 		Endpoint:        "play.minio.io:9000",
 		Region:          "",
