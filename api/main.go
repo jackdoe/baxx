@@ -5,8 +5,14 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"runtime"
+	"strings"
+	"time"
+
 	"github.com/gin-gonic/gin"
-	. "github.com/jackdoe/baxx/baxxio"
 	. "github.com/jackdoe/baxx/common"
 	. "github.com/jackdoe/baxx/config"
 	. "github.com/jackdoe/baxx/file"
@@ -16,12 +22,6 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	log "github.com/sirupsen/logrus"
-	"io"
-	"net/http"
-	"os"
-	"runtime"
-	"strings"
-	"time"
 )
 
 func warnErr(c *gin.Context, err error) {
@@ -67,7 +67,7 @@ func initDatabase(db *gorm.DB) {
 		log.Fatal(err)
 	}
 
-	if err := db.Model(&FileVersion{}).AddIndex("idx_fv_metadata_updated", "file_metadata_id", "updated_at_ns").Error; err != nil {
+	if err := db.Model(&FileVersion{}).AddIndex("idx_fv_metadata", "file_metadata_id").Error; err != nil {
 		log.Fatal(err)
 	}
 
@@ -250,7 +250,7 @@ func main() {
 	CONFIG.MaxTokens = 100
 	CONFIG.SendGridKey = os.Getenv("BAXX_SENDGRID_KEY")
 	CONFIG.TemporaryRoot = *proot
-	store := NewStore(&StoreConfig{
+	store, err := NewStore(&StoreConfig{
 		Endpoint:        os.Getenv("BAXX_S3_ENDPOINT"),
 		Region:          os.Getenv("BAXX_S3_REGION"),
 		Bucket:          os.Getenv("BAXX_S3_BUCKET"),
@@ -258,6 +258,10 @@ func main() {
 		SecretAccessKey: os.Getenv("BAXX_S3_SECRET"),
 		SessionToken:    os.Getenv("BAXX_S3_TOKEN"),
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	if *prelease {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -523,29 +527,26 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		localFile, err := CreateTemporaryFile(t.ID, c.Param("path"))
+		fv, _, err := FindFile(db, t, c.Param("path"))
+		if err != nil {
+			warnErr(c, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+
+		}
+
+		reader, err := store.DownloadFile(fv)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-
-		defer func() {
-			localFile.File.Close()
-			os.Remove(localFile.TempName)
-		}()
-
-		fo, reader, err := FindAndDecodeFile(store, db, t, localFile)
-		if err != nil {
-			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		c.Header("Content-Length", fmt.Sprintf("%d", fo.Size))
+		// FIXME: close?
+		c.Header("Content-Length", fmt.Sprintf("%d", fv.Size))
 		c.Header("Content-Transfer-Encoding", "binary")
-		c.Header("Content-Disposition", "attachment; filename="+fo.SHA256+".sha") // make sure people dont use it for loading js
+		c.Header("Content-Disposition", "attachment; filename="+fv.SHA256+".sha") // make sure people dont use it for loading js
 		c.Header("Content-Type", "application/octet-stream")
-		c.DataFromReader(http.StatusOK, int64(fo.Size), "octet/stream", reader, map[string]string{})
+		c.DataFromReader(http.StatusOK, int64(fv.Size), "octet/stream", reader, map[string]string{})
 	}
 
 	lookupSHA := func(c *gin.Context) {
@@ -840,38 +841,17 @@ func main() {
 }
 
 func SaveFileProcess(s *Store, db *gorm.DB, user *User, t *Token, body io.Reader, p string) (*FileVersion, *FileMetadata, error) {
-	localFile, err := CreateTemporaryFile(t.ID, p)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer os.Remove(localFile.TempName)
-	defer localFile.File.Close()
-
-	sha, size, err := SaveUploadedFile(t.Salt, localFile.File, body)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	leftSize, leftInodes, err := user.GetQuotaLeft(db)
 	if err != nil {
 		return nil, nil, err
 	}
-	if leftSize < size {
+	if leftSize < 0 {
 		return nil, nil, errors.New("quota limit reached")
 	}
 
-	if leftInodes < 1 {
+	if leftInodes <= 1 {
 		return nil, nil, errors.New("inode quota limit reached")
 	}
 
-	localFile.SHA = sha
-	localFile.Size = uint64(size)
-	_, err = localFile.File.Seek(0, io.SeekStart)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	fv, fm, err := SaveFile(s, db, t, localFile)
-
-	return fv, fm, err
+	return SaveFile(s, db, t, p, body)
 }

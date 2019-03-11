@@ -3,7 +3,12 @@ package main
 import (
 	"bytes"
 	"fmt"
-	. "github.com/jackdoe/baxx/baxxio"
+	"io/ioutil"
+	"log"
+	"os"
+	"testing"
+	"time"
+
 	. "github.com/jackdoe/baxx/common"
 	. "github.com/jackdoe/baxx/config"
 	"github.com/jackdoe/baxx/file"
@@ -11,11 +16,6 @@ import (
 	. "github.com/jackdoe/baxx/user"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
-	"io/ioutil"
-	"log"
-	"os"
-	"testing"
-	"time"
 )
 
 func TestFileQuota(t *testing.T) {
@@ -26,15 +26,18 @@ func TestFileQuota(t *testing.T) {
 	CONFIG.TemporaryRoot = dir
 	defer os.RemoveAll(dir)
 
-	store := file.NewStore(&StoreConfig{
-		Endpoint:        "baxx.localhost:9000",
-		Region:          "localhost",
-		Bucket:          "baxx",
-		AccessKeyID:     "a",
-		SecretAccessKey: "b",
-		SessionToken:    "c",
-		DisableSSL:      true,
+	store, err := file.NewStore(&StoreConfig{
+		Endpoint:        "play.minio.io:9000",
+		Region:          "",
+		Bucket:          "000baxx",
+		AccessKeyID:     "Q3AM3UQ867SPQQA43P2F",
+		SecretAccessKey: "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG",
+		SessionToken:    "",
+		DisableSSL:      false,
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	db, err := gorm.Open("postgres", "host=localhost user=baxx dbname=baxx password=baxx")
 	if err != nil {
@@ -75,12 +78,11 @@ func TestFileQuota(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		localFile, err := CreateTemporaryFile(token.ID, filePath)
+		fv, _, err := file.FindFile(db, token, filePath)
 		if err != nil {
 			t.Fatal(err)
 		}
-
-		_, reader, err := file.FindAndDecodeFile(store, db, token, localFile)
+		reader, err := store.DownloadFile(fv)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -93,8 +95,6 @@ func TestFileQuota(t *testing.T) {
 		if string(b) != s {
 			t.Fatalf("expected %s got %s", s, string(b))
 		}
-		localFile.File.Close()
-		os.Remove(localFile.TempName)
 	}
 
 	_, fmSecond, err := SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
