@@ -248,12 +248,75 @@ will have to also get access to the database as well.
 
 Anyway, dont trust it and use encryption when uploading.
 
+
+# Shell helpers
+In order to be easy to do syncs there are a couple of helper endpoints
+such as:
+
+## GET: https://baxx.dev/sha256/$BAXX_TOKEN/$sha
+Returns non 200 status code if the sha does not exist
+it is meant to be used with 'curl -f', which makes curl exit with non
+zero in case of failure:
+
+$sha is sha256 sum (shasum -a 256 file | cut -f 1 -d ' ')
+
+check if sha exists, and upload if it doesnt
+ curl -f https://baxx.dev/sha256/$BAXX_TOKEN/$sha  || \
+ curl -f -T $i https://baxx.dev/io/$BAXX_TOKEN/$i
+
+## POST: https://baxx.dev/sync/sha256/$BAXX_TOKEN
+
+This endpoint takes the multiple lines of shasum output
+and returns only the lines that are not found, example input:
+
+
+2997f66d71b5c0f2f396872536beed30835add1e1de8740b3136c9d550b1eb7c  a
+8719d1dc6f98ebb5c04f8c1768342e865156b1582806b6c7d26e3fbdc99b8762  b
+8d0a34b05558ad54c4a5949cc42636165b6449cf3324406d62e923bc060478dc  c
+c7c2c1d3c83afbc522ae08779cd661546e578b2dfc6a398467d293bd63e03290  d
+
+
+if you have already uploaded the file c it will return
+
+2997f66d71b5c0f2f396872536beed30835add1e1de8740b3136c9d550b1eb7c  a
+8719d1dc6f98ebb5c04f8c1768342e865156b1582806b6c7d26e3fbdc99b8762  b
+c7c2c1d3c83afbc522ae08779cd661546e578b2dfc6a398467d293bd63e03290  d
+
+it is very handy for rsync like uploads:
+find | xargs shasum | curl diff | curl upload
+
+example:
+ find . -type f \
+  | xargs -P4 -I '{}' \
+    shasum -a 256 {} \
+  | curl -s --data-binary @- https://baxx.dev/sync/sha256/$BAXX_TOKEN \
+  | awk '{ print $2 }' \
+  | xargs -P4 -I '{}' \
+    curl -s -T {} https://baxx.dev/io/$BAXX_TOKEN/backup/{}
+
+it is *VERY* important to curl to /sync/sha256 with --data-binary
+otherwise curl is in ascii mode and does *not* send the new lines, and
+only the first line is checked.
+
+This is super annoying, and I am sure someone will lose backups
+because of this, and there is nothing I can do about it.
+
+This small script will find all files, then compute the shasums in
+parallel check the diff with what is uploaded on baxx and upload only
+the missing ones
+
 # Examples
 
 ## upload everything from a directory
 
 find . -type f -exec curl --data-binary @{}      \
               https://baxx.dev/io/$BAXX_TOKEN/{} \;
+
+## upload in parallel
+
+find . -type f | xargs -P 4 -I {} -- \
+  curl -T {} https://baxx.dev/io/$TOKEN/{}
+
 
 ## upload only the files that have difference in shasum
 
@@ -282,10 +345,10 @@ baxx_put() {
 
   sha=$(shasum -a 256 $file | cut -f 1 -d ' ')
 
- (curl -s https://baxx.dev/sha256/$BAXX_TOKEN/$sha -f >/dev/null 2>&1 \
-    && [[ "$force" != "force" ]] \
-    && echo SKIP $file .. already baxxed, use \"$0 $1 $2 force\" to force) || \
- curl -T $file https://baxx.dev/io/$BAXX_TOKEN/$dest
+  (curl -s https://baxx.dev/sha256/$BAXX_TOKEN/$sha -f >/dev/null 2>&1 \
+   && [[ "$force" != "force" ]] \
+   && echo SKIP $file .. already baxxed, use \"$0 $1 $2 force\" to force) || \
+  curl -T $file https://baxx.dev/io/$BAXX_TOKEN/$dest
 
  fi
 }
@@ -302,9 +365,54 @@ fi
 }
 
 
+baxx_delete() {
+ if [ $# -ne 1 ]; then
+  echo "usage: $0 file"
+ else
+  file=$1
+  curl -X DELETE https://baxx.dev/io/$BAXX_TOKEN/$file
+ fi
+}
+
+baxx_rmdir() {
+ if [ $# -ne 1 ]; then
+  echo "usage: $0 path"
+ else
+  path=$1
+  curl -d '{"force":true}' \
+    -X DELETE https://baxx.dev/io/$BAXX_TOKEN/$path
+ fi
+}
+
+baxx_rmrf() {
+ if [ $# -ne 1 ]; then
+  echo "usage: $0 path"
+ else
+  path=$1
+  curl -d '{"force":true,"recursive":true}' \
+    -X DELETE https://baxx.dev/io/$BAXX_TOKEN/$path
+ fi
+}
+
+
 baxx_ls() {
  curl https://baxx.dev/ls/$BAXX_TOKEN/$*
 }
+
+baxx_sync() {
+ if [ $# -ne 1 ]; then
+  echo "usage: $0 path"
+ else
+  find $1 -type f \
+  | xargs -P4 -I '{}' \
+    shasum -a 256 {} \
+  | curl -s --data-binary @- https://baxx.dev/sync/sha256/$BAXX_TOKEN \
+  | awk '{ print $2 }' \
+  | xargs -P4 -I '{}' \
+    curl -s -T {} https://baxx.dev/io/$BAXX_TOKEN/backup/{}
+ fi
+}
+
 
 ---
 
