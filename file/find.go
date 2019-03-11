@@ -49,7 +49,7 @@ func FindFileBySHA(db *gorm.DB, t *Token, sha string) (*FileVersion, *FileMetada
 
 func ListVersionsFile(db *gorm.DB, t *Token, fm *FileMetadata) ([]*FileVersion, error) {
 	versions := []*FileVersion{}
-	if err := db.Where("file_metadata_id = ?", fm.ID).Find(&versions).Error; err != nil {
+	if err := db.Where("file_metadata_id = ?", fm.ID).Order("id").Find(&versions).Error; err != nil {
 		return nil, err
 	}
 	return versions, nil
