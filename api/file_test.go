@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"strings"
 	"testing"
 	"time"
 
@@ -270,8 +271,9 @@ fc29fe749e8c62050094724e2bed50b65a508e18101eb7d6fdea11be77b2515b  util.go`)))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(diff) != 7 {
+
+	if len(strings.Split(diff, "\n")) != 7 {
 		t.Fatalf("expected 10 got %d, diff: %q", len(diff), diff)
 	}
-	log.Printf("diff: %q", diff)
+	log.Printf("diff: %s", diff)
 }

@@ -639,7 +639,7 @@ func main() {
 			return
 		}
 
-		c.String(http.StatusOK, strings.Join(out, "\n"))
+		c.String(http.StatusOK, out)
 	})
 
 	ipn.Listener(r, "/ipn/:paymentID", func(c *gin.Context, err error, body string, n *ipn.Notification) error {
