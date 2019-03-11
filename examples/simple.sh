@@ -56,3 +56,16 @@ baxx_ls() {
     curl https://baxx.dev/ls/$BAXX_TOKEN/$*
 }
 
+baxx_sync() {
+    if [ $# -ne 1 ]; then
+        echo "usage: $0 path"
+    else
+        find $1 -type f \
+            | xargs -P4 -I '{}' \
+                    shasum -a 256 {} \
+            | curl -s --data-binary @- https://baxx.dev/sync/sha256/$BAXX_TOKEN \
+            | awk '{ print $2 }' \
+            | xargs -P4 -I '{}' \
+                    curl -s -T {} https://baxx.dev/io/$BAXX_TOKEN/backup/{}
+    fi
+}
