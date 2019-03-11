@@ -20,15 +20,15 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, fullpath string, body io.Reader) 
 	sha := fmt.Sprintf("%x", shah.Sum(nil))
 	size, err := s.UploadFile(storeID, tee)
 	if err != nil {
-		log.Printf("WTF %s %s id:%s", fullpath, err.Error(), storeID)
 		return nil, nil, err
 	}
 
 	removeBeforeExit := map[string]bool{storeID: true}
 	defer func() {
+		log.Printf("before exit: %+v", removeBeforeExit)
 		for id, _ := range removeBeforeExit {
-			log.Infof("removing %d %s %s", t.ID, fullpath, id)
-			err := s.s3.RemoveObject(s.bucket, id)
+			log.Infof("on save removing %d %s %s", t.ID, fullpath, id)
+			err := s.DeleteFile(id)
 			if err != nil {
 				log.Warnf("error removing %s: %s", id, err.Error())
 			}
@@ -79,8 +79,7 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, fullpath string, body io.Reader) 
 			}
 
 			t.SizeUsed -= rm.Size
-			removeBeforeExit[fv.StoreID] = true
-
+			removeBeforeExit[rm.StoreID] = true
 			if err := tx.Delete(rm).Error; err != nil {
 				tx.Rollback()
 				return nil, nil, err
@@ -101,7 +100,6 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, fullpath string, body io.Reader) 
 		return nil, nil, err
 	}
 
-	// SUCCESS
 	delete(removeBeforeExit, storeID)
 
 	return fv, fm, nil

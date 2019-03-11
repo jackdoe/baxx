@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 	"testing"
 	"time"
 
@@ -18,32 +17,33 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
-func TestFileQuota(t *testing.T) {
-	dir, err := ioutil.TempDir("", "test_file_")
-	if err != nil {
-		t.Fatal(err)
-	}
-	CONFIG.TemporaryRoot = dir
-	defer os.RemoveAll(dir)
+func setup() *file.Store {
 	// test credentials from minio https://github.com/minio/minio-go
 	store, err := file.NewStore(&StoreConfig{
-		Endpoint:        "play.minio.io:9000",
+		Endpoint:        "localhost:9000",
 		Region:          "",
-		Bucket:          "000baxx",
-		AccessKeyID:     "Q3AM3UQ867SPQQA43P2F",
-		SecretAccessKey: "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG",
+		Bucket:          "baxx",
+		AccessKeyID:     "aaa",
+		SecretAccessKey: "bbbbbbbb",
 		SessionToken:    "",
-		DisableSSL:      false,
+		DisableSSL:      true,
 	})
+
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	store.MakeBucket()
+	return store
+}
+
+func TestFileQuota(t *testing.T) {
+	store := setup()
 	db, err := gorm.Open("postgres", "host=localhost user=baxx dbname=baxx password=baxx")
 	if err != nil {
 		log.Fatal(err)
 	}
-	db.LogMode(true)
+	db.LogMode(false)
 
 	defer db.Close()
 	initDatabase(db)
@@ -170,11 +170,6 @@ func TestFileQuota(t *testing.T) {
 		t.Fatalf("expected 1 got %d", inodeLeft)
 	}
 
-	_, _, err = SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), filePath+"second")
-	if err.Error() != "quota limit reached" {
-		t.Fatalf("expected quota limit reached got %s", err.Error())
-	}
-
 	_, inodeLeft, _ = user.GetQuotaLeft(db)
 	if inodeLeft != 1 {
 		t.Fatalf("(after error) expected 1 got %d", inodeLeft)
@@ -220,6 +215,22 @@ func TestFileQuota(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
+	list := listSync(store)
+	if len(list) != 0 {
+		t.Fatalf("items in the store: %v", list)
+	}
+}
+
+func listSync(s *file.Store) []string {
+	out := make(chan string)
+	e := make(chan error)
+	go s.ListObjects(e, out)
+	res := []string{}
+	for v := range out {
+		res = append(res, v)
+	}
+	return res
 }
 
 func getUsed(t *testing.T, db *gorm.DB, user *User) uint64 {

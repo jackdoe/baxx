@@ -845,11 +845,12 @@ func SaveFileProcess(s *Store, db *gorm.DB, user *User, t *Token, body io.Reader
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if leftSize < 0 {
 		return nil, nil, errors.New("quota limit reached")
 	}
 
-	if leftInodes <= 1 {
+	if leftInodes < 1 {
 		return nil, nil, errors.New("inode quota limit reached")
 	}
 
