@@ -1,8 +1,10 @@
 package file
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 
@@ -72,4 +74,22 @@ func LSAL(files []FileMetadataAndVersion) string {
 	}
 	fmt.Fprintf(buf, "sum total size: %d (%s)\n", total, prettySize(total))
 	return buf.String()
+}
+
+func ShaDiff(db *gorm.DB, t *Token, body io.Reader) ([]string, error) {
+	scanner := bufio.NewScanner(body)
+	out := []string{}
+	for scanner.Scan() {
+		line := scanner.Text()
+		splitted := strings.SplitN(line, "  ", 2)
+		if len(splitted) != 2 || len(splitted[0]) != 64 || len(splitted[1]) == 0 {
+			return nil, fmt.Errorf("expected 'shasum(64 chars)  path/to/file' (two spaces), basically output of shasum -a 256 file; got: %s", line)
+		}
+		_, _, err := FindFileBySHA(db, t, splitted[0])
+		if err != nil {
+			out = append(out, line)
+		}
+	}
+
+	return out, nil
 }

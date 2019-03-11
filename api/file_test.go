@@ -42,7 +42,7 @@ func TestFileQuota(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	db.LogMode(true)
+	db.LogMode(false)
 
 	defer db.Close()
 	initDatabase(db)
@@ -81,6 +81,7 @@ func TestFileQuota(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
 		reader, err := store.DownloadFile(token.Salt, fv.StoreID)
 		if err != nil {
 			t.Fatal(err)
@@ -96,6 +97,7 @@ func TestFileQuota(t *testing.T) {
 		}
 	}
 
+	testShaDiff(t, db, token)
 	_, fmSecond, err := SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
 	if err != nil {
 		t.Fatal(err)
@@ -243,4 +245,33 @@ func getUsed(t *testing.T, db *gorm.DB, user *User) uint64 {
 		used += t.SizeUsed
 	}
 	return used
+}
+
+func testShaDiff(t *testing.T, db *gorm.DB, token *file.Token) {
+	_, err := file.ShaDiff(db, token, bytes.NewBuffer([]byte("abc")))
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+
+	_, err = file.ShaDiff(db, token, bytes.NewBuffer([]byte("e8fb44fdcd108c238ea4a809bc758ffa5ebe636a  mail.go")))
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	diff, err := file.ShaDiff(db, token, bytes.NewBuffer([]byte(`21d551e4428872a077c6e76d8d9eda8d9b4714ae8ac1e98e084d1f1d48f1eb67  action_log.go
+2997f66d71b5c0f2f396872536beed30835add1e1de8740b3136c9d550b1eb7c  api
+2997f66d71b5c0f2f396872536beed30835add1e1de8740b3136c9d550b1eb7c  api2
+8719d1dc6f98ebb5c04f8c1768342e865156b1582806b6c7d26e3fbdc99b8762  file_test.go
+8d0a34b05558ad54c4a5949cc42636165b6449cf3324406d62e923bc060478dc  file_test.go.dl
+c7c2c1d3c83afbc522ae08779cd661546e578b2dfc6a398467d293bd63e03290  mail.go
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  mail.go2
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  main.go
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  main.go.dl
+fc29fe749e8c62050094724e2bed50b65a508e18101eb7d6fdea11be77b2515b  util.go`)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(diff) != 7 {
+		t.Fatalf("expected 10 got %d, diff: %q", len(diff), diff)
+	}
+	log.Printf("diff: %q", diff)
 }
