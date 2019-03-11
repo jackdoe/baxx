@@ -132,11 +132,6 @@ func registerUser(store *file.Store, db *gorm.DB, json CreateUserInput) (*UserSt
 		return nil, nil, err
 	}
 
-	_, err = CreateTokenAndBucket(store, tx, user, true, 7, "generic-write-only-7")
-	if err != nil {
-		tx.Rollback()
-		return nil, nil, err
-	}
 	_, err = CreateTokenAndBucket(store, tx, user, false, 7, "generic-read-write-7")
 	if err != nil {
 		tx.Rollback()
