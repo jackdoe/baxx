@@ -83,7 +83,5 @@ func DeleteFile(s *Store, db *gorm.DB, t *Token, fm *FileMetadata) error {
 	if err := tx.Commit().Error; err != nil {
 		return err
 	}
-	s.RemoveMany(remove)
-	return nil
-
+	return s.RemoveMany(remove)
 }
