@@ -70,7 +70,6 @@ func initDatabase(db *gorm.DB) {
 	if err := db.Model(&FileVersion{}).AddIndex("idx_fv_metadata", "file_metadata_id").Error; err != nil {
 		log.Fatal(err)
 	}
-
 }
 
 func getUserStatus(db *gorm.DB, user *User) (*UserStatusOutput, error) {

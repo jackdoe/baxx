@@ -18,7 +18,8 @@ import (
 )
 
 func setup() *file.Store {
-	// test credentials from minio https://github.com/minio/minio-go
+	// sudo docker run -e MINIO_SECRET_KEY=bbbbbbbb -e MINIO_ACCESS_KEY=aaa -p 9000:9000  minio/minio server /home/shared
+
 	store, err := file.NewStore(&StoreConfig{
 		Endpoint:        "localhost:9000",
 		Region:          "",
@@ -43,7 +44,7 @@ func TestFileQuota(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	db.LogMode(false)
+	db.LogMode(true)
 
 	defer db.Close()
 	initDatabase(db)
@@ -112,8 +113,8 @@ func TestFileQuota(t *testing.T) {
 	}
 
 	used := getUsed(t, db, user)
-	if used != 77 {
-		t.Fatalf("expected 77 got %d", used)
+	if used != 71 {
+		t.Fatalf("expected 71 got %d", used)
 	}
 	files, err := file.ListFilesInPath(db, token, "/example/", false)
 	if err != nil {

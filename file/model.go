@@ -46,7 +46,7 @@ type FileVersion struct {
 
 	Size    uint64 `gorm:"not null" json:"size"`
 	SHA256  string `gorm:"not null" json:"sha"`
-	StoreID string `gorm:"not null" json:"-"`
+	StoreID string `gorm:"type:varchar(255) not null unique" json:"-"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

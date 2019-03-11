@@ -25,7 +25,6 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, fullpath string, body io.Reader) 
 
 	removeBeforeExit := map[string]bool{storeID: true}
 	defer func() {
-		log.Printf("before exit: %+v", removeBeforeExit)
 		for id, _ := range removeBeforeExit {
 			log.Infof("on save removing %d %s %s", t.ID, fullpath, id)
 			err := s.DeleteFile(id)
