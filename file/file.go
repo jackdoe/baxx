@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	. "github.com/jackdoe/baxx/baxxio"
 	. "github.com/jackdoe/baxx/common"
 	. "github.com/jackdoe/baxx/config"
 	"github.com/jinzhu/gorm"
@@ -236,12 +235,7 @@ func FindAndDecodeFile(s *Store, db *gorm.DB, t *Token, localFile *LocalFile) (*
 	if err != nil {
 		return nil, nil, err
 	}
-
-	reader, err := DecompressAndDecrypt(t.Salt, localFile.File)
-	if err != nil {
-		return nil, nil, err
-	}
-	return fv, reader, nil
+	return fv, localFile.File, nil
 }
 
 type FileMetadataAndVersion struct {
