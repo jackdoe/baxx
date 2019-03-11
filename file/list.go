@@ -85,7 +85,7 @@ func ShaDiff(db *gorm.DB, t *Token, body io.Reader) ([]string, error) {
 		// super annoying but it will break many backups
 		// so here we will just split the line for "\\n"
 
-		for _, ffs := range strings.Split(line, `\n`) {
+		for _, ffs := range strings.Split(line, "\\n") {
 			splitted := strings.SplitN(ffs, "  ", 2)
 			if len(splitted) != 2 || len(splitted[0]) != 64 || len(splitted[1]) == 0 {
 				return nil, fmt.Errorf("expected 'shasum(64 chars)  path/to/file' (two spaces), basically output of shasum -a 256 file; got: %s", ffs)
