@@ -68,16 +68,27 @@ func (s *Store) DownloadFile(key string, storeid string) (io.Reader, error) {
 	return reader, nil
 }
 
+type StreamByteCounter struct {
+	Count int64
+}
+
+func (s *StreamByteCounter) Write(p []byte) (nn int, err error) {
+	s.Count += int64(len(p))
+	return len(p), nil
+}
+
 func (s *Store) UploadFile(key string, storeid string, body io.Reader) (int64, error) {
 	bucket, id := splitStoreID(storeid)
-	reader, err := sio.EncryptReader(body, sio.Config{
-		Key: []byte(key),
-	})
+	counter := &StreamByteCounter{}
+	tee := io.TeeReader(body, counter)
+	reader, err := sio.EncryptReader(tee, sio.Config{Key: []byte(key)})
 	if err != nil {
 		return 0, err
 	}
 
-	return s.s3.PutObject(bucket, id, reader, -1, minio.PutObjectOptions{})
+	_, err = s.s3.PutObject(bucket, id, reader, -1, minio.PutObjectOptions{})
+	// report on the actual size, not the encrypted size
+	return counter.Count, err
 }
 
 func (s *Store) DeleteFile(storeid string) error {

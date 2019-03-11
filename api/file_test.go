@@ -111,8 +111,8 @@ func TestFileQuota(t *testing.T) {
 	}
 
 	used := getUsed(t, db, user)
-	if used != 333 {
-		t.Fatalf("expected 333 got %d", used)
+	if used != 77 {
+		t.Fatalf("expected 77 got %d", used)
 	}
 	files, err := file.ListFilesInPath(db, token, "/example/", false)
 	if err != nil {
@@ -139,8 +139,8 @@ func TestFileQuota(t *testing.T) {
 	}
 
 	used = getUsed(t, db, user)
-	if used != 39 {
-		t.Fatalf("expected 39 got %d", used)
+	if used != 7 {
+		t.Fatalf("expected 7 got %d", used)
 	}
 
 	err = file.DeleteFile(store, db, token, fmSecond)
