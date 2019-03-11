@@ -1,8 +1,6 @@
 package file
 
 import (
-	"crypto/sha256"
-	"fmt"
 	"io"
 
 	"github.com/jinzhu/gorm"
@@ -14,10 +12,7 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, fullpath string, body io.Reader) 
 
 	// upload the file to s3
 	storeID := GetStoreId(t.ID)
-	shah := sha256.New()
-	tee := io.TeeReader(body, shah)
-	sha := fmt.Sprintf("%x", shah.Sum(nil))
-	size, err := s.UploadFile(t.Salt, storeID, tee)
+	sha, size, err := s.UploadFile(t.Salt, storeID, body)
 	if err != nil {
 		return nil, nil, err
 	}

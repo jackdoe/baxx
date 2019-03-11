@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"strings"
 	"testing"
 	"time"
 
@@ -82,7 +81,7 @@ func TestFileQuota(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-
+		log.Printf("sha %s", fv.SHA256)
 		reader, err := store.DownloadFile(token.Salt, fv.StoreID)
 		if err != nil {
 			t.Fatal(err)
@@ -264,15 +263,15 @@ func testShaDiff(t *testing.T, db *gorm.DB, token *file.Token) {
 8719d1dc6f98ebb5c04f8c1768342e865156b1582806b6c7d26e3fbdc99b8762  file_test.go
 8d0a34b05558ad54c4a5949cc42636165b6449cf3324406d62e923bc060478dc  file_test.go.dl
 c7c2c1d3c83afbc522ae08779cd661546e578b2dfc6a398467d293bd63e03290  mail.go
-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  mail.go2
-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  main.go
-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  main.go.dl
+16c20b5cc3f937d49d6e003db609b4a8872eea9a4cb41028dad5cae6bd551e1b  mail.go2
+16c20b5cc3f937d49d6e003db609b4a8872eea9a4cb41028dad5cae6bd551e1b  main.go
+16c20b5cc3f937d49d6e003db609b4a8872eea9a4cb41028dad5cae6bd551e1b  main.go.dl
 fc29fe749e8c62050094724e2bed50b65a508e18101eb7d6fdea11be77b2515b  util.go`)))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if len(strings.Split(diff, "\n")) != 7 {
+	if len(diff) != 7 {
 		t.Fatalf("expected 10 got %d, diff: %q", len(diff), diff)
 	}
 	log.Printf("diff: %s", diff)

@@ -1,7 +1,9 @@
 package file
 
 import (
+	"crypto/sha256"
 	"fmt"
+	"hash"
 	"io"
 	"strings"
 
@@ -69,26 +71,33 @@ func (s *Store) DownloadFile(key string, storeid string) (io.Reader, error) {
 }
 
 type StreamByteCounter struct {
-	Count int64
+	count  int64
+	sha256 hash.Hash
 }
 
+func (s *StreamByteCounter) Sum() string {
+	return fmt.Sprintf("%x", s.sha256.Sum(nil))
+}
 func (s *StreamByteCounter) Write(p []byte) (nn int, err error) {
-	s.Count += int64(len(p))
-	return len(p), nil
+	s.count += int64(len(p))
+	_, err = s.sha256.Write(p)
+	return len(p), err
 }
 
-func (s *Store) UploadFile(key string, storeid string, body io.Reader) (int64, error) {
+func (s *Store) UploadFile(key string, storeid string, body io.Reader) (string, int64, error) {
 	bucket, id := splitStoreID(storeid)
-	counter := &StreamByteCounter{}
+	counter := &StreamByteCounter{
+		sha256: sha256.New(),
+	}
 	tee := io.TeeReader(body, counter)
 	reader, err := sio.EncryptReader(tee, sio.Config{Key: []byte(key)})
 	if err != nil {
-		return 0, err
+		return "", 0, err
 	}
 
 	_, err = s.s3.PutObject(bucket, id, reader, -1, minio.PutObjectOptions{})
 	// report on the actual size, not the encrypted size
-	return counter.Count, err
+	return counter.Sum(), counter.count, err
 }
 
 func (s *Store) DeleteFile(storeid string) error {
