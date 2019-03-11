@@ -85,6 +85,12 @@
    you can do `comm` diff between shasum and what is stored)
    [ done Fri  8 Mar 21:12:46 CET 2019 ]
  + dont require /protected/ if password is supplied anyway [ done Sat  9 Mar 17:12:10 CET 2019 ]
+ + encrypt the files before they go to store, with per token salt, so
+   if someone steals s3 credentials they also have to steal the database
+   [ done Mon 11 Mar 22:43:11 CET 2019 ]
+ + make bucket per token [ done Mon 11 Mar 22:43:11 CET 2019 ]
+ + move to streams instead of local temp files [ done Mon 11 Mar 22:43:11 CET 2019 ]
+
 
 * tokens
  + list api [ listed in /status Sat  2 Mar 16:30:59 CET 2019 ]
