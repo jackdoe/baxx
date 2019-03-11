@@ -641,7 +641,7 @@ func main() {
 		}
 		c.Header("Content-Transfer-Encoding", "binary")
 		c.Header("Content-Type", "application/octet-stream")
-		c.String(http.StatusOK, strings.Join(out, "\n"))
+		c.String(http.StatusOK, strings.Join(out, "\n")+"\n")
 	})
 
 	ipn.Listener(r, "/ipn/:paymentID", func(c *gin.Context, err error, body string, n *ipn.Notification) error {
