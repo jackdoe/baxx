@@ -11,7 +11,6 @@ type Config struct {
 type StoreConfig struct {
 	Endpoint        string
 	Region          string
-	Bucket          string
 	AccessKeyID     string
 	SecretAccessKey string
 	SessionToken    string
@@ -19,7 +18,7 @@ type StoreConfig struct {
 }
 
 var CONFIG = &Config{
-	MaxTokens:         100,
+	MaxTokens:         5,
 	DefaultQuota:      10 * 1024 * 1024 * 1024,
 	DefaultInodeQuota: 1000,
 	Testing:           false,

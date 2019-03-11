@@ -23,7 +23,6 @@ func setup() *file.Store {
 	store, err := file.NewStore(&StoreConfig{
 		Endpoint:        "localhost:9000",
 		Region:          "",
-		Bucket:          "baxx",
 		AccessKeyID:     "aaa",
 		SecretAccessKey: "bbbbbbbb",
 		SessionToken:    "",

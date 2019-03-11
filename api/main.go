@@ -193,7 +193,6 @@ func main() {
 	store, err := NewStore(&StoreConfig{
 		Endpoint:        os.Getenv("BAXX_S3_ENDPOINT"),
 		Region:          os.Getenv("BAXX_S3_REGION"),
-		Bucket:          os.Getenv("BAXX_S3_BUCKET"),
 		AccessKeyID:     os.Getenv("BAXX_S3_ACCESS_KEY"),
 		SecretAccessKey: os.Getenv("BAXX_S3_SECRET"),
 		SessionToken:    os.Getenv("BAXX_S3_TOKEN"),
