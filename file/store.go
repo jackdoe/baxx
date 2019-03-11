@@ -7,6 +7,7 @@ import (
 
 	. "github.com/jackdoe/baxx/config"
 	"github.com/minio/minio-go"
+	"github.com/minio/sio"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
@@ -52,13 +53,30 @@ func (s *Store) RemoveMany(remove []FileVersion) error {
 	return nil
 }
 
-func (s *Store) DownloadFile(storeid string) (io.Reader, error) {
+func (s *Store) DownloadFile(key string, storeid string) (io.Reader, error) {
 	bucket, id := splitStoreID(storeid)
-	return s.s3.GetObject(bucket, id, minio.GetObjectOptions{})
+	obj, err := s.s3.GetObject(bucket, id, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, err
+	}
+	reader, err := sio.DecryptReader(obj, sio.Config{
+		Key: []byte(key),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return reader, nil
 }
 
-func (s *Store) UploadFile(storeid string, reader io.Reader) (int64, error) {
+func (s *Store) UploadFile(key string, storeid string, body io.Reader) (int64, error) {
 	bucket, id := splitStoreID(storeid)
+	reader, err := sio.EncryptReader(body, sio.Config{
+		Key: []byte(key),
+	})
+	if err != nil {
+		return 0, err
+	}
+
 	return s.s3.PutObject(bucket, id, reader, -1, minio.PutObjectOptions{})
 }
 

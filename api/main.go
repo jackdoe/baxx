@@ -469,7 +469,7 @@ func main() {
 
 		}
 
-		reader, err := store.DownloadFile(fv.StoreID)
+		reader, err := store.DownloadFile(t.Salt, fv.StoreID)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
