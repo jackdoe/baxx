@@ -4,7 +4,6 @@ type Config struct {
 	MaxTokens         uint64
 	DefaultQuota      uint64
 	DefaultInodeQuota uint64
-	TemporaryRoot     string
 	SendGridKey       string
 	Testing           bool
 }

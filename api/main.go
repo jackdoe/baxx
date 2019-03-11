@@ -240,7 +240,6 @@ func wantJson(c *gin.Context) bool {
 
 func main() {
 	var pbind = flag.String("bind", ":9123", "bind")
-	var proot = flag.String("root", "/tmp", "temporary file root")
 	var pdebug = flag.Bool("debug", false, "debug")
 	var psandbox = flag.Bool("sandbox", false, "sandbox")
 	var pinit = flag.Bool("create-tables", false, "create tables")
@@ -249,7 +248,6 @@ func main() {
 
 	CONFIG.MaxTokens = 100
 	CONFIG.SendGridKey = os.Getenv("BAXX_SENDGRID_KEY")
-	CONFIG.TemporaryRoot = *proot
 	store, err := NewStore(&StoreConfig{
 		Endpoint:        os.Getenv("BAXX_S3_ENDPOINT"),
 		Region:          os.Getenv("BAXX_S3_REGION"),
