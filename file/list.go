@@ -81,13 +81,19 @@ func ShaDiff(db *gorm.DB, t *Token, body io.Reader) ([]string, error) {
 	out := []string{}
 	for scanner.Scan() {
 		line := scanner.Text()
-		splitted := strings.SplitN(line, "  ", 2)
-		if len(splitted) != 2 || len(splitted[0]) != 64 || len(splitted[1]) == 0 {
-			return nil, fmt.Errorf("expected 'shasum(64 chars)  path/to/file' (two spaces), basically output of shasum -a 256 file; got: %s", line)
-		}
-		_, _, err := FindFileBySHA(db, t, splitted[0])
-		if err != nil {
-			out = append(out, line)
+		// if curl is started without --data-binary, we get new lines as string "\n"
+		// super annoying but it will break many backups
+		// so here we will just split the line for "\\n"
+
+		for _, ffs := range strings.Split(line, "\\n") {
+			splitted := strings.SplitN(ffs, "  ", 2)
+			if len(splitted) != 2 || len(splitted[0]) != 64 || len(splitted[1]) == 0 {
+				return nil, fmt.Errorf("expected 'shasum(64 chars)  path/to/file' (two spaces), basically output of shasum -a 256 file; got: %s", ffs)
+			}
+			_, _, err := FindFileBySHA(db, t, splitted[0])
+			if err != nil {
+				out = append(out, ffs)
+			}
 		}
 	}
 
