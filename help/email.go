@@ -207,7 +207,7 @@ Anyway, dont trust it and use encryption when uploading.
 In order to be easy to do syncs there are a couple of helper endpoints
 such as:
 
-## GET: https://baxx.dev/sha256/$BAXX_TOKEN/$sha
+## GET: https://baxx.dev/sync/sha256/$BAXX_TOKEN/$sha
 Returns non 200 status code if the sha does not exist
 it is meant to be used with 'curl -f', which makes curl exit with non
 zero in case of failure:
@@ -215,7 +215,7 @@ zero in case of failure:
 $sha is sha256 sum (shasum -a 256 file | cut -f 1 -d ' ')
 
 check if sha exists, and upload if it doesnt
- curl -f https://baxx.dev/sha256/$BAXX_TOKEN/$sha  || \
+ curl -f https://baxx.dev/sync/sha256/$BAXX_TOKEN/$sha  || \
  curl -f -T $i https://baxx.dev/io/$BAXX_TOKEN/$i
 
 ## POST: https://baxx.dev/sync/sha256/$BAXX_TOKEN
@@ -277,7 +277,7 @@ find . -type f | xargs -P 4 -I {} -- \
 for i in $(find . -type f); do \
  echo -n "$i.."
  sha=$(shasum -a 256 $i | cut -f 1 -d ' ')
- (curl -s https://baxx.dev/sha256/$BAXX_TOKEN/$sha -f && echo SKIP $i) || \
+ (curl -s https://baxx.dev/sync/sha256/$BAXX_TOKEN/$sha -f && echo SKIP $i) || \
  (curl -T $i https://baxx.dev/io/$BAXX_TOKEN/$i -f)
 done
 
@@ -299,7 +299,7 @@ baxx_put() {
 
   sha=$(shasum -a 256 $file | cut -f 1 -d ' ')
 
-  (curl -s https://baxx.dev/sha256/$BAXX_TOKEN/$sha -f >/dev/null 2>&1 \
+  (curl -s https://baxx.dev/sync/sha256/$BAXX_TOKEN/$sha -f >/dev/null 2>&1 \
    && [[ "$force" != "force" ]] \
    && echo SKIP $file .. already baxxed, use \"$0 $1 $2 force\" to force) || \
   curl -T $file https://baxx.dev/io/$BAXX_TOKEN/$dest

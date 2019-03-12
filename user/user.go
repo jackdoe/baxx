@@ -3,13 +3,14 @@ package user
 import (
 	"errors"
 	"fmt"
+	"strings"
+	"time"
+
 	. "github.com/jackdoe/baxx/config"
 	. "github.com/jackdoe/baxx/file"
 	"github.com/jinzhu/gorm"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
-	"strings"
-	"time"
 )
 
 func hashAndSalt(pwd string) string {
