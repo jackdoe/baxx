@@ -71,6 +71,7 @@ func FindTokenForUser(db *gorm.DB, token string, user *User) (*file.Token, error
 
 	return t, nil
 }
+
 func CreateTokenAndBucket(s *file.Store, db *gorm.DB, u *User, writeOnly bool, numOfArchives uint64, name string) (*file.Token, error) {
 	t, err := u.CreateToken(db, writeOnly, numOfArchives, name)
 	if err != nil {

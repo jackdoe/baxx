@@ -13,6 +13,13 @@
   and it works by not having local users
   and sends metadata to baxx.dev for the notifications
   
+* make travisci for backups
+  if files are stored locally in the customer's s3 (minio)
+  and they are not encrypted, we can run custom functions
+  e.g.
+    start mysql
+    load the backup
+    run a query
 
 * infra
  * first phase [ digital ocean ]
