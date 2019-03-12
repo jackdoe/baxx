@@ -21,64 +21,6 @@
     load the backup
     run a query
 
-* infra
- * first phase [ digital ocean ]
-   + setup load balancer [ done Sun 10 Mar 18:51:09 CET 2019 ]
-   + first create more droplets  [ done Sun 10 Mar 18:51:09 CET 2019 ]
-     a.baxx.dev, b.baxx.dev, c.baxx.dev running only baxx.api
-   + setup gui.baxx.dev for passwordless ssh  [ done Sun 10 Mar 18:51:09 CET 2019 ]
-   + move baxx to use postgres  [ done Sun 10 Mar 18:51:09 CET 2019 ]
-   + get managed postgres  [ done Sun 10 Mar 18:51:09 CET 2019 ]
-   + setup monitoring [ done Sun 10 Mar 18:51:09 CET 2019 ]
-     + 80% disk usage [ done Sun 10 Mar 18:51:09 CET 2019 ]
-     + 80% mem usage [ done Sun 10 Mar 18:51:09 CET 2019 ]
-
-   + keep using dropwizard s3 while we get more customers
-   + fix foreign keys [ done Sun 10 Mar 21:39:19 CET 2019 ]
-
-  current infra:
-                                          dropplet running gui docker image on port 22
-    [ digital ocean lb ] 10$                  [ gui.baxx.dev ] 5$
-  ssl terminate, letsencrypt                     |
-        /          |                              +-- running passwordless baxx.gui
-       /           \                                  for register@gui.baxx.dev
-     a.baxx.dev    b.baxx.dev  ... [ 5$ per dropplet ]
-     |   \         /   |
-     |    \ managed    |
-     |      postgres   |
-      .     15$       .
-       ,           ,
-          [do s3]
-             5$
-  each dropplet has its own keys for postgres/s3/sendgrid
-  sendgrid key is limited to email send only
-
-  + dropwizard's loadbalancer's timeout is not configurable
-  which means if a droplet is doing work for longer than 1 minute
-  or so LB returns 504
-   + just run one instance of nginx for 10$ and be done with it
-   + make the whole api streaming responses back as activity
-     like progress bar
-   + move the slow processes to completely async mode using queues
-   + disallow large operations and encourage people to use
-     small files by rejecting files bigger than 64mb or so
-     this seems like good practice anyway
-
- * second phase
-   + buy 3x40tb machines from hetzner [ 78E per month for 32G ram, 40TB, quad]
-     = 234E + 200E setup
-
-   + run some rack-aware binary store on them with replica=2
-     and 1 node per disk (no need for raid)
-   + run baxx.api in docker on each one
-   + run the host ssh on different port and run the ssh services for register@ui.baxx.dev in docker
-
-   + add support for glacier that is paid extra
-     + dropbox plus costs 10E for 1TB
-       dropbox pro costs 20E for 2TB
-     + glacier costs 0.0045 per gb (4.5E per TB)
-
-
 * payments
  + setup paypal ( jack@baxx.dev ) [ done Sun  3 Mar 14:13:14 CET 2019]
  + fix /thanks_for_paying [ done Sat  9 Mar 14:06:05 CET 2019 ]
