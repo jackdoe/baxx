@@ -16,10 +16,9 @@ import (
 	"github.com/jackdoe/baxx/common"
 	"github.com/jackdoe/baxx/config"
 	"github.com/jackdoe/baxx/file"
-	. "github.com/jackdoe/baxx/file"
 	"github.com/jackdoe/baxx/help"
 	"github.com/jackdoe/baxx/ipn"
-	. "github.com/jackdoe/baxx/user"
+	"github.com/jackdoe/baxx/user"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	log "github.com/sirupsen/logrus"
@@ -27,54 +26,54 @@ import (
 
 func warnErr(c *gin.Context, err error) {
 	x, isLoggedIn := c.Get("user")
-	user := &User{}
+	u := &user.User{}
 	if isLoggedIn {
-		user = x.(*User)
+		u = x.(*user.User)
 	}
 	_, fn, line, _ := runtime.Caller(1)
-	log.Warnf("uid: %d, uri: %s, err: >> %s << [%s:%d]", user.ID, c.Request.RequestURI, err.Error(), fn, line)
+	log.Warnf("uid: %d, uri: %s, err: >> %s << [%s:%d]", u.ID, c.Request.RequestURI, err.Error(), fn, line)
 }
 
 func initDatabase(db *gorm.DB) {
-	if err := db.AutoMigrate(&User{}, &VerificationLink{}, &Token{}, &FileMetadata{}, &FileVersion{}, &ActionLog{}, &PaymentHistory{}).Error; err != nil {
+	if err := db.AutoMigrate(&user.User{}, &user.VerificationLink{}, &file.Token{}, &file.FileMetadata{}, &file.FileVersion{}, &ActionLog{}, &user.PaymentHistory{}).Error; err != nil {
 		log.Fatal(err)
 	}
-	if err := db.Model(&VerificationLink{}).AddUniqueIndex("idx_user_sent_at", "user_id", "sent_at").Error; err != nil {
+	if err := db.Model(&user.VerificationLink{}).AddUniqueIndex("idx_user_sent_at", "user_id", "sent_at").Error; err != nil {
 		log.Fatal(err)
 	}
 
 	// not unique index, we can have many links for same email, they could expire
-	if err := db.Model(&VerificationLink{}).AddIndex("idx_vl_email", "email").Error; err != nil {
+	if err := db.Model(&user.VerificationLink{}).AddIndex("idx_vl_email", "email").Error; err != nil {
 		log.Fatal(err)
 	}
 
-	if err := db.Model(&User{}).AddUniqueIndex("idx_email", "email").Error; err != nil {
+	if err := db.Model(&user.User{}).AddUniqueIndex("idx_email", "email").Error; err != nil {
 		log.Fatal(err)
 	}
 
-	if err := db.Model(&Token{}).AddUniqueIndex("idx_token", "uuid").Error; err != nil {
+	if err := db.Model(&file.Token{}).AddUniqueIndex("idx_token", "uuid").Error; err != nil {
 		log.Fatal(err)
 	}
 
-	if err := db.Model(&User{}).AddUniqueIndex("idx_payment_id", "payment_id").Error; err != nil {
+	if err := db.Model(&user.User{}).AddUniqueIndex("idx_payment_id", "payment_id").Error; err != nil {
 		log.Fatal(err)
 	}
 
-	if err := db.Model(&FileVersion{}).AddIndex("idx_token_sha", "token_id", "sha256").Error; err != nil {
+	if err := db.Model(&file.FileVersion{}).AddIndex("idx_token_sha", "token_id", "sha256").Error; err != nil {
 		log.Fatal(err)
 	}
 
-	if err := db.Model(&FileMetadata{}).AddUniqueIndex("idx_fm_token_id_path_2", "token_id", "path", "filename").Error; err != nil {
+	if err := db.Model(&file.FileVersion{}).AddIndex("idx_fv_metadata", "file_metadata_id").Error; err != nil {
 		log.Fatal(err)
 	}
 
-	if err := db.Model(&FileVersion{}).AddIndex("idx_fv_metadata", "file_metadata_id").Error; err != nil {
+	if err := db.Model(&file.FileMetadata{}).AddUniqueIndex("idx_fm_token_id_path_2", "token_id", "path", "filename").Error; err != nil {
 		log.Fatal(err)
 	}
 }
 
-func getUserStatus(db *gorm.DB, user *User) (*common.UserStatusOutput, error) {
-	tokens, err := user.ListTokens(db)
+func getUserStatus(db *gorm.DB, u *user.User) (*common.UserStatusOutput, error) {
+	tokens, err := u.ListTokens(db)
 	if err != nil {
 		return nil, err
 	}
@@ -87,24 +86,24 @@ func getUserStatus(db *gorm.DB, user *User) (*common.UserStatusOutput, error) {
 		used += t.SizeUsed
 	}
 
-	vl := &VerificationLink{}
-	db.Where("email = ?", user.Email).Last(vl)
+	vl := &user.VerificationLink{}
+	db.Where("email = ?", u.Email).Last(vl)
 
 	return &common.UserStatusOutput{
-		EmailVerified:         user.EmailVerified,
-		StartedSubscription:   user.StartedSubscription,
-		CancelledSubscription: user.CancelledSubscription,
+		EmailVerified:         u.EmailVerified,
+		StartedSubscription:   u.StartedSubscription,
+		CancelledSubscription: u.CancelledSubscription,
 		Tokens:                tokensTransformed,
-		Quota:                 user.Quota,
+		Quota:                 u.Quota,
 		LastVerificationID:    vl.ID,
 		QuotaUsed:             used,
-		Paid:                  user.Paid(),
-		PaymentID:             user.PaymentID,
-		Email:                 user.Email,
+		Paid:                  u.Paid(),
+		PaymentID:             u.PaymentID,
+		Email:                 u.Email,
 	}, nil
 }
 
-func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (*common.UserStatusOutput, *User, error) {
+func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (*common.UserStatusOutput, *user.User, error) {
 	if err := ValidatePassword(json.Password); err != nil {
 		return nil, nil, err
 	}
@@ -113,31 +112,31 @@ func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (
 		return nil, nil, err
 	}
 	tx := db.Begin()
-	_, exists, err := FindUser(tx, json.Email, json.Password)
+	_, exists, err := user.FindUser(tx, json.Email, json.Password)
 	if err == nil || exists {
 		tx.Rollback()
 		return nil, nil, errors.New("user already exists")
 	}
 
-	user := &User{Email: json.Email, Quota: config.CONFIG.DefaultQuota, QuotaInode: config.CONFIG.DefaultInodeQuota}
-	user.SetPassword(json.Password)
-	if err := tx.Create(user).Error; err != nil {
+	u := &user.User{Email: json.Email, Quota: config.CONFIG.DefaultQuota, QuotaInode: config.CONFIG.DefaultInodeQuota}
+	u.SetPassword(json.Password)
+	if err := tx.Create(u).Error; err != nil {
 		tx.Rollback()
 		return nil, nil, err
 	}
 
 	// XXX: should we throw if we fail to send verification email?
-	if err := sendVerificationLink(tx, user.GenerateVerificationLink()); err != nil {
+	if err := sendVerificationLink(tx, u.GenerateVerificationLink()); err != nil {
 		tx.Rollback()
 		return nil, nil, err
 	}
 
-	_, err = CreateTokenAndBucket(store, tx, user, false, 7, "generic-read-write-7")
+	_, err = CreateTokenAndBucket(store, tx, u, false, 7, "generic-read-write-7")
 	if err != nil {
 		tx.Rollback()
 		return nil, nil, err
 	}
-	status, err := getUserStatus(tx, user)
+	status, err := getUserStatus(tx, u)
 	if err != nil {
 		tx.Rollback()
 		return nil, nil, err
@@ -151,7 +150,7 @@ func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (
 		return nil, nil, err
 	}
 
-	return status, user, nil
+	return status, u, nil
 }
 
 func BasicAuthDecode(c *gin.Context) (string, string) {
@@ -185,7 +184,7 @@ func main() {
 
 	config.CONFIG.MaxTokens = 100
 	config.CONFIG.SendGridKey = os.Getenv("BAXX_SENDGRID_KEY")
-	store, err := NewStore(&config.StoreConfig{
+	store, err := file.NewStore(&config.StoreConfig{
 		Endpoint:        os.Getenv("BAXX_S3_ENDPOINT"),
 		Region:          os.Getenv("BAXX_S3_REGION"),
 		AccessKeyID:     os.Getenv("BAXX_S3_ACCESS_KEY"),
@@ -213,9 +212,9 @@ func main() {
 	r := gin.Default()
 
 	r.Use(func(c *gin.Context) {
-		user, pass := BasicAuthDecode(c)
-		if user != "" {
-			u, _, err := FindUser(db, user, pass)
+		su, pass := BasicAuthDecode(c)
+		if su != "" {
+			u, _, err := user.FindUser(db, su, pass)
 			if err == nil {
 				c.Set("user", u)
 			}
@@ -238,19 +237,19 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		out, user, err := registerUser(store, db, json)
+		out, u, err := registerUser(store, db, json)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		actionLog(db, user.ID, "user", "create", c.Request)
+		actionLog(db, u.ID, "user", "create", c.Request)
 		c.JSON(http.StatusOK, out)
 	})
 
 	authorized.POST("/status", func(c *gin.Context) {
-		user := c.MustGet("user").(*User)
-		status, err := getUserStatus(db, user)
+		u := c.MustGet("user").(*user.User)
+		status, err := getUserStatus(db, u)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -260,7 +259,7 @@ func main() {
 	})
 
 	authorized.POST("/replace/password", func(c *gin.Context) {
-		user := c.MustGet("user").(*User)
+		u := c.MustGet("user").(*user.User)
 		var json common.ChangePasswordInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
@@ -272,8 +271,8 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		user.SetPassword(json.NewPassword)
-		if err := db.Save(user).Error; err != nil {
+		u.SetPassword(json.NewPassword)
+		if err := db.Save(u).Error; err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -283,8 +282,8 @@ func main() {
 	})
 
 	authorized.POST("/replace/verification", func(c *gin.Context) {
-		user := c.MustGet("user").(*User)
-		verificationLink := user.GenerateVerificationLink()
+		u := c.MustGet("user").(*user.User)
+		verificationLink := u.GenerateVerificationLink()
 		if err := db.Save(verificationLink).Error; err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -295,7 +294,7 @@ func main() {
 	})
 
 	authorized.POST("/replace/email", func(c *gin.Context) {
-		user := c.MustGet("user").(*User)
+		u := c.MustGet("user").(*user.User)
 
 		var json common.ChangeEmailInput
 		if err := c.ShouldBindJSON(&json); err != nil {
@@ -311,11 +310,11 @@ func main() {
 		}
 
 		tx := db.Begin()
-		if json.NewEmail != user.Email || user.EmailVerified == nil {
-			user.Email = json.NewEmail
-			user.EmailVerified = nil
+		if json.NewEmail != u.Email || u.EmailVerified == nil {
+			u.Email = json.NewEmail
+			u.EmailVerified = nil
 
-			verificationLink := user.GenerateVerificationLink()
+			verificationLink := u.GenerateVerificationLink()
 			if err := sendVerificationLink(tx, verificationLink); err != nil {
 				tx.Rollback()
 				warnErr(c, err)
@@ -324,7 +323,7 @@ func main() {
 			}
 		}
 
-		if err := tx.Save(user).Error; err != nil {
+		if err := tx.Save(u).Error; err != nil {
 			tx.Rollback()
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -340,7 +339,7 @@ func main() {
 	})
 
 	authorized.POST("/create/token", func(c *gin.Context) {
-		user := c.MustGet("user").(*User)
+		u := c.MustGet("user").(*user.User)
 		var json common.CreateTokenInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
@@ -348,27 +347,27 @@ func main() {
 			return
 		}
 
-		token, err := CreateTokenAndBucket(store, db, user, json.WriteOnly, json.NumberOfArchives, json.Name)
+		token, err := CreateTokenAndBucket(store, db, u, json.WriteOnly, json.NumberOfArchives, json.Name)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		actionLog(db, user.ID, "token", "create", c.Request)
+		actionLog(db, u.ID, "token", "create", c.Request)
 		out := &common.TokenOutput{Name: token.Name, UUID: token.UUID, WriteOnly: token.WriteOnly, NumberOfArchives: token.NumberOfArchives, CreatedAt: token.CreatedAt, SizeUsed: token.SizeUsed}
 		c.JSON(http.StatusOK, out)
 	})
 
 	authorized.POST("/change/token", func(c *gin.Context) {
-		user := c.MustGet("user").(*User)
+		u := c.MustGet("user").(*user.User)
 		var json common.ModifyTokenInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		token, err := FindTokenForUser(db, json.UUID, user)
+		token, err := user.FindTokenForUser(db, json.UUID, u)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -387,50 +386,50 @@ func main() {
 			return
 		}
 
-		actionLog(db, user.ID, "token", "change", c.Request)
+		actionLog(db, u.ID, "token", "change", c.Request)
 		out := &common.TokenOutput{Name: token.Name, UUID: token.UUID, WriteOnly: token.WriteOnly, NumberOfArchives: token.NumberOfArchives, CreatedAt: token.CreatedAt, SizeUsed: token.SizeUsed}
 		c.JSON(http.StatusOK, out)
 	})
 
 	authorized.POST("/delete/token", func(c *gin.Context) {
-		user := c.MustGet("user").(*User)
+		u := c.MustGet("user").(*user.User)
 		var json common.DeleteTokenInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		token, err := FindTokenForUser(db, json.UUID, user)
+		token, err := user.FindTokenForUser(db, json.UUID, u)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		if err := DeleteToken(store, db, token); err != nil {
+		if err := file.DeleteToken(store, db, token); err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		actionLog(db, user.ID, "token", "delete", c.Request)
+		actionLog(db, u.ID, "token", "delete", c.Request)
 
 		c.JSON(http.StatusOK, &common.Success{Success: true})
 	})
 
-	getViewTokenLoggedOrNot := func(c *gin.Context) (*Token, *User, error) {
+	getViewTokenLoggedOrNot := func(c *gin.Context) (*file.Token, *user.User, error) {
 		token := c.Param("token")
-		var t *Token
-		var u *User
+		var t *file.Token
+		var u *user.User
 		x, isLoggedIn := c.Get("user")
 		if isLoggedIn {
-			u = x.(*User)
-			t, err = FindTokenForUser(db, token, u)
+			u = x.(*user.User)
+			t, err = user.FindTokenForUser(db, token, u)
 			if err != nil {
 				return nil, nil, err
 			}
 		} else {
-			t, u, err = FindToken(db, token)
+			t, u, err = user.FindToken(db, token)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -460,7 +459,7 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		fv, _, err := FindFile(db, t, c.Param("path"))
+		fv, _, err := file.FindFile(db, t, c.Param("path"))
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -487,14 +486,14 @@ func main() {
 		body := c.Request.Body
 		defer body.Close()
 
-		t, user, err := getViewTokenLoggedOrNot(c)
+		t, u, err := getViewTokenLoggedOrNot(c)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		p := c.Param("path")
-		fv, fm, err := SaveFileProcess(store, db, user, t, body, p)
+		fv, fm, err := SaveFileProcess(store, db, u, t, body, p)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -508,7 +507,7 @@ func main() {
 			c.JSON(http.StatusOK, fv)
 			return
 		}
-		c.String(http.StatusOK, FileLine(fm, fv))
+		c.String(http.StatusOK, file.FileLine(fm, fv))
 	}
 
 	deleteFile := func(c *gin.Context) {
@@ -535,19 +534,19 @@ func main() {
 		n := 0
 
 		if force {
-			if err := DeleteFileWithPath(store, db, t, p); err == nil {
+			if err := file.DeleteFileWithPath(store, db, t, p); err == nil {
 				n++
 			}
-			files, err := ListFilesInPath(db, t, p, !recursive)
+			files, err := file.ListFilesInPath(db, t, p, !recursive)
 			if err == nil {
 				for _, f := range files {
-					if err := DeleteFile(store, db, t, f.FileMetadata); err == nil {
+					if err := file.DeleteFile(store, db, t, f.FileMetadata); err == nil {
 						n++
 					}
 				}
 			}
 		} else {
-			if err := DeleteFileWithPath(store, db, t, p); err != nil {
+			if err := file.DeleteFileWithPath(store, db, t, p); err != nil {
 				warnErr(c, err)
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
@@ -572,7 +571,7 @@ func main() {
 			p = p + "/"
 		}
 
-		files, err := ListFilesInPath(db, t, p, false)
+		files, err := file.ListFilesInPath(db, t, p, false)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -582,7 +581,7 @@ func main() {
 			c.JSON(http.StatusOK, files)
 			return
 		}
-		c.String(http.StatusOK, LSAL(files))
+		c.String(http.StatusOK, file.LSAL(files))
 	}
 
 	mutateSinglePATH := "/io/:token/*path"
@@ -604,7 +603,7 @@ func main() {
 			return
 		}
 
-		fv, fm, err := FindFileBySHA(db, t, c.Param("sha256"))
+		fv, fm, err := file.FindFileBySHA(db, t, c.Param("sha256"))
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -616,7 +615,7 @@ func main() {
 			return
 		}
 
-		c.String(http.StatusOK, FileLine(fm, fv))
+		c.String(http.StatusOK, file.FileLine(fm, fv))
 	})
 
 	// lookup on many sha and return only the ones that are not found
@@ -656,7 +655,7 @@ func main() {
 		// check currency and amount and etc
 		// otherwise anyone can create ipn request with wrong amount :D
 
-		u := &User{}
+		u := &user.User{}
 		if err := db.Where("payment_id = ?", c.Param("paymentID")).Take(u).Error; err != nil {
 			return err
 		}
@@ -666,7 +665,7 @@ func main() {
 			encoded = "{}"
 		}
 
-		ph := &PaymentHistory{
+		ph := &user.PaymentHistory{
 			UserID: u.ID,
 			IPN:    encoded,
 			IPNRAW: body,
@@ -733,7 +732,7 @@ func main() {
 	})
 
 	r.GET("/verify/:id", func(c *gin.Context) {
-		v := &VerificationLink{}
+		v := &user.VerificationLink{}
 		now := time.Now()
 
 		wrong := func(err error) {
@@ -763,7 +762,7 @@ func main() {
 			return
 		}
 
-		u := &User{}
+		u := &user.User{}
 		if err := tx.Where("id = ?", v.UserID).Take(u).Error; err != nil {
 			warnErr(c, fmt.Errorf("weird state, verification's user not found %#v", v))
 			tx.Rollback()
@@ -796,8 +795,8 @@ func main() {
 	log.Fatal(r.Run(*pbind))
 }
 
-func SaveFileProcess(s *Store, db *gorm.DB, user *User, t *Token, body io.Reader, p string) (*FileVersion, *FileMetadata, error) {
-	leftSize, leftInodes, err := user.GetQuotaLeft(db)
+func SaveFileProcess(s *file.Store, db *gorm.DB, u *user.User, t *file.Token, body io.Reader, p string) (*file.FileVersion, *file.FileMetadata, error) {
+	leftSize, leftInodes, err := u.GetQuotaLeft(db)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -810,11 +809,11 @@ func SaveFileProcess(s *Store, db *gorm.DB, user *User, t *Token, body io.Reader
 		return nil, nil, errors.New("inode quota limit reached")
 	}
 
-	return SaveFile(s, db, t, p, body)
+	return file.SaveFile(s, db, t, p, body)
 }
 
-func CreateTokenAndBucket(s *Store, db *gorm.DB, user *User, writeOnly bool, numOfArchives uint64, name string) (*Token, error) {
-	t, err := user.CreateToken(db, writeOnly, numOfArchives, name)
+func CreateTokenAndBucket(s *file.Store, db *gorm.DB, u *user.User, writeOnly bool, numOfArchives uint64, name string) (*file.Token, error) {
+	t, err := u.CreateToken(db, writeOnly, numOfArchives, name)
 	if err != nil {
 		return nil, err
 	}
