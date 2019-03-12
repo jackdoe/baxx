@@ -14,7 +14,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackdoe/baxx/common"
-	. "github.com/jackdoe/baxx/config"
+	"github.com/jackdoe/baxx/config"
 	"github.com/jackdoe/baxx/file"
 	. "github.com/jackdoe/baxx/file"
 	"github.com/jackdoe/baxx/help"
@@ -119,7 +119,7 @@ func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (
 		return nil, nil, errors.New("user already exists")
 	}
 
-	user := &User{Email: json.Email, Quota: CONFIG.DefaultQuota, QuotaInode: CONFIG.DefaultInodeQuota}
+	user := &User{Email: json.Email, Quota: config.CONFIG.DefaultQuota, QuotaInode: config.CONFIG.DefaultInodeQuota}
 	user.SetPassword(json.Password)
 	if err := tx.Create(user).Error; err != nil {
 		tx.Rollback()
@@ -183,14 +183,13 @@ func main() {
 	var prelease = flag.Bool("release", false, "release")
 	flag.Parse()
 
-	CONFIG.MaxTokens = 100
-	CONFIG.SendGridKey = os.Getenv("BAXX_SENDGRID_KEY")
-	store, err := NewStore(&StoreConfig{
+	config.CONFIG.MaxTokens = 100
+	config.CONFIG.SendGridKey = os.Getenv("BAXX_SENDGRID_KEY")
+	store, err := NewStore(&config.StoreConfig{
 		Endpoint:        os.Getenv("BAXX_S3_ENDPOINT"),
 		Region:          os.Getenv("BAXX_S3_REGION"),
 		AccessKeyID:     os.Getenv("BAXX_S3_ACCESS_KEY"),
 		SecretAccessKey: os.Getenv("BAXX_S3_SECRET"),
-		SessionToken:    os.Getenv("BAXX_S3_TOKEN"),
 	})
 	if err != nil {
 		log.Fatal(err)

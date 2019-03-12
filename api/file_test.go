@@ -25,7 +25,6 @@ func setup() *file.Store {
 		Region:          "",
 		AccessKeyID:     "aaa",
 		SecretAccessKey: "bbbbbbbb",
-		SessionToken:    "",
 		DisableSSL:      true,
 	})
 

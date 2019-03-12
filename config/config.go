@@ -13,7 +13,6 @@ type StoreConfig struct {
 	Region          string
 	AccessKeyID     string
 	SecretAccessKey string
-	SessionToken    string
 	DisableSSL      bool
 }
 
