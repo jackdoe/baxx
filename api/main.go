@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	. "github.com/jackdoe/baxx/common"
+	"github.com/jackdoe/baxx/common"
 	. "github.com/jackdoe/baxx/config"
 	"github.com/jackdoe/baxx/file"
 	. "github.com/jackdoe/baxx/file"
@@ -73,14 +73,14 @@ func initDatabase(db *gorm.DB) {
 	}
 }
 
-func getUserStatus(db *gorm.DB, user *User) (*UserStatusOutput, error) {
+func getUserStatus(db *gorm.DB, user *User) (*common.UserStatusOutput, error) {
 	tokens, err := user.ListTokens(db)
 	if err != nil {
 		return nil, err
 	}
-	tokensTransformed := []*TokenOutput{}
+	tokensTransformed := []*common.TokenOutput{}
 	for _, t := range tokens {
-		tokensTransformed = append(tokensTransformed, &TokenOutput{UUID: t.UUID, Name: t.Name, WriteOnly: t.WriteOnly, NumberOfArchives: t.NumberOfArchives, CreatedAt: t.CreatedAt})
+		tokensTransformed = append(tokensTransformed, &common.TokenOutput{UUID: t.UUID, Name: t.Name, WriteOnly: t.WriteOnly, NumberOfArchives: t.NumberOfArchives, CreatedAt: t.CreatedAt})
 	}
 	used := uint64(0)
 	for _, t := range tokens {
@@ -90,7 +90,7 @@ func getUserStatus(db *gorm.DB, user *User) (*UserStatusOutput, error) {
 	vl := &VerificationLink{}
 	db.Where("email = ?", user.Email).Last(vl)
 
-	return &UserStatusOutput{
+	return &common.UserStatusOutput{
 		EmailVerified:         user.EmailVerified,
 		StartedSubscription:   user.StartedSubscription,
 		CancelledSubscription: user.CancelledSubscription,
@@ -104,7 +104,7 @@ func getUserStatus(db *gorm.DB, user *User) (*UserStatusOutput, error) {
 	}, nil
 }
 
-func registerUser(store *file.Store, db *gorm.DB, json CreateUserInput) (*UserStatusOutput, *User, error) {
+func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (*common.UserStatusOutput, *User, error) {
 	if err := ValidatePassword(json.Password); err != nil {
 		return nil, nil, err
 	}
@@ -233,7 +233,7 @@ func main() {
 	})
 
 	r.POST("/register", func(c *gin.Context) {
-		var json CreateUserInput
+		var json common.CreateUserInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -262,7 +262,7 @@ func main() {
 
 	authorized.POST("/replace/password", func(c *gin.Context) {
 		user := c.MustGet("user").(*User)
-		var json ChangePasswordInput
+		var json common.ChangePasswordInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -280,7 +280,7 @@ func main() {
 			return
 		}
 
-		c.JSON(http.StatusOK, &Success{Success: true})
+		c.JSON(http.StatusOK, &common.Success{Success: true})
 	})
 
 	authorized.POST("/replace/verification", func(c *gin.Context) {
@@ -292,13 +292,13 @@ func main() {
 			return
 		}
 
-		c.JSON(http.StatusOK, &Success{Success: true})
+		c.JSON(http.StatusOK, &common.Success{Success: true})
 	})
 
 	authorized.POST("/replace/email", func(c *gin.Context) {
 		user := c.MustGet("user").(*User)
 
-		var json ChangeEmailInput
+		var json common.ChangeEmailInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -337,12 +337,12 @@ func main() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 
-		c.JSON(http.StatusOK, &Success{Success: true})
+		c.JSON(http.StatusOK, &common.Success{Success: true})
 	})
 
 	authorized.POST("/create/token", func(c *gin.Context) {
 		user := c.MustGet("user").(*User)
-		var json CreateTokenInput
+		var json common.CreateTokenInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -357,13 +357,13 @@ func main() {
 		}
 
 		actionLog(db, user.ID, "token", "create", c.Request)
-		out := &TokenOutput{Name: token.Name, UUID: token.UUID, WriteOnly: token.WriteOnly, NumberOfArchives: token.NumberOfArchives, CreatedAt: token.CreatedAt, SizeUsed: token.SizeUsed}
+		out := &common.TokenOutput{Name: token.Name, UUID: token.UUID, WriteOnly: token.WriteOnly, NumberOfArchives: token.NumberOfArchives, CreatedAt: token.CreatedAt, SizeUsed: token.SizeUsed}
 		c.JSON(http.StatusOK, out)
 	})
 
 	authorized.POST("/change/token", func(c *gin.Context) {
 		user := c.MustGet("user").(*User)
-		var json ModifyTokenInput
+		var json common.ModifyTokenInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -389,13 +389,13 @@ func main() {
 		}
 
 		actionLog(db, user.ID, "token", "change", c.Request)
-		out := &TokenOutput{Name: token.Name, UUID: token.UUID, WriteOnly: token.WriteOnly, NumberOfArchives: token.NumberOfArchives, CreatedAt: token.CreatedAt, SizeUsed: token.SizeUsed}
+		out := &common.TokenOutput{Name: token.Name, UUID: token.UUID, WriteOnly: token.WriteOnly, NumberOfArchives: token.NumberOfArchives, CreatedAt: token.CreatedAt, SizeUsed: token.SizeUsed}
 		c.JSON(http.StatusOK, out)
 	})
 
 	authorized.POST("/delete/token", func(c *gin.Context) {
 		user := c.MustGet("user").(*User)
-		var json DeleteTokenInput
+		var json common.DeleteTokenInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -416,7 +416,7 @@ func main() {
 
 		actionLog(db, user.ID, "token", "delete", c.Request)
 
-		c.JSON(http.StatusOK, &Success{Success: true})
+		c.JSON(http.StatusOK, &common.Success{Success: true})
 	})
 
 	getViewTokenLoggedOrNot := func(c *gin.Context) (*Token, *User, error) {
@@ -522,7 +522,7 @@ func main() {
 
 		force := false
 		recursive := false
-		var json Force
+		var json common.Force
 		if err := c.ShouldBindJSON(&json); err == nil {
 			if json.Force != nil {
 				force = *json.Force
@@ -557,7 +557,7 @@ func main() {
 		}
 
 		actionLog(db, t.UserID, "file", "delete", c.Request, "")
-		c.JSON(http.StatusOK, &DeleteSuccess{Success: true, Count: n})
+		c.JSON(http.StatusOK, &common.DeleteSuccess{Success: true, Count: n})
 	}
 
 	listFiles := func(c *gin.Context) {
@@ -726,11 +726,11 @@ func main() {
 	})
 
 	r.GET("/help", func(c *gin.Context) {
-		c.String(http.StatusOK, help.Render(help.EMAIL_AFTER_REGISTRATION, EMPTY_STATUS))
+		c.String(http.StatusOK, help.Render(help.EMAIL_AFTER_REGISTRATION, common.EMPTY_STATUS))
 	})
 
 	r.GET("/thanks_for_paying", func(c *gin.Context) {
-		c.String(http.StatusOK, help.Render(help.EMAIL_WAIT_PAYPAL, EMPTY_STATUS))
+		c.String(http.StatusOK, help.Render(help.EMAIL_WAIT_PAYPAL, common.EMPTY_STATUS))
 	})
 
 	r.GET("/verify/:id", func(c *gin.Context) {
