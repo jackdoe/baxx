@@ -46,20 +46,6 @@ func getUserStatus(db *gorm.DB, u *User) (*common.UserStatusOutput, error) {
 	}, nil
 }
 
-func CreateTokenAndBucket(s *file.Store, db *gorm.DB, u *User, writeOnly bool, numOfArchives uint64, name string) (*file.Token, error) {
-	t, err := u.CreateToken(db, writeOnly, numOfArchives, name)
-	if err != nil {
-		return nil, err
-	}
-
-	err = s.MakeBucket(t.Bucket)
-	if err != nil {
-		db.Delete(t)
-		return nil, err
-	}
-	return t, nil
-}
-
 func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (*common.UserStatusOutput, *User, error) {
 	if err := ValidatePassword(json.Password); err != nil {
 		return nil, nil, err

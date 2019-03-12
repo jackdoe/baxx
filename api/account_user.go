@@ -2,11 +2,8 @@ package main
 
 import (
 	"errors"
-	"fmt"
-	"strings"
 	"time"
 
-	. "github.com/jackdoe/baxx/file"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -85,103 +82,12 @@ func (user *User) SetPassword(p string) {
 	user.HashedPassword = hashAndSalt(p)
 }
 
-func (user *User) ListTokens(db *gorm.DB) ([]*Token, error) {
-	tokens := []*Token{}
-	if err := db.Where("user_id = ?", user.ID).Find(&tokens).Error; err != nil {
-		return nil, err
-	}
-
-	return tokens, nil
-}
-
 func getUUID() string {
 	return uuid.Must(uuid.NewV4()).String()
 }
 
 func (user *User) BeforeCreate(scope *gorm.Scope) error {
 	return scope.SetColumn("PaymentID", getUUID())
-}
-
-func (user *User) GetQuotaLeft(db *gorm.DB) (int64, int64, error) {
-	usedSize, usedInodes, err := user.GetQuotaUsed(db)
-	if err != nil {
-		return 0, 0, err
-	}
-	return int64(user.Quota) - int64(usedSize), int64(user.QuotaInode) - int64(usedInodes), nil
-}
-
-func (user *User) GetQuotaUsed(db *gorm.DB) (int64, int64, error) {
-	tokens, err := user.ListTokens(db)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	usedSpace := uint64(0)
-	usedInodes := uint64(0)
-	for _, t := range tokens {
-		usedSpace += t.SizeUsed
-		c, err := CountFilesPerToken(db, t)
-		if err != nil {
-			return 0, 0, err
-		}
-		usedInodes += c
-	}
-	return int64(usedSpace), int64(usedInodes), nil
-}
-
-func (user *User) CreateToken(db *gorm.DB, writeOnly bool, numOfArchives uint64, name string) (*Token, error) {
-	t := &Token{
-		UUID:             getUUID(),
-		Salt:             strings.Replace(getUUID(), "-", "", -1),
-		Bucket:           strings.Replace(getUUID(), "-", "", -1),
-		UserID:           user.ID,
-		WriteOnly:        writeOnly,
-		NumberOfArchives: numOfArchives,
-		Name:             name,
-	}
-
-	tokens, err := user.ListTokens(db)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(tokens) >= int(CONFIG.MaxTokens) {
-		return nil, fmt.Errorf("max tokens created (max=%d)", CONFIG.MaxTokens)
-	}
-
-	if err := db.Create(t).Error; err != nil {
-		return nil, err
-	}
-
-	return t, nil
-}
-
-func FindToken(db *gorm.DB, token string) (*Token, *User, error) {
-	t := &Token{}
-
-	query := db.Where("uuid = ?", token).Take(t)
-	if query.RecordNotFound() {
-		return nil, nil, query.Error
-	}
-
-	u := &User{}
-	query = db.Where("id = ?", t.UserID).Take(u)
-	if query.RecordNotFound() {
-		return nil, nil, query.Error
-	}
-
-	return t, u, nil
-}
-
-func FindTokenForUser(db *gorm.DB, token string, user *User) (*Token, error) {
-	t := &Token{}
-
-	query := db.Where("uuid = ? AND user_id = ?", token, user.ID).Take(t)
-	if query.Error != nil {
-		return nil, query.Error
-	}
-
-	return t, nil
 }
 
 func FindUser(db *gorm.DB, user string, pass string) (*User, bool, error) {
