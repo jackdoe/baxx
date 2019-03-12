@@ -52,7 +52,7 @@ func CreateTokenAndBucket(s *file.Store, db *gorm.DB, u *User, writeOnly bool, n
 		return nil, err
 	}
 
-	err = s.MakeBucket(t.ID)
+	err = s.MakeBucket(t.Bucket)
 	if err != nil {
 		db.Delete(t)
 		return nil, err

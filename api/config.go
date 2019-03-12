@@ -1,25 +1,27 @@
 package main
 
+// in case of running in local mode
+type LocalToken struct {
+	UUID          string // has to map to baxx
+	Bucket        string // bucket can be whatever you want
+	EncryptionKey string // key to encrypt the data with
+}
+
+type Local struct {
+	AllowedTokens []*LocalToken
+}
+
 type Config struct {
 	MaxTokens         uint64
 	DefaultQuota      uint64
 	DefaultInodeQuota uint64
 	SendGridKey       string
-	Testing           bool
-}
-
-type StoreConfig struct {
-	Endpoint        string
-	Region          string
-	AccessKeyID     string
-	SecretAccessKey string
-	DisableSSL      bool
+	Local             *Local
 }
 
 var CONFIG = &Config{
 	MaxTokens:         5,
 	DefaultQuota:      10 * 1024 * 1024 * 1024,
 	DefaultInodeQuota: 1000,
-	Testing:           false,
 	SendGridKey:       "",
 }

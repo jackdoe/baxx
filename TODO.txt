@@ -3,6 +3,17 @@
  + configure
  + send email when rule matches
 
+* run local copy that sends metadata remotely
+  and uses other s3
+  so somehow the user is registered on baxx.dev, the tokens are synced
+  e.g.
+  BAXX_S3_.. baxx.api -local tokens copied
+  
+
+  and it works by not having local users
+  and sends metadata to baxx.dev for the notifications
+  
+
 * infra
  * first phase [ digital ocean ]
    + setup load balancer [ done Sun 10 Mar 18:51:09 CET 2019 ]

@@ -52,7 +52,7 @@ func setupIO(srv *server) {
 
 		}
 
-		reader, err := store.DownloadFile(t.Salt, fv.StoreID)
+		reader, err := store.DownloadFile(t.Salt, t.Bucket, fv.StoreID)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

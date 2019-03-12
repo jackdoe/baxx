@@ -33,7 +33,7 @@ func TestFileQuota(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	db.LogMode(false)
+	db.LogMode(true)
 
 	defer db.Close()
 	initDatabase(db)
@@ -73,7 +73,7 @@ func TestFileQuota(t *testing.T) {
 			t.Fatal(err)
 		}
 		log.Printf("sha %s", fv.SHA256)
-		reader, err := store.DownloadFile(token.Salt, fv.StoreID)
+		reader, err := store.DownloadFile(token.Salt, token.Bucket, fv.StoreID)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -208,13 +208,13 @@ func TestFileQuota(t *testing.T) {
 		}
 	}
 
-	list := listSync(store, token.ID)
+	list := listSync(store, token.Bucket)
 	if len(list) != 0 {
 		t.Fatalf("items in the store: %v", list)
 	}
 }
 
-func listSync(s *file.Store, tokenID uint64) []string {
+func listSync(s *file.Store, tokenID string) []string {
 	out := make(chan string)
 	e := make(chan error)
 	go s.ListObjects(tokenID, e, out)

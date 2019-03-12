@@ -133,6 +133,7 @@ func (user *User) CreateToken(db *gorm.DB, writeOnly bool, numOfArchives uint64,
 	t := &Token{
 		UUID:             getUUID(),
 		Salt:             strings.Replace(getUUID(), "-", "", -1),
+		Bucket:           strings.Replace(getUUID(), "-", "", -1),
 		UserID:           user.ID,
 		WriteOnly:        writeOnly,
 		NumberOfArchives: numOfArchives,
