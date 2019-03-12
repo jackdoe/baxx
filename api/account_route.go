@@ -240,7 +240,7 @@ func setupACC(srv *server) {
 		}
 
 		actionLog(db, u.ID, "token", "create", c.Request)
-		out := &common.TokenOutput{Name: token.Name, UUID: token.UUID, WriteOnly: token.WriteOnly, NumberOfArchives: token.NumberOfArchives, CreatedAt: token.CreatedAt, SizeUsed: token.SizeUsed}
+		out := &common.TokenOutput{ID: token.ID, Name: token.Name, UUID: token.UUID, WriteOnly: token.WriteOnly, NumberOfArchives: token.NumberOfArchives, CreatedAt: token.CreatedAt, SizeUsed: token.SizeUsed}
 		c.JSON(http.StatusOK, out)
 	})
 
