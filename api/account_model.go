@@ -1,4 +1,4 @@
-package user
+package main
 
 import (
 	"errors"
@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/jackdoe/baxx/config"
 	. "github.com/jackdoe/baxx/file"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"

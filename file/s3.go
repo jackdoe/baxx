@@ -7,7 +7,6 @@ import (
 	"io"
 	"strings"
 
-	. "github.com/jackdoe/baxx/config"
 	"github.com/minio/minio-go"
 	"github.com/minio/sio"
 	uuid "github.com/satori/go.uuid"
@@ -15,18 +14,16 @@ import (
 )
 
 type Store struct {
-	s3   *minio.Client
-	conf *StoreConfig
+	s3 *minio.Client
 }
 
-func NewStore(conf *StoreConfig) (*Store, error) {
-	svc, err := minio.New(conf.Endpoint, conf.AccessKeyID, conf.SecretAccessKey, !conf.DisableSSL)
+func NewStore(endpoint, key, secret string, disableSSL bool) (*Store, error) {
+	svc, err := minio.New(endpoint, key, secret, !disableSSL)
 	if err != nil {
 		return nil, err
 	}
 	return &Store{
-		conf: conf,
-		s3:   svc,
+		s3: svc,
 	}, nil
 }
 

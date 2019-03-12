@@ -1,4 +1,4 @@
-package user
+package main
 
 import (
 	"time"
@@ -62,6 +62,7 @@ such as photos
 at glance there are 2 main scenarios, anomalies per file and per directory
 so basic rule might look like
 {
+   "name": 'watch for old'
    "full path": 'regex',     // can be empty, by default is "all"
    "watch": [
       {

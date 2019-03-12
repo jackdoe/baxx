@@ -8,7 +8,6 @@ import (
 
 	"github.com/badoux/checkmail"
 	"github.com/gin-gonic/gin"
-	"github.com/jackdoe/baxx/user"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -49,9 +48,9 @@ func wantJson(c *gin.Context) bool {
 
 func warnErr(c *gin.Context, err error) {
 	x, isLoggedIn := c.Get("user")
-	u := &user.User{}
+	u := &User{}
 	if isLoggedIn {
-		u = x.(*user.User)
+		u = x.(*User)
 	}
 	_, fn, line, _ := runtime.Caller(1)
 	log.Warnf("uid: %d, uri: %s, err: >> %s << [%s:%d]", u.ID, c.Request.RequestURI, err.Error(), fn, line)

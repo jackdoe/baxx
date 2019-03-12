@@ -4,9 +4,7 @@ import (
 	"time"
 
 	. "github.com/jackdoe/baxx/common"
-	. "github.com/jackdoe/baxx/config"
 	"github.com/jackdoe/baxx/help"
-	. "github.com/jackdoe/baxx/user"
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/gomail.v2"

@@ -7,28 +7,26 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackdoe/baxx/config"
 	"github.com/jackdoe/baxx/file"
-	"github.com/jackdoe/baxx/user"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	log "github.com/sirupsen/logrus"
 )
 
 func initDatabase(db *gorm.DB) {
-	if err := db.AutoMigrate(&user.User{}, &user.VerificationLink{}, &file.Token{}, &file.FileMetadata{}, &file.FileVersion{}, &ActionLog{}, &user.PaymentHistory{}).Error; err != nil {
+	if err := db.AutoMigrate(&User{}, &VerificationLink{}, &file.Token{}, &file.FileMetadata{}, &file.FileVersion{}, &ActionLog{}, &PaymentHistory{}).Error; err != nil {
 		log.Fatal(err)
 	}
-	if err := db.Model(&user.VerificationLink{}).AddUniqueIndex("idx_user_sent_at", "user_id", "sent_at").Error; err != nil {
+	if err := db.Model(&VerificationLink{}).AddUniqueIndex("idx_user_sent_at", "user_id", "sent_at").Error; err != nil {
 		log.Fatal(err)
 	}
 
 	// not unique index, we can have many links for same email, they could expire
-	if err := db.Model(&user.VerificationLink{}).AddIndex("idx_vl_email", "email").Error; err != nil {
+	if err := db.Model(&VerificationLink{}).AddIndex("idx_vl_email", "email").Error; err != nil {
 		log.Fatal(err)
 	}
 
-	if err := db.Model(&user.User{}).AddUniqueIndex("idx_email", "email").Error; err != nil {
+	if err := db.Model(&User{}).AddUniqueIndex("idx_email", "email").Error; err != nil {
 		log.Fatal(err)
 	}
 
@@ -36,7 +34,7 @@ func initDatabase(db *gorm.DB) {
 		log.Fatal(err)
 	}
 
-	if err := db.Model(&user.User{}).AddUniqueIndex("idx_payment_id", "payment_id").Error; err != nil {
+	if err := db.Model(&User{}).AddUniqueIndex("idx_payment_id", "payment_id").Error; err != nil {
 		log.Fatal(err)
 	}
 
@@ -60,20 +58,20 @@ type server struct {
 	authorized *gin.RouterGroup
 }
 
-func (s *server) getViewTokenLoggedOrNot(c *gin.Context) (*file.Token, *user.User, error) {
+func (s *server) getViewTokenLoggedOrNot(c *gin.Context) (*file.Token, *User, error) {
 	token := c.Param("token")
 	var t *file.Token
-	var u *user.User
+	var u *User
 	var err error
 	x, isLoggedIn := c.Get("user")
 	if isLoggedIn {
-		u = x.(*user.User)
-		t, err = user.FindTokenForUser(s.db, token, u)
+		u = x.(*User)
+		t, err = FindTokenForUser(s.db, token, u)
 		if err != nil {
 			return nil, nil, err
 		}
 	} else {
-		t, u, err = user.FindToken(s.db, token)
+		t, u, err = FindToken(s.db, token)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -103,14 +101,10 @@ func main() {
 	var prelease = flag.Bool("release", false, "release")
 	flag.Parse()
 
-	config.CONFIG.MaxTokens = 100
-	config.CONFIG.SendGridKey = os.Getenv("BAXX_SENDGRID_KEY")
-	store, err := file.NewStore(&config.StoreConfig{
-		Endpoint:        os.Getenv("BAXX_S3_ENDPOINT"),
-		Region:          os.Getenv("BAXX_S3_REGION"),
-		AccessKeyID:     os.Getenv("BAXX_S3_ACCESS_KEY"),
-		SecretAccessKey: os.Getenv("BAXX_S3_SECRET"),
-	})
+	CONFIG.MaxTokens = 100
+	CONFIG.SendGridKey = os.Getenv("BAXX_SENDGRID_KEY")
+	store, err := file.NewStore(os.Getenv("BAXX_S3_ENDPOINT"), os.Getenv("BAXX_S3_ACCESS_KEY"), os.Getenv("BAXX_S3_SECRET"), false)
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -134,7 +128,7 @@ func main() {
 	r.Use(func(c *gin.Context) {
 		su, pass := BasicAuthDecode(c)
 		if su != "" {
-			u, _, err := user.FindUser(db, su, pass)
+			u, _, err := FindUser(db, su, pass)
 			if err == nil {
 				c.Set("user", u)
 			}

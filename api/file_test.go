@@ -9,10 +9,8 @@ import (
 	"time"
 
 	. "github.com/jackdoe/baxx/common"
-	. "github.com/jackdoe/baxx/config"
 	"github.com/jackdoe/baxx/file"
 	"github.com/jackdoe/baxx/help"
-	. "github.com/jackdoe/baxx/user"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
@@ -20,13 +18,7 @@ import (
 func setup() *file.Store {
 	// sudo docker run -e MINIO_SECRET_KEY=bbbbbbbb -e MINIO_ACCESS_KEY=aaa -p 9000:9000  minio/minio server /home/shared
 
-	store, err := file.NewStore(&StoreConfig{
-		Endpoint:        "localhost:9000",
-		Region:          "",
-		AccessKeyID:     "aaa",
-		SecretAccessKey: "bbbbbbbb",
-		DisableSSL:      true,
-	})
+	store, err := file.NewStore("localhost:9000", "aaa", "bbbbbbbb", true)
 
 	if err != nil {
 		log.Fatal(err)

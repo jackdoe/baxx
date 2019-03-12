@@ -8,16 +8,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackdoe/baxx/common"
-	"github.com/jackdoe/baxx/config"
 	"github.com/jackdoe/baxx/file"
 	"github.com/jackdoe/baxx/help"
 	"github.com/jackdoe/baxx/ipn"
-	"github.com/jackdoe/baxx/user"
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
 )
 
-func getUserStatus(db *gorm.DB, u *user.User) (*common.UserStatusOutput, error) {
+func getUserStatus(db *gorm.DB, u *User) (*common.UserStatusOutput, error) {
 	tokens, err := u.ListTokens(db)
 	if err != nil {
 		return nil, err
@@ -31,7 +29,7 @@ func getUserStatus(db *gorm.DB, u *user.User) (*common.UserStatusOutput, error) 
 		used += t.SizeUsed
 	}
 
-	vl := &user.VerificationLink{}
+	vl := &VerificationLink{}
 	db.Where("email = ?", u.Email).Last(vl)
 
 	return &common.UserStatusOutput{
@@ -48,7 +46,7 @@ func getUserStatus(db *gorm.DB, u *user.User) (*common.UserStatusOutput, error) 
 	}, nil
 }
 
-func CreateTokenAndBucket(s *file.Store, db *gorm.DB, u *user.User, writeOnly bool, numOfArchives uint64, name string) (*file.Token, error) {
+func CreateTokenAndBucket(s *file.Store, db *gorm.DB, u *User, writeOnly bool, numOfArchives uint64, name string) (*file.Token, error) {
 	t, err := u.CreateToken(db, writeOnly, numOfArchives, name)
 	if err != nil {
 		return nil, err
@@ -62,7 +60,7 @@ func CreateTokenAndBucket(s *file.Store, db *gorm.DB, u *user.User, writeOnly bo
 	return t, nil
 }
 
-func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (*common.UserStatusOutput, *user.User, error) {
+func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (*common.UserStatusOutput, *User, error) {
 	if err := ValidatePassword(json.Password); err != nil {
 		return nil, nil, err
 	}
@@ -71,13 +69,13 @@ func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (
 		return nil, nil, err
 	}
 	tx := db.Begin()
-	_, exists, err := user.FindUser(tx, json.Email, json.Password)
+	_, exists, err := FindUser(tx, json.Email, json.Password)
 	if err == nil || exists {
 		tx.Rollback()
 		return nil, nil, errors.New("user already exists")
 	}
 
-	u := &user.User{Email: json.Email, Quota: config.CONFIG.DefaultQuota, QuotaInode: config.CONFIG.DefaultInodeQuota}
+	u := &User{Email: json.Email, Quota: CONFIG.DefaultQuota, QuotaInode: CONFIG.DefaultInodeQuota}
 	u.SetPassword(json.Password)
 	if err := tx.Create(u).Error; err != nil {
 		tx.Rollback()
@@ -135,7 +133,7 @@ func setupACC(srv *server) {
 	})
 
 	authorized.POST("/status", func(c *gin.Context) {
-		u := c.MustGet("user").(*user.User)
+		u := c.MustGet("user").(*User)
 		status, err := getUserStatus(db, u)
 		if err != nil {
 			warnErr(c, err)
@@ -146,7 +144,7 @@ func setupACC(srv *server) {
 	})
 
 	authorized.POST("/replace/password", func(c *gin.Context) {
-		u := c.MustGet("user").(*user.User)
+		u := c.MustGet("user").(*User)
 		var json common.ChangePasswordInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
@@ -169,7 +167,7 @@ func setupACC(srv *server) {
 	})
 
 	authorized.POST("/replace/verification", func(c *gin.Context) {
-		u := c.MustGet("user").(*user.User)
+		u := c.MustGet("user").(*User)
 		verificationLink := u.GenerateVerificationLink()
 		if err := db.Save(verificationLink).Error; err != nil {
 			warnErr(c, err)
@@ -181,7 +179,7 @@ func setupACC(srv *server) {
 	})
 
 	authorized.POST("/replace/email", func(c *gin.Context) {
-		u := c.MustGet("user").(*user.User)
+		u := c.MustGet("user").(*User)
 
 		var json common.ChangeEmailInput
 		if err := c.ShouldBindJSON(&json); err != nil {
@@ -226,7 +224,7 @@ func setupACC(srv *server) {
 	})
 
 	authorized.POST("/create/token", func(c *gin.Context) {
-		u := c.MustGet("user").(*user.User)
+		u := c.MustGet("user").(*User)
 		var json common.CreateTokenInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
@@ -247,14 +245,14 @@ func setupACC(srv *server) {
 	})
 
 	authorized.POST("/change/token", func(c *gin.Context) {
-		u := c.MustGet("user").(*user.User)
+		u := c.MustGet("user").(*User)
 		var json common.ModifyTokenInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		token, err := user.FindTokenForUser(db, json.UUID, u)
+		token, err := FindTokenForUser(db, json.UUID, u)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -279,14 +277,14 @@ func setupACC(srv *server) {
 	})
 
 	authorized.POST("/delete/token", func(c *gin.Context) {
-		u := c.MustGet("user").(*user.User)
+		u := c.MustGet("user").(*User)
 		var json common.DeleteTokenInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		token, err := user.FindTokenForUser(db, json.UUID, u)
+		token, err := FindTokenForUser(db, json.UUID, u)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -315,7 +313,7 @@ func setupACC(srv *server) {
 		// check currency and amount and etc
 		// otherwise anyone can create ipn request with wrong amount :D
 
-		u := &user.User{}
+		u := &User{}
 		if err := db.Where("payment_id = ?", c.Param("paymentID")).Take(u).Error; err != nil {
 			return err
 		}
@@ -325,7 +323,7 @@ func setupACC(srv *server) {
 			encoded = "{}"
 		}
 
-		ph := &user.PaymentHistory{
+		ph := &PaymentHistory{
 			UserID: u.ID,
 			IPN:    encoded,
 			IPNRAW: body,
@@ -386,7 +384,7 @@ func setupACC(srv *server) {
 	})
 
 	r.GET("/verify/:id", func(c *gin.Context) {
-		v := &user.VerificationLink{}
+		v := &VerificationLink{}
 		now := time.Now()
 
 		wrong := func(err error) {
@@ -416,7 +414,7 @@ func setupACC(srv *server) {
 			return
 		}
 
-		u := &user.User{}
+		u := &User{}
 		if err := tx.Where("id = ?", v.UserID).Take(u).Error; err != nil {
 			warnErr(c, fmt.Errorf("weird state, verification's user not found %#v", v))
 			tx.Rollback()

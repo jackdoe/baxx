@@ -11,12 +11,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackdoe/baxx/common"
 	"github.com/jackdoe/baxx/file"
-	"github.com/jackdoe/baxx/user"
 
 	"github.com/jinzhu/gorm"
 )
 
-func SaveFileProcess(s *file.Store, db *gorm.DB, u *user.User, t *file.Token, body io.Reader, p string) (*file.FileVersion, *file.FileMetadata, error) {
+func SaveFileProcess(s *file.Store, db *gorm.DB, u *User, t *file.Token, body io.Reader, p string) (*file.FileVersion, *file.FileMetadata, error) {
 	leftSize, leftInodes, err := u.GetQuotaLeft(db)
 	if err != nil {
 		return nil, nil, err
