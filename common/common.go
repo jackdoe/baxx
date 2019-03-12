@@ -51,6 +51,7 @@ type DeleteSuccess struct {
 
 type TokenOutput struct {
 	UUID             string    `json:"token"`
+	ID               uint64    `json:"id"`
 	WriteOnly        bool      `json:"write_only"`
 	Name             string    `json:"name"`
 	NumberOfArchives uint64    `json:"keep_n_versions"`
@@ -78,7 +79,7 @@ type QueryError struct {
 var EMPTY_STATUS = &UserStatusOutput{
 	PaymentID: "WILL-BE-IN-YOUR-EMAIL",
 	Email:     "your.email@example.com",
-	Tokens:    []*TokenOutput{&TokenOutput{UUID: "TOKEN-UUID-A", WriteOnly: true, NumberOfArchives: 3, Name: "example-a"}, &TokenOutput{UUID: "TOKEN-UUID-B", WriteOnly: false, NumberOfArchives: 3, Name: "example-b"}},
+	Tokens:    []*TokenOutput{&TokenOutput{ID: 0, UUID: "TOKEN-UUID-A", WriteOnly: true, NumberOfArchives: 3, Name: "example-a"}, &TokenOutput{ID: 0, UUID: "TOKEN-UUID-B", WriteOnly: false, NumberOfArchives: 3, Name: "example-b"}},
 }
 
 type LocalFile struct {

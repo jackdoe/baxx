@@ -22,7 +22,7 @@ func getUserStatus(db *gorm.DB, u *User) (*common.UserStatusOutput, error) {
 	}
 	tokensTransformed := []*common.TokenOutput{}
 	for _, t := range tokens {
-		tokensTransformed = append(tokensTransformed, &common.TokenOutput{UUID: t.UUID, Name: t.Name, WriteOnly: t.WriteOnly, NumberOfArchives: t.NumberOfArchives, CreatedAt: t.CreatedAt})
+		tokensTransformed = append(tokensTransformed, &common.TokenOutput{ID: t.ID, UUID: t.UUID, Name: t.Name, WriteOnly: t.WriteOnly, NumberOfArchives: t.NumberOfArchives, CreatedAt: t.CreatedAt})
 	}
 	used := uint64(0)
 	for _, t := range tokens {
