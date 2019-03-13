@@ -30,9 +30,9 @@ Contract Duration
   notice.
 
   You agree that Baxx shall be permitted to charge your credit card on
-  a monthly basis in advance of providing services. Payment is due
-  every month. Service may be interrupted on accounts that reach 1
-  month past due.
+  a 30 days in advance of providing services. Payment is due
+  every 30 days. Service may be interrupted on accounts that reach 30
+  days past due.
 
 Backup
   Subscriber is solely responsible for the preservation of
