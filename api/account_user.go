@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
-	uuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -78,10 +77,6 @@ func (user *User) MatchPassword(p string) bool {
 
 func (user *User) SetPassword(p string) {
 	user.HashedPassword = hashAndSalt(p)
-}
-
-func getUUID() string {
-	return uuid.Must(uuid.NewV4()).String()
 }
 
 func (user *User) BeforeCreate(scope *gorm.Scope) error {

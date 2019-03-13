@@ -53,3 +53,13 @@ type FileVersion struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
+
+type FileMetadataAndVersion struct {
+	FileMetadata *FileMetadata
+	Versions     []*FileVersion
+}
+
+type FilesPerToken struct {
+	Token *Token
+	Files []FileMetadataAndVersion
+}

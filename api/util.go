@@ -8,6 +8,7 @@ import (
 
 	"github.com/badoux/checkmail"
 	"github.com/gin-gonic/gin"
+	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -54,4 +55,8 @@ func warnErr(c *gin.Context, err error) {
 	}
 	_, fn, line, _ := runtime.Caller(1)
 	log.Warnf("uid: %d, uri: %s, err: >> %s << [%s:%d]", u.ID, c.Request.RequestURI, err.Error(), fn, line)
+}
+
+func getUUID() string {
+	return uuid.Must(uuid.NewV4()).String()
 }

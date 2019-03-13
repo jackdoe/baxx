@@ -6,11 +6,6 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-type FileMetadataAndVersion struct {
-	FileMetadata *FileMetadata
-	Versions     []*FileVersion
-}
-
 func FindFile(db *gorm.DB, t *Token, p string) (*FileVersion, *FileMetadata, error) {
 	dir, name := split(p)
 	fm := &FileMetadata{}
