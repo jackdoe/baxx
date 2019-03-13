@@ -6,24 +6,17 @@ import (
 
 	"github.com/jackdoe/baxx/common"
 	"github.com/jackdoe/baxx/file"
+	"github.com/jackdoe/baxx/notification"
+	"github.com/jackdoe/baxx/user"
 	"github.com/jinzhu/gorm"
 )
 
-func (user *User) ListTokens(db *gorm.DB) ([]*file.Token, error) {
-	tokens := []*file.Token{}
-	if err := db.Where("user_id = ?", user.ID).Find(&tokens).Error; err != nil {
-		return nil, err
-	}
-
-	return tokens, nil
-}
-
-func (user *User) CreateToken(db *gorm.DB, writeOnly bool, numOfArchives uint64, name string) (*file.Token, error) {
+func CreateToken(db *gorm.DB, writeOnly bool, u *user.User, numOfArchives uint64, name string) (*file.Token, error) {
 	t := &file.Token{
-		UUID:             getUUID(),
-		Salt:             strings.Replace(getUUID(), "-", "", -1),
-		Bucket:           strings.Replace(getUUID(), "-", "", -1),
-		UserID:           user.ID,
+		UUID:             common.GetUUID(),
+		Salt:             strings.Replace(common.GetUUID(), "-", "", -1),
+		Bucket:           strings.Replace(common.GetUUID(), "-", "", -1),
+		UserID:           u.ID,
 		WriteOnly:        writeOnly,
 		NumberOfArchives: numOfArchives,
 		Name:             name,
@@ -31,7 +24,7 @@ func (user *User) CreateToken(db *gorm.DB, writeOnly bool, numOfArchives uint64,
 		QuotaInode:       CONFIG.DefaultInodeQuota,
 	}
 
-	tokens, err := user.ListTokens(db)
+	tokens, err := ListTokens(db, u)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +40,7 @@ func (user *User) CreateToken(db *gorm.DB, writeOnly bool, numOfArchives uint64,
 	return t, nil
 }
 
-func FindToken(db *gorm.DB, token string) (*file.Token, *User, error) {
+func FindTokenAndUser(db *gorm.DB, token string) (*file.Token, *user.User, error) {
 	t := &file.Token{}
 
 	query := db.Where("uuid = ?", token).Take(t)
@@ -55,7 +48,7 @@ func FindToken(db *gorm.DB, token string) (*file.Token, *User, error) {
 		return nil, nil, query.Error
 	}
 
-	u := &User{}
+	u := &user.User{}
 	query = db.Where("id = ?", t.UserID).Take(u)
 	if query.RecordNotFound() {
 		return nil, nil, query.Error
@@ -64,19 +57,18 @@ func FindToken(db *gorm.DB, token string) (*file.Token, *User, error) {
 	return t, u, nil
 }
 
-func FindTokenForUser(db *gorm.DB, token string, user *User) (*file.Token, error) {
-	t := &file.Token{}
-
-	query := db.Where("uuid = ? AND user_id = ?", token, user.ID).Take(t)
-	if query.Error != nil {
-		return nil, query.Error
+func CreateTokenAndBucket(s *file.Store, db *gorm.DB, u *user.User, writeOnly bool, numOfArchives uint64, name string) (*file.Token, error) {
+	t, err := CreateToken(db, writeOnly, u, numOfArchives, name)
+	if err != nil {
+		return nil, err
 	}
 
-	return t, nil
-}
-
-func CreateTokenAndBucket(s *file.Store, db *gorm.DB, u *User, writeOnly bool, numOfArchives uint64, name string) (*file.Token, error) {
-	t, err := u.CreateToken(db, writeOnly, numOfArchives, name)
+	_, err = createNotificationRule(db, u, &common.CreateNotificationInput{
+		Name:      "versions are too different",
+		Regexp:    ".*",
+		TokenUUID: t.UUID,
+		AcceptableSizeDeltaPercentBetweenVersions: 90,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -89,17 +81,42 @@ func CreateTokenAndBucket(s *file.Store, db *gorm.DB, u *User, writeOnly bool, n
 	return t, nil
 }
 
-func transformTokenForSending(t *file.Token, usedSize, usedInodes int64) *common.TokenOutput {
-	return &common.TokenOutput{
-		ID:               t.ID,
-		UUID:             t.UUID,
-		Name:             t.Name,
-		WriteOnly:        t.WriteOnly,
-		NumberOfArchives: t.NumberOfArchives,
-		CreatedAt:        t.CreatedAt,
-		QuotaUsed:        uint64(usedSize),
-		QuotaInodeUsed:   uint64(usedInodes),
-		Quota:            t.Quota,
-		QuotaInode:       t.QuotaInode,
+func transformTokenForSending(t *file.Token, usedSize, usedInodes int64, rules []*notification.NotificationRule) *common.TokenOutput {
+	ru := []common.NotificationRuleOutput{}
+	for _, r := range rules {
+		ru = append(ru, transformRuleToOutput(r))
 	}
+	return &common.TokenOutput{
+		ID:                t.ID,
+		UUID:              t.UUID,
+		Name:              t.Name,
+		WriteOnly:         t.WriteOnly,
+		NumberOfArchives:  t.NumberOfArchives,
+		CreatedAt:         t.CreatedAt,
+		QuotaUsed:         uint64(usedSize),
+		QuotaInodeUsed:    uint64(usedInodes),
+		Quota:             t.Quota,
+		QuotaInode:        t.QuotaInode,
+		NotificationRules: ru,
+	}
+}
+
+func ListTokens(db *gorm.DB, u *user.User) ([]*file.Token, error) {
+	tokens := []*file.Token{}
+	if err := db.Where("user_id = ?", u.ID).Find(&tokens).Error; err != nil {
+		return nil, err
+	}
+
+	return tokens, nil
+}
+
+func FindTokenForUser(db *gorm.DB, token string, u *user.User) (*file.Token, error) {
+	t := &file.Token{}
+
+	query := db.Where("uuid = ? AND user_id = ?", token, u.ID).Take(t)
+	if query.Error != nil {
+		return nil, query.Error
+	}
+
+	return t, nil
 }

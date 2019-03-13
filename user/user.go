@@ -1,9 +1,10 @@
-package main
+package user
 
 import (
 	"errors"
 	"time"
 
+	"github.com/jackdoe/baxx/common"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -31,7 +32,7 @@ type PaymentHistory struct {
 type VerificationLink struct {
 	ID         string     `gorm:"primary_key" json:"-"`
 	UserID     uint64     `gorm:"type:bigint not null REFERENCES users(id)" json:"-"`
-	Email      string     `gorm:"not null" json:"-"`
+	Email      string     `gorm:"type:varchar(255) not null unique" json:"-"`
 	VerifiedAt *time.Time `gorm:"null" json:"-"`
 	SentAt     uint64     `gorm:"not null" json:"-"`
 	UpdatedAt  time.Time  `json:"-"`
@@ -65,7 +66,7 @@ func (user *User) Paid() bool {
 
 func (user *User) GenerateVerificationLink() *VerificationLink {
 	return &VerificationLink{
-		ID:     getUUID(),
+		ID:     common.GetUUID(),
 		UserID: user.ID,
 		Email:  user.Email,
 	}
@@ -80,7 +81,7 @@ func (user *User) SetPassword(p string) {
 }
 
 func (user *User) BeforeCreate(scope *gorm.Scope) error {
-	return scope.SetColumn("PaymentID", getUUID())
+	return scope.SetColumn("PaymentID", common.GetUUID())
 }
 
 func FindUser(db *gorm.DB, user string, pass string) (*User, bool, error) {
@@ -94,5 +95,4 @@ func FindUser(db *gorm.DB, user string, pass string) (*User, bool, error) {
 		return u, true, nil
 	}
 	return nil, true, errors.New("wrong password")
-
 }

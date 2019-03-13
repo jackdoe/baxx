@@ -73,7 +73,14 @@ list files, WriteOnly tokens require credentials for *list* and
   TOKEN: {{.UUID}}
     {{ if .Name }}Name: {{ .Name }}{{ end }}
     Write Only: {{ .WriteOnly }}
-    Keep N Versions {{ .NumberOfArchives }}
+    Keep N Versions {{ .NumberOfArchives }} (per file)
+    {{ range .NotificationRules }}
+    Notification: {{ .Name }}
+      Matching on Regexp: {{ .Regexp }}
+      Notify If:
+       {{ if .AcceptableSizeDeltaPercentBetweenVersions }}* size delta between version is bigger than: {{ .AcceptableSizeDeltaPercentBetweenVersions }}%{{ end }}
+       {{ if .AcceptableAgeSeconds }}* last version is older than {{ .AcceptableAgeSeconds }} seconds{{ end }}
+    {{ end }}
 {{end}}
 ## Create New Tokens:
 

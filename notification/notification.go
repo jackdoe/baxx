@@ -10,10 +10,11 @@ import (
 )
 
 type AgeNotification struct {
-	FullPath  string
-	CreatedAt time.Time
-	ActualAge time.Duration
-	Overdue   time.Duration
+	FullPath    string
+	CreatedAt   time.Time
+	ActualAge   time.Duration
+	Overdue     time.Duration
+	FileVersion *file.FileVersion
 }
 
 func (n *AgeNotification) String() string {
@@ -27,21 +28,11 @@ type SizeNotification struct {
 	PreviousSize uint64
 	Delta        float64
 	Overflow     float64
+	FileVersion  *file.FileVersion
 }
 
 func (n *SizeNotification) String() string {
 	return help.Render(help.EMAIL_SIZE_RULE, n)
-}
-
-type NotificationMatch struct {
-	Age       []*AgeNotification
-	Size      []*SizeNotification
-	Rule      *NotificationRule
-	TokenUUID string
-}
-
-type NotificationGroup struct {
-	Matches []NotificationMatch
 }
 
 func ExecuteRule(rule *NotificationRule, files []file.FileMetadataAndVersion) ([]AgeNotification, []SizeNotification, error) {
@@ -72,10 +63,11 @@ func ExecuteRule(rule *NotificationRule, files []file.FileMetadataAndVersion) ([
 				acceptableAge := version.CreatedAt.Add(time.Duration(rule.AcceptableAgeSeconds) * time.Second)
 				if now.After(acceptableAge) {
 					n := AgeNotification{
-						FullPath:  fullpath,
-						CreatedAt: version.CreatedAt,
-						ActualAge: now.Sub(version.CreatedAt),
-						Overdue:   now.Sub(acceptableAge),
+						FullPath:    fullpath,
+						CreatedAt:   version.CreatedAt,
+						ActualAge:   now.Sub(version.CreatedAt),
+						Overdue:     now.Sub(acceptableAge),
+						FileVersion: version,
 					}
 					byAge = append(byAge, n)
 				}
@@ -93,6 +85,7 @@ func ExecuteRule(rule *NotificationRule, files []file.FileMetadataAndVersion) ([
 						PreviousSize: previousVersion.Size,
 						Delta:        delta * 100,
 						Overflow:     float64(lastVersion.Size) * delta,
+						FileVersion:  lastVersion,
 					}
 					bySize = append(bySize, n)
 				}
@@ -105,27 +98,23 @@ func ExecuteRule(rule *NotificationRule, files []file.FileMetadataAndVersion) ([
 
 type NotificationRule struct {
 	ID                                        uint64 `gorm:"primary_key"`
-	TokenID                                   uint64 `gorm:"type:bigint not null REFERENCES tokens(id)" json:"token"`
-	Name                                      string `gorm:"type:varchar(255) not null" json:"name"`
-	Regexp                                    string `gorm:"type:varchar(255) not null" json:"regexp"`
-	AcceptableAgeSeconds                      uint64 `json:"age_seconds"`
-	AcceptableSizeDeltaPercentBetweenVersions uint64 `json:"delta_between_versions"`
+	UserID                                    uint64 `gorm:"type:bigint not null REFERENCES users(id) ON DELETE CASCADE"`
+	TokenID                                   uint64 `gorm:"type:bigint not null REFERENCES tokens(id) ON DELETE CASCADE"`
+	UUID                                      string `gorm:"type:varchar(255) not null unique"`
+	Name                                      string `gorm:"type:varchar(255) not null"`
+	Regexp                                    string `gorm:"type:varchar(255) not null"`
+	AcceptableAgeSeconds                      uint64
+	AcceptableSizeDeltaPercentBetweenVersions uint64
+	CreatedAt                                 time.Time `json:"created_at"`
+	UpdatedAt                                 time.Time `json:"updated_at"`
 }
 
-type EmailNotification struct {
-	ID     uint64 `gorm:"primary_key"`
-	UserID uint64 `gorm:"type:bigint not null REFERENCES users(id)"`
-	UUID   string `gorm:"type:varchar(255) not null unique"`
-
-	EmailText    string `gorm:"not null;type:text"`
-	EmailSubject string `gorm:"not null;type:text"`
-
-	BecauseOfRule  uint64 `gorm:"type:bigint not null REFERENCES notification_rules(id)"`
-	UserScore      uint64
-	SentAt         time.Time
-	AcknowledgedAt time.Time
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+type NotificationForFileVersion struct {
+	ID                 uint64    `gorm:"primary_key"`
+	NotificationRuleID uint64    `gorm:"type:bigint not null REFERENCES notification_rules(id) ON DELETE CASCADE"`
+	FileVersionID      uint64    `gorm:"type:bigint not null REFERENCES file_versions(id) ON DELETE CASCADE"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
 
 /*

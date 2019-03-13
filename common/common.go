@@ -40,6 +40,22 @@ type ModifyTokenInput struct {
 	UUID             string `binding:"required" json:"token"`
 }
 
+type CreateNotificationInput struct {
+	AcceptableAgeSeconds                      int64  `json:"age_seconds"`
+	AcceptableSizeDeltaPercentBetweenVersions int64  `json:"delta_percent"`
+	TokenUUID                                 string `binding:"required" json:"token"`
+	Regexp                                    string `binding:"required" json:"regexp"`
+	Name                                      string `binding:"required" json:"name"`
+}
+
+type ModifyNotificationInput struct {
+	AcceptableAgeSeconds                      *int64  `json:"age_seconds"`
+	AcceptableSizeDeltaPercentBetweenVersions *int64  `json:"delta_percent"`
+	UUID                                      string  `binding:"required" json:"uuid"`
+	Regexp                                    *string `json:"regexp"`
+	Name                                      *string `json:"name"`
+}
+
 type Success struct {
 	Success bool `json:"success"`
 }
@@ -49,17 +65,26 @@ type DeleteSuccess struct {
 	Count   int  `json:"deleted"`
 }
 
+type NotificationRuleOutput struct {
+	AcceptableAgeSeconds                      uint64 `json:"age_seconds"`
+	AcceptableSizeDeltaPercentBetweenVersions uint64 `json:"delta_percent"`
+	UUID                                      string `json:"uuid"`
+	Regexp                                    string `json:"regexp"`
+	Name                                      string `json:"name"`
+}
+
 type TokenOutput struct {
-	UUID             string    `json:"token"`
-	ID               uint64    `json:"id"`
-	WriteOnly        bool      `json:"write_only"`
-	Name             string    `json:"name"`
-	NumberOfArchives uint64    `json:"keep_n_versions"`
-	CreatedAt        time.Time `json:"created_at"`
-	Quota            uint64    `json:"quota"`
-	QuotaUsed        uint64    `json:"quota_used"`
-	QuotaInode       uint64    `json:"quota_inodes"`
-	QuotaInodeUsed   uint64    `json:"quota_inodes_used"`
+	UUID              string                   `json:"token"`
+	ID                uint64                   `json:"id"`
+	WriteOnly         bool                     `json:"write_only"`
+	Name              string                   `json:"name"`
+	NumberOfArchives  uint64                   `json:"keep_n_versions"`
+	CreatedAt         time.Time                `json:"created_at"`
+	Quota             uint64                   `json:"quota"`
+	QuotaUsed         uint64                   `json:"quota_used"`
+	QuotaInode        uint64                   `json:"quota_inodes"`
+	QuotaInodeUsed    uint64                   `json:"quota_inodes_used"`
+	NotificationRules []NotificationRuleOutput `json:"notification_rules"`
 }
 
 type UserStatusOutput struct {
@@ -80,7 +105,46 @@ type QueryError struct {
 var EMPTY_STATUS = &UserStatusOutput{
 	PaymentID: "WILL-BE-IN-YOUR-EMAIL",
 	Email:     "your.email@example.com",
-	Tokens:    []*TokenOutput{&TokenOutput{ID: 0, UUID: "TOKEN-UUID-A", WriteOnly: true, NumberOfArchives: 3, Name: "example-a"}, &TokenOutput{ID: 0, UUID: "TOKEN-UUID-B", WriteOnly: false, NumberOfArchives: 3, Name: "example-b"}},
+	Tokens: []*TokenOutput{
+		&TokenOutput{
+			ID:               0,
+			UUID:             "TOKEN-UUID-A",
+			WriteOnly:        false,
+			NumberOfArchives: 3,
+			Name:             "db-example-a",
+			NotificationRules: []NotificationRuleOutput{
+				NotificationRuleOutput{
+					Name:                 "more than 1 day old database backup",
+					Regexp:               "\\.sql",
+					AcceptableAgeSeconds: 86400,
+				},
+				NotificationRuleOutput{
+					Name:   "database file is 50% different",
+					Regexp: "\\.sql",
+					AcceptableSizeDeltaPercentBetweenVersions: 50,
+				},
+			},
+		},
+		&TokenOutput{
+			ID:               0,
+			UUID:             "TOKEN-UUID-B",
+			WriteOnly:        false,
+			NumberOfArchives: 3,
+			Name:             "content-example-b",
+			NotificationRules: []NotificationRuleOutput{
+				NotificationRuleOutput{
+					Name:                 "more than 1 day old config backup",
+					Regexp:               "etc\\.\\.tar\\.gz",
+					AcceptableAgeSeconds: 86400,
+				},
+				NotificationRuleOutput{
+					Name:   "file is 90% different",
+					Regexp: ".*",
+					AcceptableSizeDeltaPercentBetweenVersions: 90,
+				},
+			},
+		},
+	},
 }
 
 type LocalFile struct {

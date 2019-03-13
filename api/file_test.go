@@ -8,9 +8,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackdoe/baxx/common"
 	. "github.com/jackdoe/baxx/common"
 	"github.com/jackdoe/baxx/file"
 	"github.com/jackdoe/baxx/help"
+	"github.com/jackdoe/baxx/user"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
@@ -25,6 +27,20 @@ func setup() *file.Store {
 	}
 
 	return store
+}
+
+func testNotificationCreate(t *testing.T, db *gorm.DB, u *user.User, token *file.Token) {
+	n, err := createNotificationRule(db, u, &common.CreateNotificationInput{
+		TokenUUID:            token.UUID,
+		Regexp:               ".*",
+		Name:                 "hello",
+		AcceptableAgeSeconds: 10,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	log.Printf("%#v", n)
+
 }
 
 func TestFileQuota(t *testing.T) {
@@ -54,11 +70,11 @@ func TestFileQuota(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	token, _, err := FindToken(db, status.Tokens[0].UUID)
+	token, _, err := FindTokenAndUser(db, status.Tokens[0].UUID)
 	if err != nil {
 		t.Fatal(err)
 	}
-
+	testNotificationCreate(t, db, user, token)
 	filePath := "/example/example.txt"
 	var fmFirst *file.FileMetadata
 	for i := 0; i < 20; i++ {
@@ -189,13 +205,13 @@ func TestFileQuota(t *testing.T) {
 	CONFIG.MaxTokens = 10
 	created := []*file.Token{}
 	for i := 0; i < 9; i++ {
-		to, err := user.CreateToken(db, false, 1, "some-name")
+		to, err := CreateToken(db, false, user, 1, "some-name")
 		if err != nil {
 			t.Fatal(err)
 		}
 		created = append(created, to)
 	}
-	_, err = user.CreateToken(db, false, 1, "some-other-name")
+	_, err = CreateToken(db, false, user, 1, "some-other-name")
 	if err.Error() != "max tokens created (max=10)" {
 		t.Fatalf("expected max tokens created (max=10) got %s", err.Error())
 	}
@@ -225,8 +241,8 @@ func listSync(s *file.Store, tokenID string) []string {
 	return res
 }
 
-func getUsed(t *testing.T, db *gorm.DB, user *User) uint64 {
-	tokens, err := user.ListTokens(db)
+func getUsed(t *testing.T, db *gorm.DB, user *user.User) uint64 {
+	tokens, err := ListTokens(db, user)
 	if err != nil {
 		t.Fatal(err)
 	}

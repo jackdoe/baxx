@@ -7,34 +7,45 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackdoe/baxx/common"
 	"github.com/jackdoe/baxx/file"
+	"github.com/jackdoe/baxx/notification"
+	"github.com/jackdoe/baxx/user"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	log "github.com/sirupsen/logrus"
 )
 
 func initDatabase(db *gorm.DB) {
-	if err := db.AutoMigrate(&User{}, &VerificationLink{}, &file.Token{}, &file.FileMetadata{}, &file.FileVersion{}, &ActionLog{}, &PaymentHistory{}).Error; err != nil {
+	if err := db.AutoMigrate(
+		&user.User{},
+		&user.VerificationLink{},
+		&file.Token{},
+		&file.FileMetadata{},
+		&file.FileVersion{},
+		&ActionLog{},
+		&user.PaymentHistory{},
+		&notification.NotificationRule{},
+		&notification.NotificationForFileVersion{},
+		&common.EmailQueueItem{},
+	).Error; err != nil {
 		log.Fatal(err)
 	}
-	if err := db.Model(&VerificationLink{}).AddUniqueIndex("idx_user_sent_at", "user_id", "sent_at").Error; err != nil {
+
+	if err := db.Model(&common.EmailQueueItem{}).AddIndex("idx_email_sent", "sent").Error; err != nil {
+		log.Fatal(err)
+	}
+
+	if err := db.Model(&user.VerificationLink{}).AddUniqueIndex("idx_user_sent_at", "user_id", "sent_at").Error; err != nil {
 		log.Fatal(err)
 	}
 
 	// not unique index, we can have many links for same email, they could expire
-	if err := db.Model(&VerificationLink{}).AddIndex("idx_vl_email", "email").Error; err != nil {
+	if err := db.Model(&user.VerificationLink{}).AddIndex("idx_vl_email", "email").Error; err != nil {
 		log.Fatal(err)
 	}
 
-	if err := db.Model(&User{}).AddUniqueIndex("idx_email", "email").Error; err != nil {
-		log.Fatal(err)
-	}
-
-	if err := db.Model(&file.Token{}).AddUniqueIndex("idx_token", "uuid").Error; err != nil {
-		log.Fatal(err)
-	}
-
-	if err := db.Model(&User{}).AddUniqueIndex("idx_payment_id", "payment_id").Error; err != nil {
+	if err := db.Model(&user.User{}).AddUniqueIndex("idx_payment_id", "payment_id").Error; err != nil {
 		log.Fatal(err)
 	}
 
@@ -49,6 +60,15 @@ func initDatabase(db *gorm.DB) {
 	if err := db.Model(&file.FileMetadata{}).AddUniqueIndex("idx_fm_token_id_path_2", "token_id", "path", "filename").Error; err != nil {
 		log.Fatal(err)
 	}
+
+	if err := db.Model(&notification.NotificationRule{}).AddIndex("idx_n_user_id_token_id", "user_id", "token_id").Error; err != nil {
+		log.Fatal(err)
+	}
+
+	if err := db.Model(&notification.NotificationForFileVersion{}).AddUniqueIndex("idx_nfv_rule_fv", "file_version_id", "notification_rule_id").Error; err != nil {
+		log.Fatal(err)
+	}
+
 }
 
 type server struct {
@@ -58,20 +78,20 @@ type server struct {
 	authorized *gin.RouterGroup
 }
 
-func (s *server) getViewTokenLoggedOrNot(c *gin.Context) (*file.Token, *User, error) {
+func (s *server) getViewTokenLoggedOrNot(c *gin.Context) (*file.Token, *user.User, error) {
 	token := c.Param("token")
 	var t *file.Token
-	var u *User
+	var u *user.User
 	var err error
 	x, isLoggedIn := c.Get("user")
 	if isLoggedIn {
-		u = x.(*User)
+		u = x.(*user.User)
 		t, err = FindTokenForUser(s.db, token, u)
 		if err != nil {
 			return nil, nil, err
 		}
 	} else {
-		t, u, err = FindToken(s.db, token)
+		t, u, err = FindTokenAndUser(s.db, token)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -94,41 +114,18 @@ func (s *server) getViewTokenLoggedOrNot(c *gin.Context) (*file.Token, *User, er
 	return t, u, nil
 }
 
-func main() {
-	var pbind = flag.String("bind", ":9123", "bind")
-	var pdebug = flag.Bool("debug", false, "debug")
-	var pinit = flag.Bool("create-tables", false, "create tables")
-	var prelease = flag.Bool("release", false, "release")
-	flag.Parse()
-
-	CONFIG.MaxTokens = 100
-	CONFIG.SendGridKey = os.Getenv("BAXX_SENDGRID_KEY")
-	store, err := file.NewStore(os.Getenv("BAXX_S3_ENDPOINT"), os.Getenv("BAXX_S3_ACCESS_KEY"), os.Getenv("BAXX_S3_SECRET"), false)
+func setupAPI(db *gorm.DB, bind string) {
+	store, err := file.NewStore(os.Getenv("BAXX_S3_ENDPOINT"), os.Getenv("BAXX_S3_ACCESS_KEY"), os.Getenv("BAXX_S3_SECRET"), os.Getenv("BAXX_S3_DISABLE_SSL") == "true")
 
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	if *prelease {
-		gin.SetMode(gin.ReleaseMode)
-	}
-
-	db, err := gorm.Open("postgres", os.Getenv("BAXX_POSTGRES"))
-	if err != nil {
-		log.Fatal(err)
-	}
-	db.LogMode(*pdebug)
-	defer db.Close()
-
-	if *pinit {
-		initDatabase(db)
 	}
 
 	r := gin.Default()
 	r.Use(func(c *gin.Context) {
 		su, pass := BasicAuthDecode(c)
 		if su != "" {
-			u, _, err := FindUser(db, su, pass)
+			u, _, err := user.FindUser(db, su, pass)
 			if err == nil {
 				c.Set("user", u)
 			}
@@ -148,5 +145,33 @@ func main() {
 	setupACC(srv)
 	setupSYNC(srv)
 
-	log.Fatal(r.Run(*pbind))
+	log.Fatal(r.Run(bind))
+}
+
+func main() {
+	var pbind = flag.String("bind", ":9123", "bind")
+	var pdebug = flag.Bool("debug", false, "debug")
+	var pinit = flag.Bool("create-tables", false, "create tables")
+	var prelease = flag.Bool("release", false, "release")
+	flag.Parse()
+
+	CONFIG.MaxTokens = 100
+	CONFIG.SendGridKey = os.Getenv("BAXX_SENDGRID_KEY")
+
+	if *prelease {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
+	db, err := gorm.Open("postgres", os.Getenv("BAXX_POSTGRES"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	db.LogMode(*pdebug)
+	defer db.Close()
+
+	if *pinit {
+		initDatabase(db)
+	}
+
+	setupAPI(db, *pbind)
 }

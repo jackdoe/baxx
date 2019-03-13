@@ -7,9 +7,9 @@ import (
 
 type Token struct {
 	ID               uint64 `gorm:"primary_key"`
-	UUID             string `gorm:"not null"`
+	UUID             string `gorm:"not null;type:varchar(255) unique"`
 	Salt             string `gorm:"not null;type:varchar(32)"`
-	Bucket           string `gorm:"not null;type:varchar(32)"`
+	Bucket           string `gorm:"not null;type:varchar(32) unique"`
 	Name             string `gorm:"null;type:varchar(255)"`
 	UserID           uint64 `gorm:"type:bigint not null REFERENCES users(id)"`
 	Quota            uint64 `gorm:"not null;default:10737418240" json:"quota"`

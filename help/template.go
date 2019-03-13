@@ -6,7 +6,12 @@ import (
 )
 
 func Parse(s string) *template.Template {
-	t, err := template.New("main").Parse(s)
+	fm := template.FuncMap{
+		"add": func(a, b uint64) uint64 {
+			return a + b
+		},
+	}
+	t, err := template.New("main").Funcs(fm).Parse(s)
 	if err != nil {
 		panic(err)
 	}

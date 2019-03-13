@@ -11,12 +11,14 @@ import (
 	"github.com/jackdoe/baxx/file"
 	"github.com/jackdoe/baxx/help"
 	"github.com/jackdoe/baxx/ipn"
+	"github.com/jackdoe/baxx/notification"
+	"github.com/jackdoe/baxx/user"
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
 )
 
-func getUserStatus(db *gorm.DB, u *User) (*common.UserStatusOutput, error) {
-	tokens, err := u.ListTokens(db)
+func getUserStatus(db *gorm.DB, u *user.User) (*common.UserStatusOutput, error) {
+	tokens, err := ListTokens(db, u)
 	if err != nil {
 		return nil, err
 	}
@@ -26,14 +28,20 @@ func getUserStatus(db *gorm.DB, u *User) (*common.UserStatusOutput, error) {
 		if err != nil {
 			return nil, err
 		}
-		tokensTransformed = append(tokensTransformed, transformTokenForSending(t, usedSize, usedInodes))
+		rules, err := ListNotifications(db, t)
+		if err != nil {
+			return nil, err
+		}
+
+		tokensTransformed = append(tokensTransformed, transformTokenForSending(t, usedSize, usedInodes, rules))
 	}
+
 	used := uint64(0)
 	for _, t := range tokens {
 		used += t.SizeUsed
 	}
 
-	vl := &VerificationLink{}
+	vl := &user.VerificationLink{}
 	db.Where("email = ?", u.Email).Last(vl)
 
 	return &common.UserStatusOutput{
@@ -50,7 +58,7 @@ func getUserStatus(db *gorm.DB, u *User) (*common.UserStatusOutput, error) {
 	}, nil
 }
 
-func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (*common.UserStatusOutput, *User, error) {
+func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (*common.UserStatusOutput, *user.User, error) {
 	if err := ValidatePassword(json.Password); err != nil {
 		return nil, nil, err
 	}
@@ -59,13 +67,13 @@ func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (
 		return nil, nil, err
 	}
 	tx := db.Begin()
-	_, exists, err := FindUser(tx, json.Email, json.Password)
+	_, exists, err := user.FindUser(tx, json.Email, json.Password)
 	if err == nil || exists {
 		tx.Rollback()
 		return nil, nil, errors.New("user already exists")
 	}
 
-	u := &User{Email: json.Email}
+	u := &user.User{Email: json.Email}
 	u.SetPassword(json.Password)
 	if err := tx.Create(u).Error; err != nil {
 		tx.Rollback()
@@ -123,7 +131,7 @@ func setupACC(srv *server) {
 	})
 
 	authorized.POST("/status", func(c *gin.Context) {
-		u := c.MustGet("user").(*User)
+		u := c.MustGet("user").(*user.User)
 		status, err := getUserStatus(db, u)
 		if err != nil {
 			warnErr(c, err)
@@ -134,7 +142,7 @@ func setupACC(srv *server) {
 	})
 
 	authorized.POST("/replace/password", func(c *gin.Context) {
-		u := c.MustGet("user").(*User)
+		u := c.MustGet("user").(*user.User)
 		var json common.ChangePasswordInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
@@ -157,7 +165,7 @@ func setupACC(srv *server) {
 	})
 
 	authorized.POST("/replace/verification", func(c *gin.Context) {
-		u := c.MustGet("user").(*User)
+		u := c.MustGet("user").(*user.User)
 		verificationLink := u.GenerateVerificationLink()
 		if err := db.Save(verificationLink).Error; err != nil {
 			warnErr(c, err)
@@ -169,7 +177,7 @@ func setupACC(srv *server) {
 	})
 
 	authorized.POST("/replace/email", func(c *gin.Context) {
-		u := c.MustGet("user").(*User)
+		u := c.MustGet("user").(*user.User)
 
 		var json common.ChangeEmailInput
 		if err := c.ShouldBindJSON(&json); err != nil {
@@ -213,8 +221,44 @@ func setupACC(srv *server) {
 		c.JSON(http.StatusOK, &common.Success{Success: true})
 	})
 
+	authorized.POST("/create/notification", func(c *gin.Context) {
+		u := c.MustGet("user").(*user.User)
+		var json *common.CreateNotificationInput
+		if err := c.ShouldBindJSON(&json); err != nil {
+			warnErr(c, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		n, err := createNotificationRule(db, u, json)
+		if err != nil {
+			warnErr(c, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, transformRuleToOutput(n))
+	})
+
+	authorized.POST("/change/notification", func(c *gin.Context) {
+		u := c.MustGet("user").(*user.User)
+		var json *common.ModifyNotificationInput
+		if err := c.ShouldBindJSON(&json); err != nil {
+			warnErr(c, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		n, err := changeNotificationRule(db, u, json)
+		if err != nil {
+			warnErr(c, err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, transformRuleToOutput(n))
+	})
+
 	authorized.POST("/create/token", func(c *gin.Context) {
-		u := c.MustGet("user").(*User)
+		u := c.MustGet("user").(*user.User)
 		var json common.CreateTokenInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
@@ -230,21 +274,11 @@ func setupACC(srv *server) {
 		}
 
 		actionLog(db, u.ID, "token", "create", c.Request)
-		out := &common.TokenOutput{
-			ID:               token.ID,
-			Name:             token.Name,
-			UUID:             token.UUID,
-			WriteOnly:        token.WriteOnly,
-			NumberOfArchives: token.NumberOfArchives,
-			CreatedAt:        token.CreatedAt,
-			Quota:            token.Quota,
-			QuotaInode:       token.QuotaInode,
-		}
-		c.JSON(http.StatusOK, out)
+		c.JSON(http.StatusOK, transformTokenForSending(token, 0, 0, []*notification.NotificationRule{}))
 	})
 
 	authorized.POST("/change/token", func(c *gin.Context) {
-		u := c.MustGet("user").(*User)
+		u := c.MustGet("user").(*user.User)
 		var json common.ModifyTokenInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
@@ -271,11 +305,12 @@ func setupACC(srv *server) {
 		}
 
 		actionLog(db, u.ID, "token", "change", c.Request)
-		c.JSON(http.StatusOK, transformTokenForSending(token, 0, 0))
+
+		c.JSON(http.StatusOK, transformTokenForSending(token, 0, 0, []*notification.NotificationRule{}))
 	})
 
 	authorized.POST("/delete/token", func(c *gin.Context) {
-		u := c.MustGet("user").(*User)
+		u := c.MustGet("user").(*user.User)
 		var json common.DeleteTokenInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
@@ -311,7 +346,7 @@ func setupACC(srv *server) {
 		// check currency and amount and etc
 		// otherwise anyone can create ipn request with wrong amount :D
 
-		u := &User{}
+		u := &user.User{}
 		if err := db.Where("payment_id = ?", c.Param("paymentID")).Take(u).Error; err != nil {
 			return err
 		}
@@ -321,7 +356,7 @@ func setupACC(srv *server) {
 			encoded = "{}"
 		}
 
-		ph := &PaymentHistory{
+		ph := &user.PaymentHistory{
 			UserID: u.ID,
 			IPN:    encoded,
 			IPNRAW: body,
@@ -382,7 +417,7 @@ func setupACC(srv *server) {
 	})
 
 	r.GET("/verify/:id", func(c *gin.Context) {
-		v := &VerificationLink{}
+		v := &user.VerificationLink{}
 		now := time.Now()
 
 		wrong := func(err error) {
@@ -412,7 +447,7 @@ func setupACC(srv *server) {
 			return
 		}
 
-		u := &User{}
+		u := &user.User{}
 		if err := tx.Where("id = ?", v.UserID).Take(u).Error; err != nil {
 			warnErr(c, fmt.Errorf("weird state, verification's user not found %#v", v))
 			tx.Rollback()
