@@ -42,9 +42,8 @@ func sendNotificationEmails(db *gorm.DB) {
 }
 
 type PerRuleGroup struct {
-	Age  []notification.AgeNotification
-	Size []notification.SizeNotification
-	Rule *notification.NotificationRule
+	PerFile []notification.FileNotification
+	Rule    *notification.NotificationRule
 }
 
 func runRules(db *gorm.DB) {
@@ -59,13 +58,15 @@ func runRules(db *gorm.DB) {
 			log.Fatal(err)
 		}
 		grouped := []PerRuleGroup{}
-
+	TOKEN:
 		for _, t := range tokens {
 			rules := []*notification.NotificationRule{}
 			if err := db.Where("user_id = ? AND token_id = ?", u.ID, t.ID).Find(&rules).Error; err != nil {
 				log.Fatal(err)
 			}
-
+			if len(rules) == 0 {
+				continue TOKEN
+			}
 			files, err := file.ListFilesInPath(db, t, "", false)
 			if err != nil {
 				log.Fatal(err)
@@ -83,17 +84,21 @@ func runRules(db *gorm.DB) {
 					log.Fatal(err)
 				}
 
-				age, size, err := notification.ExecuteRule(rule, files)
+				pf, err := notification.ExecuteRule(rule, files)
 				if err != nil {
 					log.Fatal(err)
 				}
+				//				for _, per := range pf {
+				//					nfv := &NotificationForFileVersion{NotificationRuleID: rule.ID, FileVersionID: 1}
+				//				}
+
 				grouped = append(grouped, PerRuleGroup{
-					Rule: rule,
-					Age:  age,
-					Size: size,
+					Rule:    rule,
+					PerFile: pf,
 				})
 			}
 		}
+
 		if len(grouped) != 0 {
 			uuid := common.GetUUID()
 			// check if the file was notified before

@@ -1,8 +1,6 @@
 package notification
 
 import (
-	"fmt"
-	"log"
 	"testing"
 	"time"
 
@@ -71,18 +69,8 @@ func TestAge(t *testing.T) {
 			},
 		},
 	}
-	age, size, _ := ExecuteRule(rule, files)
-	for _, a := range age {
-		fmt.Printf("%s\n\n", a.String())
-	}
-	for _, a := range size {
-		log.Printf("%s\n\n", a.String())
-	}
-
-	if len(age) != 2 {
-		t.Fatalf("expected 2 notifications got %d", len(age))
-	}
-	if len(size) != 2 {
-		t.Fatalf("expected 2 notifications got %d", len(size))
+	n, _ := ExecuteRule(rule, files)
+	if len(n) != 3 {
+		t.Fatalf("expected 3 notifications got %d", len(n))
 	}
 }

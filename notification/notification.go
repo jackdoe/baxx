@@ -28,23 +28,27 @@ type SizeNotification struct {
 	PreviousSize uint64
 	Delta        float64
 	Overflow     float64
-	FileVersion  *file.FileVersion
 }
 
 func (n *SizeNotification) String() string {
 	return help.Render(help.EMAIL_SIZE_RULE, n)
 }
 
-func ExecuteRule(rule *NotificationRule, files []file.FileMetadataAndVersion) ([]AgeNotification, []SizeNotification, error) {
+type FileNotification struct {
+	Age         *AgeNotification
+	Size        *SizeNotification
+	FileVersion *file.FileVersion
+}
+
+func ExecuteRule(rule *NotificationRule, files []file.FileMetadataAndVersion) ([]FileNotification, error) {
 	// super bad implementation
 	// just checking the flow
 	re, err := regexp.Compile(rule.Regexp)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	byAge := []AgeNotification{}
-	bySize := []SizeNotification{}
+	out := []FileNotification{}
 
 	for _, f := range files {
 		fullpath := f.FileMetadata.FullPath()
@@ -58,42 +62,49 @@ func ExecuteRule(rule *NotificationRule, files []file.FileMetadataAndVersion) ([
 
 			// both of those are super simplified
 			// FIXME(jackdoe): more work is needed!
+			current := FileNotification{
+				FileVersion: f.Versions[0],
+			}
+
 			if rule.AcceptableAgeSeconds > 0 {
 				version := f.Versions[0]
 				acceptableAge := version.CreatedAt.Add(time.Duration(rule.AcceptableAgeSeconds) * time.Second)
 				if now.After(acceptableAge) {
-					n := AgeNotification{
-						FullPath:    fullpath,
-						CreatedAt:   version.CreatedAt,
-						ActualAge:   now.Sub(version.CreatedAt),
-						Overdue:     now.Sub(acceptableAge),
-						FileVersion: version,
+					n := &AgeNotification{
+						FullPath:  fullpath,
+						CreatedAt: version.CreatedAt,
+						ActualAge: now.Sub(version.CreatedAt),
+						Overdue:   now.Sub(acceptableAge),
 					}
-					byAge = append(byAge, n)
+					current.Age = n
 				}
 			}
+
 			if rule.AcceptableSizeDeltaPercentBetweenVersions > 0 && len(f.Versions) > 1 {
 				lastVersion := f.Versions[0]
 				previousVersion := f.Versions[1]
 				delta := (float64(lastVersion.Size) - float64(previousVersion.Size)) / float64(lastVersion.Size)
 				if (math.Abs(delta) * 100) > float64(rule.AcceptableSizeDeltaPercentBetweenVersions) {
 					// delta trigger
-					n := SizeNotification{
+					n := &SizeNotification{
 						FullPath:     fullpath,
 						CreatedAt:    lastVersion.CreatedAt,
 						CurrentSize:  lastVersion.Size,
 						PreviousSize: previousVersion.Size,
 						Delta:        delta * 100,
 						Overflow:     float64(lastVersion.Size) * delta,
-						FileVersion:  lastVersion,
 					}
-					bySize = append(bySize, n)
+					current.Size = n
 				}
+			}
+
+			if current.Age != nil || current.Size != nil {
+				out = append(out, current)
 			}
 		}
 	}
 
-	return byAge, bySize, nil
+	return out, nil
 }
 
 type NotificationRule struct {
