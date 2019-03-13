@@ -63,7 +63,7 @@ func TestFileQuota(t *testing.T) {
 	var fmFirst *file.FileMetadata
 	for i := 0; i < 20; i++ {
 		s := fmt.Sprintf("a b c d %d", i)
-		_, fmFirst, err = SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(s)), filePath)
+		_, fmFirst, err = SaveFileProcess(store, db, token, bytes.NewBuffer([]byte(s)), filePath)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -89,7 +89,7 @@ func TestFileQuota(t *testing.T) {
 	}
 
 	testShaDiff(t, db, token)
-	_, fmSecond, err := SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
+	_, fmSecond, err := SaveFileProcess(store, db, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,42 +146,42 @@ func TestFileQuota(t *testing.T) {
 		t.Fatalf("expected 0 got %d", used)
 	}
 
-	user.Quota = 10
-	user.QuotaInode = 2
-	if err := db.Save(user).Error; err != nil {
+	token.Quota = 10
+	token.QuotaInode = 2
+	if err := db.Save(token).Error; err != nil {
 		t.Fatal(err)
 	}
 
-	_, _, err = SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
+	_, _, err = SaveFileProcess(store, db, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
 	if err != nil {
 		t.Fatal(err)
 	}
-	left, inodeLeft, _ := user.GetQuotaLeft(db)
+	left, inodeLeft, _ := file.GetQuotaLeft(db, token)
 	log.Printf("left: %d inodes: %d", left, inodeLeft)
 	if inodeLeft != 1 {
 		t.Fatalf("expected 1 got %d", inodeLeft)
 	}
 
-	_, inodeLeft, _ = user.GetQuotaLeft(db)
+	_, inodeLeft, _ = file.GetQuotaLeft(db, token)
 	if inodeLeft != 1 {
 		t.Fatalf("(after error) expected 1 got %d", inodeLeft)
 	}
 
-	user.Quota = 500
-	if err := db.Save(user).Error; err != nil {
+	token.Quota = 500
+	if err := db.Save(token).Error; err != nil {
 		t.Fatal(err)
 	}
-	_, _, err = SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), filePath+"second")
+	_, _, err = SaveFileProcess(store, db, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), filePath+"second")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	left, inodeLeft, _ = user.GetQuotaLeft(db)
+	left, inodeLeft, _ = file.GetQuotaLeft(db, token)
 	if inodeLeft != 0 {
 		t.Fatalf("expected 1 got %d", inodeLeft)
 	}
 	log.Printf("left: %d inodes: %d", left, inodeLeft)
-	_, _, err = SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), filePath+"second")
+	_, _, err = SaveFileProcess(store, db, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), filePath+"second")
 	if err.Error() != "inode quota limit reached" {
 		t.Fatalf("expected inode quota limit reached got %s", err.Error())
 	}

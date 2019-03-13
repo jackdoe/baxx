@@ -6,13 +6,14 @@ import (
 )
 
 type Token struct {
-	ID     uint64 `gorm:"primary_key"`
-	UUID   string `gorm:"not null"`
-	Salt   string `gorm:"not null;type:varchar(32)"`
-	Bucket string `gorm:"not null;type:varchar(32)"`
-	Name   string `gorm:"null;type:varchar(255)"`
-	UserID uint64 `gorm:"type:bigint not null REFERENCES users(id)"`
-
+	ID               uint64 `gorm:"primary_key"`
+	UUID             string `gorm:"not null"`
+	Salt             string `gorm:"not null;type:varchar(32)"`
+	Bucket           string `gorm:"not null;type:varchar(32)"`
+	Name             string `gorm:"null;type:varchar(255)"`
+	UserID           uint64 `gorm:"type:bigint not null REFERENCES users(id)"`
+	Quota            uint64 `gorm:"not null;default:10737418240" json:"quota"`
+	QuotaInode       uint64 `gorm:"not null;default:1000" json:"quota_inode"`
 	WriteOnly        bool   `gorm:"not null"`
 	NumberOfArchives uint64 `gorm:"not null"`
 	SizeUsed         uint64 `gorm:"not null;default:0"`

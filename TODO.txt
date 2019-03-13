@@ -12,7 +12,13 @@
 
   and it works by not having local users
   and sends metadata to baxx.dev for the notifications
-  
+
+  + 
+  + make docker image with minio baxx and postgres
+     on the outside it should look like:
+     docker run -p 9123:9123 -e BAXX_TOKENS=A,B,C -m /mnt/backup:/backup baxx
+     
+
 * make travisci for backups
   if files are stored locally in the customer's s3 (minio)
   and they are not encrypted, we can run custom functions

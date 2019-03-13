@@ -22,7 +22,11 @@ func getUserStatus(db *gorm.DB, u *User) (*common.UserStatusOutput, error) {
 	}
 	tokensTransformed := []*common.TokenOutput{}
 	for _, t := range tokens {
-		tokensTransformed = append(tokensTransformed, &common.TokenOutput{ID: t.ID, UUID: t.UUID, Name: t.Name, WriteOnly: t.WriteOnly, NumberOfArchives: t.NumberOfArchives, CreatedAt: t.CreatedAt})
+		usedSize, usedInodes, err := file.GetQuotaUsed(db, t)
+		if err != nil {
+			return nil, err
+		}
+		tokensTransformed = append(tokensTransformed, transformTokenForSending(t, usedSize, usedInodes))
 	}
 	used := uint64(0)
 	for _, t := range tokens {
@@ -37,12 +41,12 @@ func getUserStatus(db *gorm.DB, u *User) (*common.UserStatusOutput, error) {
 		StartedSubscription:   u.StartedSubscription,
 		CancelledSubscription: u.CancelledSubscription,
 		Tokens:                tokensTransformed,
-		Quota:                 u.Quota,
-		LastVerificationID:    vl.ID,
-		QuotaUsed:             used,
-		Paid:                  u.Paid(),
-		PaymentID:             u.PaymentID,
-		Email:                 u.Email,
+
+		LastVerificationID: vl.ID,
+
+		Paid:      u.Paid(),
+		PaymentID: u.PaymentID,
+		Email:     u.Email,
 	}, nil
 }
 
@@ -61,7 +65,7 @@ func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (
 		return nil, nil, errors.New("user already exists")
 	}
 
-	u := &User{Email: json.Email, Quota: CONFIG.DefaultQuota, QuotaInode: CONFIG.DefaultInodeQuota}
+	u := &User{Email: json.Email}
 	u.SetPassword(json.Password)
 	if err := tx.Create(u).Error; err != nil {
 		tx.Rollback()
@@ -226,7 +230,16 @@ func setupACC(srv *server) {
 		}
 
 		actionLog(db, u.ID, "token", "create", c.Request)
-		out := &common.TokenOutput{ID: token.ID, Name: token.Name, UUID: token.UUID, WriteOnly: token.WriteOnly, NumberOfArchives: token.NumberOfArchives, CreatedAt: token.CreatedAt, SizeUsed: token.SizeUsed}
+		out := &common.TokenOutput{
+			ID:               token.ID,
+			Name:             token.Name,
+			UUID:             token.UUID,
+			WriteOnly:        token.WriteOnly,
+			NumberOfArchives: token.NumberOfArchives,
+			CreatedAt:        token.CreatedAt,
+			Quota:            token.Quota,
+			QuotaInode:       token.QuotaInode,
+		}
 		c.JSON(http.StatusOK, out)
 	})
 
@@ -258,8 +271,7 @@ func setupACC(srv *server) {
 		}
 
 		actionLog(db, u.ID, "token", "change", c.Request)
-		out := &common.TokenOutput{Name: token.Name, UUID: token.UUID, WriteOnly: token.WriteOnly, NumberOfArchives: token.NumberOfArchives, CreatedAt: token.CreatedAt, SizeUsed: token.SizeUsed}
-		c.JSON(http.StatusOK, out)
+		c.JSON(http.StatusOK, transformTokenForSending(token, 0, 0))
 	})
 
 	authorized.POST("/delete/token", func(c *gin.Context) {

@@ -55,8 +55,11 @@ type TokenOutput struct {
 	WriteOnly        bool      `json:"write_only"`
 	Name             string    `json:"name"`
 	NumberOfArchives uint64    `json:"keep_n_versions"`
-	SizeUsed         uint64    `json:"size_used"`
 	CreatedAt        time.Time `json:"created_at"`
+	Quota            uint64    `json:"quota"`
+	QuotaUsed        uint64    `json:"quota_used"`
+	QuotaInode       uint64    `json:"quota_inodes"`
+	QuotaInodeUsed   uint64    `json:"quota_inodes_used"`
 }
 
 type UserStatusOutput struct {
@@ -67,8 +70,6 @@ type UserStatusOutput struct {
 	PaymentID             string         `json:"payment_id"`
 	LastVerificationID    string         `json:"-"`
 	Tokens                []*TokenOutput `json:"tokens"`
-	Quota                 uint64         `json:"quota"`
-	QuotaUsed             uint64         `json:"used"`
 	Email                 string         `json:"email"`
 }
 

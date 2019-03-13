@@ -15,8 +15,8 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-func SaveFileProcess(s *file.Store, db *gorm.DB, u *User, t *file.Token, body io.Reader, p string) (*file.FileVersion, *file.FileMetadata, error) {
-	leftSize, leftInodes, err := u.GetQuotaLeft(db)
+func SaveFileProcess(s *file.Store, db *gorm.DB, t *file.Token, body io.Reader, p string) (*file.FileVersion, *file.FileMetadata, error) {
+	leftSize, leftInodes, err := file.GetQuotaLeft(db, t)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -71,14 +71,14 @@ func setupIO(srv *server) {
 		body := c.Request.Body
 		defer body.Close()
 
-		t, u, err := getViewTokenLoggedOrNot(c)
+		t, _, err := getViewTokenLoggedOrNot(c)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		p := c.Param("path")
-		fv, fm, err := SaveFileProcess(store, db, u, t, body, p)
+		fv, fm, err := SaveFileProcess(store, db, t, body, p)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

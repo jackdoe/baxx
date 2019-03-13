@@ -20,26 +20,28 @@ type Example struct {
 	Namespaces []*Namespace
 }
 
+type NotificationRule struct {
+	ID     uint64 `gorm:"primary_key" json:"-"`
+	UserID uint64 `gorm:"type:bigint not null REFERENCES users(id)" json:"-"`
+	Name   string `gorm:"not null" json:"-"`
+	Regex  string `gorm:"not null" json:"-"`
+}
+
 type EmailNotification struct {
 	ID      uint64 `gorm:"primary_key" json:"-"`
-	UUID    string `gorm:"not null" json:"-"`
+	UserID  uint64 `gorm:"type:bigint not null REFERENCES users(id)" json:"-"`
+	UUID    string `gorm:"type:varchar(255) not null unique" json:"-"`
 	Example string `gorm:"not null;type:text" json:"-"`
 
 	EmailText    string `gorm:"not null;type:text" json:"-"`
 	EmailDest    string `gorm:"not null" json:"-"`
 	EmailSubject string `gorm:"not null;type:text" json:"-"`
 
-	BecauseOfRule uint64 `gorm:"not null" json:"-"`
+	BecauseOfRule uint64 `gorm:"type:bigint not null REFERENCES notification_rules(id)(" json:"-"`
 
 	SentAt    time.Time `json:"-"`
 	CreatedAt time.Time `json:"-"`
 	UpdatedAt time.Time `json:"-"`
-}
-
-type NotificationRule struct {
-	ID     uint64 `gorm:"primary_key" json:"-"`
-	UserID uint64 `gorm:"not null" json:"-"`
-	Name   string `gorm:"not null" json:"-"`
 }
 
 /*

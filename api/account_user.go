@@ -43,8 +43,6 @@ type User struct {
 	ID                    uint64     `gorm:"primary_key" json:"-"`
 	PaymentID             string     `gorm:"not null" json:"-"`
 	Email                 string     `gorm:"not null" json:"-"`
-	Quota                 uint64     `gorm:"not null;default:10737418240" json:"quota"`
-	QuotaInode            uint64     `gorm:"not null;default:1000" json:"quota_inode"`
 	EmailVerified         *time.Time `json:"-"`
 	StartedSubscription   *time.Time `json:"-"`
 	CancelledSubscription *time.Time `json:"-"`

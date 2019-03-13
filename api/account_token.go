@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/jackdoe/baxx/common"
 	"github.com/jackdoe/baxx/file"
 	"github.com/jinzhu/gorm"
 )
@@ -26,6 +27,8 @@ func (user *User) CreateToken(db *gorm.DB, writeOnly bool, numOfArchives uint64,
 		WriteOnly:        writeOnly,
 		NumberOfArchives: numOfArchives,
 		Name:             name,
+		Quota:            CONFIG.DefaultQuota,
+		QuotaInode:       CONFIG.DefaultInodeQuota,
 	}
 
 	tokens, err := user.ListTokens(db)
@@ -84,4 +87,19 @@ func CreateTokenAndBucket(s *file.Store, db *gorm.DB, u *User, writeOnly bool, n
 		return nil, err
 	}
 	return t, nil
+}
+
+func transformTokenForSending(t *file.Token, usedSize, usedInodes int64) *common.TokenOutput {
+	return &common.TokenOutput{
+		ID:               t.ID,
+		UUID:             t.UUID,
+		Name:             t.Name,
+		WriteOnly:        t.WriteOnly,
+		NumberOfArchives: t.NumberOfArchives,
+		CreatedAt:        t.CreatedAt,
+		QuotaUsed:        uint64(usedSize),
+		QuotaInodeUsed:   uint64(usedInodes),
+		Quota:            t.Quota,
+		QuotaInode:       t.QuotaInode,
+	}
 }
