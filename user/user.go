@@ -1,7 +1,6 @@
 package user
 
 import (
-	"errors"
 	"time"
 
 	"github.com/jackdoe/baxx/common"
@@ -89,9 +88,11 @@ func FindUser(db *gorm.DB, user string, pass string) (*User, error) {
 	if err := db.Where("email = ?", user).Take(u).Error; err != nil {
 		return nil, err
 	}
+	return u, nil
+}
 
-	if u.MatchPassword(pass) {
-		return u, nil
-	}
-	return nil, errors.New("wrong password")
+func Exists(db *gorm.DB, user string) bool {
+	u := &User{}
+	q := db.Where("email = ?", user).Take(u)
+	return !q.RecordNotFound()
 }

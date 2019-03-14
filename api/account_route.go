@@ -67,11 +67,11 @@ func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (
 		return nil, nil, err
 	}
 	tx := db.Begin()
-	_, err := user.FindUser(tx, json.Email, json.Password)
-	if err == nil {
+
+	if user.Exists(tx, json.Email) {
 		// user already exists
 		tx.Rollback()
-		return nil, nil, err
+		return nil, nil, errors.New("user already exists")
 	}
 
 	u := &user.User{Email: json.Email}
@@ -87,7 +87,7 @@ func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (
 		return nil, nil, err
 	}
 
-	_, err = CreateTokenAndBucket(store, tx, u, false, 7, "generic-read-write-7")
+	_, err := CreateTokenAndBucket(store, tx, u, false, 7, "generic-read-write-7")
 	if err != nil {
 		tx.Rollback()
 		return nil, nil, err
@@ -98,12 +98,12 @@ func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (
 		return nil, nil, err
 	}
 
-	if err := sendRegistrationHelp(status); err != nil {
-		log.Warnf("failed to send email, ignoring error and moving on,  %s", err.Error())
-	}
-
 	if err := tx.Commit().Error; err != nil {
 		return nil, nil, err
+	}
+
+	if err := sendRegistrationHelp(status); err != nil {
+		log.Warnf("failed to send email, ignoring error and moving on,  %s", err.Error())
 	}
 
 	return status, u, nil
@@ -122,6 +122,7 @@ func setupACC(srv *server) {
 			return
 		}
 		out, u, err := registerUser(store, db, json)
+		log.Printf("%s %s", u, err)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

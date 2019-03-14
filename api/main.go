@@ -127,7 +127,9 @@ func setupAPI(db *gorm.DB, bind string) {
 		if su != "" {
 			u, err := user.FindUser(db, su, pass)
 			if err == nil {
-				c.Set("user", u)
+				if u.MatchPassword(pass) {
+					c.Set("user", u)
+				}
 			}
 		}
 	})

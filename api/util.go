@@ -54,5 +54,6 @@ func warnErr(c *gin.Context, err error) {
 		u = x.(*user.User)
 	}
 	_, fn, line, _ := runtime.Caller(1)
-	log.Warnf("uid: %d, uri: %s, err: >> %s << [%s:%d]", u.ID, c.Request.RequestURI, err.Error(), fn, line)
+
+	log.Warnf("uid: %d, uri: %s, err: >> %s << [%s:%d] %s", u.ID, c.Request.RequestURI, err.Error(), fn, line)
 }
