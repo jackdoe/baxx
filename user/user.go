@@ -84,15 +84,14 @@ func (user *User) BeforeCreate(scope *gorm.Scope) error {
 	return scope.SetColumn("PaymentID", common.GetUUID())
 }
 
-func FindUser(db *gorm.DB, user string, pass string) (*User, bool, error) {
+func FindUser(db *gorm.DB, user string, pass string) (*User, error) {
 	u := &User{}
-	query := db.Where("email = ?", user).Take(u)
-	if query.RecordNotFound() {
-		return nil, false, query.Error
+	if err := db.Where("email = ?", user).Take(u).Error; err != nil {
+		return nil, err
 	}
 
 	if u.MatchPassword(pass) {
-		return u, true, nil
+		return u, nil
 	}
-	return nil, true, errors.New("wrong password")
+	return nil, errors.New("wrong password")
 }

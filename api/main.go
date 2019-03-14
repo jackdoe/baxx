@@ -125,7 +125,7 @@ func setupAPI(db *gorm.DB, bind string) {
 	r.Use(func(c *gin.Context) {
 		su, pass := BasicAuthDecode(c)
 		if su != "" {
-			u, _, err := user.FindUser(db, su, pass)
+			u, err := user.FindUser(db, su, pass)
 			if err == nil {
 				c.Set("user", u)
 			}

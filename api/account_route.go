@@ -67,10 +67,10 @@ func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (
 		return nil, nil, err
 	}
 	tx := db.Begin()
-	_, exists, err := user.FindUser(tx, json.Email, json.Password)
-	if err == nil || exists {
+	_, err := user.FindUser(tx, json.Email, json.Password)
+	if err == nil {
 		tx.Rollback()
-		return nil, nil, errors.New("user already exists")
+		return nil, nil, err
 	}
 
 	u := &user.User{Email: json.Email}
