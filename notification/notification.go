@@ -121,7 +121,7 @@ type NotificationForFileVersion struct {
 	ID                 uint64    `gorm:"primary_key"`
 	NotificationRuleID uint64    `gorm:"type:bigint not null REFERENCES notification_rules(id) ON DELETE CASCADE"`
 	FileVersionID      uint64    `gorm:"type:bigint not null REFERENCES file_versions(id) ON DELETE CASCADE"`
-	Count              uint64    `gorm:"type:bigint not null`
+	Count              uint64    `gorm:"type:bigint not null"`
 	CreatedAt          time.Time `json:"created_at"`
 	UpdatedAt          time.Time `json:"updated_at"`
 }

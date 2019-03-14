@@ -194,7 +194,6 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 		}
 		p1 := password.Text()
 		email := user.Text()
-		log.Printf(email)
 		_, err := bc.Status(&bcommon.CreateUserInput{Email: email, Password: p1})
 		if err == nil {
 			onRegister(email, p1)
