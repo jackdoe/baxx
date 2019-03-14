@@ -137,6 +137,7 @@ func setupAPI(db *gorm.DB, bind string) {
 		if !loggedIn {
 			c.Header("WWW-Authenticate", "Authorization Required")
 			c.String(401, `{"error": "Not Authorized (auth required, or wrong password)"}`)
+			c.Abort()
 		}
 	})
 
