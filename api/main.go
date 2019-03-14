@@ -129,11 +129,13 @@ func setupAPI(db *gorm.DB, bind string) {
 			if err == nil {
 				if u.MatchPassword(pass) {
 					c.Set("user", u)
+					actionLog(db, u.ID, c.Request.Method, c.Request.RequestURI, c.Request)
 				}
 			}
 		}
 	})
-	authorized := r.Group("/protected")
+
+	authorized := r.Group("/protected") // FIXME rename that? its too long /p/ should be fine
 	authorized.Use(func(c *gin.Context) {
 		_, loggedIn := c.Get("user")
 		if !loggedIn {

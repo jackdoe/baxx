@@ -128,11 +128,10 @@ func setupACC(srv *server) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		actionLog(db, u.ID, "user", "create", c.Request)
 		c.JSON(http.StatusOK, out)
 	})
 
-	authorized.POST("/status", func(c *gin.Context) {
+	statusFn := func(c *gin.Context) {
 		u := c.MustGet("user").(*user.User)
 		status, err := getUserStatus(db, u)
 		if err != nil {
@@ -141,7 +140,10 @@ func setupACC(srv *server) {
 			return
 		}
 		c.JSON(http.StatusOK, status)
-	})
+	}
+
+	authorized.POST("/status", statusFn)
+	authorized.GET("/status", statusFn)
 
 	authorized.POST("/replace/password", func(c *gin.Context) {
 		u := c.MustGet("user").(*user.User)
@@ -275,7 +277,6 @@ func setupACC(srv *server) {
 			return
 		}
 
-		actionLog(db, u.ID, "token", "create", c.Request)
 		c.JSON(http.StatusOK, transformTokenForSending(token, 0, 0, []*notification.NotificationRule{}))
 	})
 
@@ -306,8 +307,6 @@ func setupACC(srv *server) {
 			return
 		}
 
-		actionLog(db, u.ID, "token", "change", c.Request)
-
 		c.JSON(http.StatusOK, transformTokenForSending(token, 0, 0, []*notification.NotificationRule{}))
 	})
 
@@ -331,8 +330,6 @@ func setupACC(srv *server) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-
-		actionLog(db, u.ID, "token", "delete", c.Request)
 
 		c.JSON(http.StatusOK, &common.Success{Success: true})
 	})
