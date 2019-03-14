@@ -68,7 +68,7 @@ func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (
 	}
 	tx := db.Begin()
 	_, err := user.FindUser(tx, json.Email, json.Password)
-	if err == nil {
+	if err != nil {
 		tx.Rollback()
 		return nil, nil, err
 	}
