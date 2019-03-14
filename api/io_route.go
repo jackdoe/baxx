@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
+	"time"
 
 	"strings"
 
@@ -14,6 +17,14 @@ import (
 
 	"github.com/jinzhu/gorm"
 )
+
+func FileLine(fm *file.FileMetadata, fv *file.FileVersion) string {
+	isCurrent := ""
+	if fm.LastVersionID == fv.ID {
+		isCurrent = "*"
+	}
+	return fmt.Sprintf("%d\t%s\t%s@v%d%s\t%s\n", fv.Size, fv.CreatedAt.Format(time.ANSIC), fm.FullPath(), fv.ID, isCurrent, fv.SHA256)
+}
 
 func SaveFileProcess(s *file.Store, db *gorm.DB, t *file.Token, body io.Reader, p string) (*file.FileVersion, *file.FileMetadata, error) {
 	leftSize, leftInodes, err := file.GetQuotaLeft(db, t)
@@ -30,6 +41,42 @@ func SaveFileProcess(s *file.Store, db *gorm.DB, t *file.Token, body io.Reader, 
 	}
 
 	return file.SaveFile(s, db, t, p, body)
+}
+
+func LSAL(files []file.FileMetadataAndVersion) string {
+	buf := bytes.NewBufferString("")
+	grouped := map[string][]file.FileMetadataAndVersion{}
+
+	for _, f := range files {
+		grouped[f.FileMetadata.Path] = append(grouped[f.FileMetadata.Path], f)
+	}
+
+	keys := []string{}
+	for p := range grouped {
+		keys = append(keys, p)
+	}
+	sort.Strings(keys)
+	total := uint64(0)
+	for _, k := range keys {
+		files := grouped[k]
+
+		size := uint64(0)
+		for _, f := range files {
+			for _, v := range f.Versions {
+				size += v.Size
+				total += v.Size
+			}
+		}
+		fmt.Fprintf(buf, "%s: total size: %d (%s)\n", k, size, common.PrettySize(size))
+		for _, f := range files {
+			for _, v := range f.Versions {
+				buf.WriteString(FileLine(f.FileMetadata, v))
+			}
+		}
+		fmt.Fprintf(buf, "\n")
+	}
+	fmt.Fprintf(buf, "sum total size: %d (%s)\n", total, common.PrettySize(total))
+	return buf.String()
 }
 
 func setupIO(srv *server) {
@@ -92,7 +139,7 @@ func setupIO(srv *server) {
 			c.JSON(http.StatusOK, fv)
 			return
 		}
-		c.String(http.StatusOK, file.FileLine(fm, fv))
+		c.String(http.StatusOK, FileLine(fm, fv))
 	}
 
 	deleteFile := func(c *gin.Context) {
@@ -166,7 +213,7 @@ func setupIO(srv *server) {
 			c.JSON(http.StatusOK, files)
 			return
 		}
-		c.String(http.StatusOK, file.LSAL(files))
+		c.String(http.StatusOK, LSAL(files))
 	}
 
 	mutateSinglePATH := "/io/:token/*path"

@@ -1,12 +1,34 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackdoe/baxx/file"
+	"github.com/jinzhu/gorm"
 )
+
+func ShaDiff(db *gorm.DB, t *file.Token, body io.Reader) ([]string, error) {
+	scanner := bufio.NewScanner(body)
+	out := []string{}
+	for scanner.Scan() {
+		line := scanner.Text()
+		splitted := strings.SplitN(line, "  ", 2)
+		if len(splitted) != 2 || len(splitted[0]) != 64 || len(splitted[1]) == 0 {
+			return nil, fmt.Errorf("expected 'shasum(64 chars)  path/to/file' (two spaces), basically output of shasum -a 256 file; got: %s", line)
+		}
+		_, _, err := file.FindFileBySHA(db, t, splitted[0])
+		if err != nil {
+			out = append(out, line)
+		}
+	}
+
+	return out, nil
+}
 
 func setupSYNC(srv *server) {
 	r := srv.r
@@ -32,7 +54,7 @@ func setupSYNC(srv *server) {
 			return
 		}
 
-		c.String(http.StatusOK, file.FileLine(fm, fv))
+		c.String(http.StatusOK, FileLine(fm, fv))
 	})
 
 	// lookup on many sha and return only the ones that are not found
@@ -48,7 +70,7 @@ func setupSYNC(srv *server) {
 		}
 		body := c.Request.Body
 		defer body.Close()
-		out, err := file.ShaDiff(db, t, body)
+		out, err := ShaDiff(db, t, body)
 		if err != nil {
 			warnErr(c, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

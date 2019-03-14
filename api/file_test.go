@@ -128,7 +128,7 @@ func TestFileQuota(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	log.Printf("%s", file.LSAL(files))
+	log.Printf("%s", LSAL(files))
 	if len(files) != 2 {
 		t.Fatalf("expected 2 files got %d", len(files))
 	}
@@ -255,16 +255,16 @@ func getUsed(t *testing.T, db *gorm.DB, user *user.User) uint64 {
 }
 
 func testShaDiff(t *testing.T, db *gorm.DB, token *file.Token) {
-	_, err := file.ShaDiff(db, token, bytes.NewBuffer([]byte("abc")))
+	_, err := ShaDiff(db, token, bytes.NewBuffer([]byte("abc")))
 	if err == nil {
 		t.Fatalf("expected error")
 	}
 
-	_, err = file.ShaDiff(db, token, bytes.NewBuffer([]byte("e8fb44fdcd108c238ea4a809bc758ffa5ebe636a  mail.go")))
+	_, err = ShaDiff(db, token, bytes.NewBuffer([]byte("e8fb44fdcd108c238ea4a809bc758ffa5ebe636a  mail.go")))
 	if err == nil {
 		t.Fatalf("expected error")
 	}
-	diff, err := file.ShaDiff(db, token, bytes.NewBuffer([]byte(`21d551e4428872a077c6e76d8d9eda8d9b4714ae8ac1e98e084d1f1d48f1eb67  action_log.go
+	diff, err := ShaDiff(db, token, bytes.NewBuffer([]byte(`21d551e4428872a077c6e76d8d9eda8d9b4714ae8ac1e98e084d1f1d48f1eb67  action_log.go
 2997f66d71b5c0f2f396872536beed30835add1e1de8740b3136c9d550b1eb7c  api
 2997f66d71b5c0f2f396872536beed30835add1e1de8740b3136c9d550b1eb7c  api2
 8719d1dc6f98ebb5c04f8c1768342e865156b1582806b6c7d26e3fbdc99b8762  file_test.go
