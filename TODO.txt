@@ -1,9 +1,11 @@
 * notifications
- + destinations
- + configure
- + send email when rule matches
+ + create [ done Thu 14 Mar 10:12:58 CET 2019 ]
+ + modify [ done Thu 14 Mar 10:12:58 CET 2019 ]
+ + delete
+ + run periodically
+ + send email
 
-* run local copy that sends metadata remotely
+* run local copy that sends metadata remotely [ wontfix: not now ]
   and uses other s3
   so somehow the user is registered on baxx.dev, the tokens are synced
   e.g.
@@ -19,13 +21,14 @@
      docker run -p 9123:9123 -e BAXX_TOKENS=A,B,C -m /mnt/backup:/backup baxx
      
 
-* make travisci for backups
+* make travisci for backups [ wontfix: not now ]
   if files are stored locally in the customer's s3 (minio)
   and they are not encrypted, we can run custom functions
   e.g.
     start mysql
     load the backup
     run a query
+ 
 
 * payments
  + setup paypal ( jack@baxx.dev ) [ done Sun  3 Mar 14:13:14 CET 2019]

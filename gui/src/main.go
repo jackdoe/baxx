@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"time"
+
 	baxx "github.com/jackdoe/baxx/client"
 	bcommon "github.com/jackdoe/baxx/common"
 	. "github.com/jackdoe/baxx/help"
 	"github.com/marcusolsson/tui-go"
-	"log"
-	"os"
-	"time"
 )
 
 var logo = `██████╗  █████╗ ██╗  ██╗██╗  ██╗
@@ -193,16 +194,12 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 		}
 		p1 := password.Text()
 		email := user.Text()
+		log.Printf(email)
 		_, err := bc.Status(&bcommon.CreateUserInput{Email: email, Password: p1})
 		if err == nil {
 			onRegister(email, p1)
 		} else {
-			_, err := bc.Register(&bcommon.CreateUserInput{Email: email, Password: p1})
-			if err != nil {
-				popup(ui, root, false, nil, "ERROR", apiError(err))
-			} else {
-				onRegister(email, p1)
-			}
+			popup(ui, root, false, nil, "ERROR", apiError(err))
 		}
 
 	})
