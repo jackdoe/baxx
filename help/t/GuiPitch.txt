@@ -1,6 +1,4 @@
-package help
-
-var PITCH = Parse(`# baxx.dev is a simple backup service with unix philosophy in mind
+# baxx.dev is a simple backup service with unix philosophy in mind
 
 Tackling the fundamental problems with backups:
   * anomaly detection
@@ -23,14 +21,7 @@ no guarnatees about the data [yet]
 Because I want to see if someone really cares about this.
 Lets work together to make usable backup service!
 
-## Encryption
-
-Your data is compressed and encrypted when received, the encryption
-key is auto generated uuid, and the purpose of the encryption is
-simply to obscure the data in case the machines are hacked, hacker
-will have to also get access to the database as well.
-
-Anyway, dont trust it and use encryption when sending data.
+{{ template "Encryption.txt" . }}
 
 ## End goal
 
@@ -47,5 +38,3 @@ Anyway, dont trust it and use encryption when sending data.
 ## Open Source
 
 https://github.com/jackdoe/baxx
-
-`)

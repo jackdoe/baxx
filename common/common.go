@@ -41,19 +41,23 @@ type ModifyTokenInput struct {
 }
 
 type CreateNotificationInput struct {
-	AcceptableAgeSeconds                      int64  `json:"age_seconds"`
-	AcceptableSizeDeltaPercentBetweenVersions int64  `json:"delta_percent"`
+	AcceptableAgeDays                         int64  `json:"age_days"`
+	AcceptableSizeDeltaPercentBetweenVersions int64  `json:"size_delta_percent"`
 	TokenUUID                                 string `binding:"required" json:"token"`
 	Regexp                                    string `binding:"required" json:"regexp"`
 	Name                                      string `binding:"required" json:"name"`
 }
 
 type ModifyNotificationInput struct {
-	AcceptableAgeSeconds                      *int64  `json:"age_seconds"`
-	AcceptableSizeDeltaPercentBetweenVersions *int64  `json:"delta_percent"`
-	UUID                                      string  `binding:"required" json:"uuid"`
+	AcceptableAgeDays                         *int64  `json:"age_days"`
+	AcceptableSizeDeltaPercentBetweenVersions *int64  `json:"size_delta_percent"`
+	UUID                                      string  `binding:"required" json:"notification_uuid"`
 	Regexp                                    *string `json:"regexp"`
 	Name                                      *string `json:"name"`
+}
+
+type DeleteNotificationInput struct {
+	UUID string `binding:"required" json:"notification_uuid"`
 }
 
 type Success struct {
@@ -66,9 +70,9 @@ type DeleteSuccess struct {
 }
 
 type NotificationRuleOutput struct {
-	AcceptableAgeSeconds                      uint64 `json:"age_seconds"`
-	AcceptableSizeDeltaPercentBetweenVersions uint64 `json:"delta_percent"`
-	UUID                                      string `json:"uuid"`
+	AcceptableAgeDays                         uint64 `json:"age_days"`
+	AcceptableSizeDeltaPercentBetweenVersions uint64 `json:"size_delta_percent"`
+	UUID                                      string `json:"notification_uuid"`
 	Regexp                                    string `json:"regexp"`
 	Name                                      string `json:"name"`
 }
@@ -114,13 +118,15 @@ var EMPTY_STATUS = &UserStatusOutput{
 			Name:             "db-example-a",
 			NotificationRules: []NotificationRuleOutput{
 				NotificationRuleOutput{
-					Name:                 "more than 1 day old database backup",
-					Regexp:               "\\.sql",
-					AcceptableAgeSeconds: 86400,
+					Name:              "more than 1 day old database backup",
+					Regexp:            "\\.sql",
+					AcceptableAgeDays: 1,
+					UUID:              "NOTIFICATION-UUID",
 				},
 				NotificationRuleOutput{
 					Name:   "database file is 50% different",
 					Regexp: "\\.sql",
+					UUID:   "NOTIFICATION-UUID",
 					AcceptableSizeDeltaPercentBetweenVersions: 50,
 				},
 			},
@@ -133,13 +139,15 @@ var EMPTY_STATUS = &UserStatusOutput{
 			Name:             "content-example-b",
 			NotificationRules: []NotificationRuleOutput{
 				NotificationRuleOutput{
-					Name:                 "more than 1 day old config backup",
-					Regexp:               "etc\\.\\.tar\\.gz",
-					AcceptableAgeSeconds: 86400,
+					Name:              "more than 1 day old config backup",
+					Regexp:            "etc\\.\\.tar\\.gz",
+					UUID:              "NOTIFICATION-UUID",
+					AcceptableAgeDays: 1,
 				},
 				NotificationRuleOutput{
 					Name:   "file is 90% different",
 					Regexp: ".*",
+					UUID:   "NOTIFICATION-UUID",
 					AcceptableSizeDeltaPercentBetweenVersions: 90,
 				},
 			},
@@ -153,4 +161,29 @@ type LocalFile struct {
 	Size           uint64
 	TempName       string
 	OriginFullPath string
+}
+
+type AgeNotification struct {
+	ActualAge time.Duration
+	Overdue   time.Duration
+}
+
+type SizeNotification struct {
+	PreviousSize uint64
+	Delta        float64
+	Overflow     uint64
+}
+
+type FileNotification struct {
+	Age             *AgeNotification
+	Size            *SizeNotification
+	FullPath        string
+	LastVersionSize uint64
+	CreatedAt       time.Time
+}
+
+type PerRuleGroup struct {
+	PerFile        []FileNotification
+	Rule           NotificationRuleOutput
+	AlertCreatedAt time.Time
 }

@@ -1,0 +1,11 @@
+## GET: https://baxx.dev/sync/sha256/$BAXX_TOKEN/$sha
+
+Returns non 200 status code if the sha does not exist
+it is meant to be used with 'curl -f', which makes curl exit with non
+zero in case of failure:
+
+$sha is sha256 sum (shasum -a 256 file | cut -f 1 -d ' ')
+
+check if sha exists, and upload if it doesnt
+ curl -f https://baxx.dev/sync/sha256/$BAXX_TOKEN/$sha  || \
+ curl -f -T $i https://baxx.dev/io/$BAXX_TOKEN/$i

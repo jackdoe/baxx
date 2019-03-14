@@ -1,0 +1,5 @@
+Oops, something went wrong!
+
+{{.Err.Error}}
+
+please contact me at jack@baxx.dev if this persists!

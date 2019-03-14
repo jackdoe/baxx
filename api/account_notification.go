@@ -22,21 +22,24 @@ func createNotificationRule(db *gorm.DB, u *user.User, json *common.CreateNotifi
 		return nil, err
 	}
 
-	if json.AcceptableAgeSeconds < 0 {
-		return nil, fmt.Errorf("age_seconds must be >= 0 (0 is disabled), got: %d", json.AcceptableAgeSeconds)
+	if json.AcceptableAgeDays < 0 {
+		return nil, fmt.Errorf("age_days must be >= 0 (0 is disabled), got: %d", json.AcceptableAgeDays)
 	}
 
 	if json.AcceptableSizeDeltaPercentBetweenVersions < 0 {
 		return nil, fmt.Errorf("delta_percent must be >= 0 (0 is disabled), got: %d", json.AcceptableSizeDeltaPercentBetweenVersions)
 	}
 
+	if json.AcceptableSizeDeltaPercentBetweenVersions == 0 && json.AcceptableAgeDays == 0 {
+		return nil, fmt.Errorf("both ")
+	}
 	n := &notification.NotificationRule{
 		TokenID:                                   token.ID,
 		UserID:                                    u.ID,
 		Regexp:                                    json.Regexp,
 		Name:                                      json.Name,
 		UUID:                                      common.GetUUID(),
-		AcceptableAgeSeconds:                      uint64(json.AcceptableAgeSeconds),
+		AcceptableAgeSeconds:                      uint64(json.AcceptableAgeDays) * 86400,
 		AcceptableSizeDeltaPercentBetweenVersions: uint64(json.AcceptableSizeDeltaPercentBetweenVersions),
 	}
 
@@ -62,12 +65,12 @@ func changeNotificationRule(db *gorm.DB, u *user.User, json *common.ModifyNotifi
 
 		n.AcceptableSizeDeltaPercentBetweenVersions = uint64(*json.AcceptableSizeDeltaPercentBetweenVersions)
 	}
-	if json.AcceptableAgeSeconds != nil {
-		if *json.AcceptableAgeSeconds < 0 {
-			return nil, fmt.Errorf("age_seconds must be >= 0 (0 is disabled), got: %d", *json.AcceptableAgeSeconds)
+	if json.AcceptableAgeDays != nil {
+		if *json.AcceptableAgeDays < 0 {
+			return nil, fmt.Errorf("age_days must be >= 0 (0 is disabled), got: %d", *json.AcceptableAgeDays)
 		}
 
-		n.AcceptableAgeSeconds = uint64(*json.AcceptableAgeSeconds)
+		n.AcceptableAgeSeconds = uint64(*json.AcceptableAgeDays) * 86400
 	}
 	if json.Regexp != nil {
 		n.Regexp = *json.Regexp
@@ -86,13 +89,14 @@ func changeNotificationRule(db *gorm.DB, u *user.User, json *common.ModifyNotifi
 
 func transformRuleToOutput(n *notification.NotificationRule) common.NotificationRuleOutput {
 	return common.NotificationRuleOutput{
-		AcceptableAgeSeconds:                      n.AcceptableAgeSeconds,
+		AcceptableAgeDays:                         n.AcceptableAgeSeconds / 86400,
 		AcceptableSizeDeltaPercentBetweenVersions: n.AcceptableSizeDeltaPercentBetweenVersions,
 		UUID:   n.UUID,
 		Regexp: n.Regexp,
 		Name:   n.Name,
 	}
 }
+
 func ListNotifications(db *gorm.DB, t *file.Token) ([]*notification.NotificationRule, error) {
 	rules := []*notification.NotificationRule{}
 	if err := db.Where("token_id = ?", t.ID).Find(&rules).Error; err != nil {

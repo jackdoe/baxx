@@ -1,0 +1,15 @@
+Hi,
+
+this is the verification link:
+
+https://baxx.dev/verify/{{.Status.LastVerificationID}}
+
+You can check the account status with:
+
+{{ template "partial_email_status.txt" . }}
+
+PS:
+It is very likely that this email goes to the spam folder because it
+is small and texty.. anyway, I hope it doesnt.
+
+{{ template "partial_email_footer.txt" . }}

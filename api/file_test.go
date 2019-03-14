@@ -31,10 +31,10 @@ func setup() *file.Store {
 
 func testNotificationCreate(t *testing.T, db *gorm.DB, u *user.User, token *file.Token) {
 	n, err := createNotificationRule(db, u, &common.CreateNotificationInput{
-		TokenUUID:            token.UUID,
-		Regexp:               ".*",
-		Name:                 "hello",
-		AcceptableAgeSeconds: 10,
+		TokenUUID:         token.UUID,
+		Regexp:            ".*",
+		Name:              "hello",
+		AcceptableAgeDays: 1,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -59,7 +59,7 @@ func TestFileQuota(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	log.Print(help.Render(help.EMAIL_AFTER_REGISTRATION, status))
+	log.Print(help.Render(help.HelpObject{Template: help.EmailAfterRegistration, Email: status.Email, Status: status}))
 	/* test uploading a file */
 	log.Printf("%#v", user)
 	now := time.Now()

@@ -1,6 +1,3 @@
-package help
-
-var TERMS_AND_CONDITIONS = Parse(`
 By purchasing, registering for, or using the “Baxx” services (the
   “Services”) you ("referred in the document as "you", "customer",
   "subscriber", "client") enter into a contract with Borislav Nikolov
@@ -65,5 +62,3 @@ DAMAGE.
 We are not sharing the data with anyone for no purposes what so ever.
 We are keeping logs of IP adress uploading/downloading files,and the
 paypal payment notifications for starting/ending the subscription.
-
-`)

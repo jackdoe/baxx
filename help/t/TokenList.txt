@@ -1,0 +1,5 @@
+## Current Tokens
+
+{{ range .Status.Tokens -}}
+{{ template "partial_token.txt" . -}}
+{{end -}}

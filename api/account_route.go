@@ -82,7 +82,8 @@ func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (
 	}
 
 	// XXX: should we throw if we fail to send verification email?
-	if err := sendVerificationLink(tx, u.GenerateVerificationLink()); err != nil {
+	verificationLink := u.GenerateVerificationLink()
+	if err := tx.Save(verificationLink).Error; err != nil {
 		tx.Rollback()
 		return nil, nil, err
 	}
@@ -92,6 +93,7 @@ func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (
 		tx.Rollback()
 		return nil, nil, err
 	}
+
 	status, err := getUserStatus(tx, u)
 	if err != nil {
 		tx.Rollback()
@@ -102,6 +104,9 @@ func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (
 		return nil, nil, err
 	}
 
+	if err := sendVerificationLink(status); err != nil {
+		log.Warnf("failed to send email, ignoring error and moving on,  %s", err.Error())
+	}
 	if err := sendRegistrationHelp(status); err != nil {
 		log.Warnf("failed to send email, ignoring error and moving on,  %s", err.Error())
 	}
@@ -197,17 +202,19 @@ func setupACC(srv *server) {
 		}
 
 		tx := db.Begin()
+		var verificationLink *user.VerificationLink
 		if json.NewEmail != u.Email || u.EmailVerified == nil {
 			u.Email = json.NewEmail
 			u.EmailVerified = nil
 
-			verificationLink := u.GenerateVerificationLink()
-			if err := sendVerificationLink(tx, verificationLink); err != nil {
+			verificationLink = u.GenerateVerificationLink()
+			if err := tx.Save(verificationLink).Error; err != nil {
 				tx.Rollback()
 				warnErr(c, err)
 				c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
 			}
+
 		}
 
 		if err := tx.Save(u).Error; err != nil {
@@ -217,9 +224,25 @@ func setupACC(srv *server) {
 			return
 		}
 
+		status, err := getUserStatus(tx, u)
+		if err != nil {
+			tx.Rollback()
+			warnErr(c, err)
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
 		if err := tx.Commit().Error; err != nil {
 			warnErr(c, err)
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
+
+		if verificationLink != nil {
+			if err := sendVerificationLink(status); err != nil {
+				warnErr(c, err)
+				c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
 		}
 
 		c.IndentedJSON(http.StatusOK, &common.Success{Success: true})
@@ -241,6 +264,30 @@ func setupACC(srv *server) {
 			return
 		}
 		c.IndentedJSON(http.StatusOK, transformRuleToOutput(n))
+	})
+
+	authorized.POST("/delete/notification", func(c *gin.Context) {
+		u := c.MustGet("user").(*user.User)
+		var json *common.DeleteNotificationInput
+		if err := c.ShouldBindJSON(&json); err != nil {
+			warnErr(c, err)
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		n := &notification.NotificationRule{}
+		if err := db.Where("uuid = ? AND user_id = ?", json.UUID, u.ID).Error; err != nil {
+			warnErr(c, err)
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if err := db.Delete(n).Error; err != nil {
+			warnErr(c, err)
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+
+		}
+		c.IndentedJSON(http.StatusOK, &common.Success{Success: true})
 	})
 
 	authorized.POST("/change/notification", func(c *gin.Context) {
@@ -333,6 +380,7 @@ func setupACC(srv *server) {
 
 		c.IndentedJSON(http.StatusOK, &common.Success{Success: true})
 	})
+
 	ipn.Listener(r, "/ipn/:paymentID", func(c *gin.Context, err error, body string, n *ipn.Notification) error {
 		if err != nil {
 			warnErr(c, err)
@@ -387,10 +435,25 @@ func setupACC(srv *server) {
 			return err
 		}
 
+		status, err := getUserStatus(db, u)
+		if err != nil {
+			warnErr(c, err)
+			return err
+		}
 		if cancel {
-			go sendPaymentCancelMail(u.Email, u.PaymentID)
+			go func() {
+				err := sendPaymentCancelMail(status)
+				if err != nil {
+					warnErr(c, err)
+				}
+			}()
 		} else if subscribe {
-			go sendPaymentThanks(u.Email, u.PaymentID)
+			go func() {
+				err := sendPaymentThanksMail(status)
+				if err != nil {
+					warnErr(c, err)
+				}
+			}()
 		}
 		return nil
 	})
@@ -408,11 +471,11 @@ func setupACC(srv *server) {
 	})
 
 	r.GET("/help", func(c *gin.Context) {
-		c.String(http.StatusOK, help.Render(help.EMAIL_AFTER_REGISTRATION, common.EMPTY_STATUS))
+		c.String(http.StatusOK, help.Render(help.HelpObject{Template: help.EmailAfterRegistration, Email: common.EMPTY_STATUS.Email, Status: common.EMPTY_STATUS}))
 	})
 
 	r.GET("/thanks_for_paying", func(c *gin.Context) {
-		c.String(http.StatusOK, help.Render(help.EMAIL_WAIT_PAYPAL, common.EMPTY_STATUS))
+		c.String(http.StatusOK, help.Render(help.HelpObject{Template: help.HtmlWaitPaypal, Email: common.EMPTY_STATUS.Email}))
 	})
 
 	r.GET("/verify/:id", func(c *gin.Context) {
@@ -420,7 +483,7 @@ func setupACC(srv *server) {
 		now := time.Now()
 
 		wrong := func(err error) {
-			c.String(http.StatusInternalServerError, help.Render(help.HTML_LINK_ERROR, err.Error()))
+			c.String(http.StatusInternalServerError, help.Render(help.HelpObject{Template: help.HtmlLinkError, Err: err}))
 		}
 		tx := db.Begin()
 
@@ -442,7 +505,7 @@ func setupACC(srv *server) {
 		if time.Now().Unix()-int64(v.SentAt) > (24 * 3600) {
 			tx.Rollback()
 			warnErr(c, fmt.Errorf("verification link expired %#v", v))
-			c.String(http.StatusOK, help.Render(help.HTML_LINK_EXPIRED, v))
+			c.String(http.StatusOK, help.Render(help.HelpObject{Template: help.HtmlLinkExpired}))
 			return
 		}
 
@@ -450,14 +513,14 @@ func setupACC(srv *server) {
 		if err := tx.Where("id = ?", v.UserID).Take(u).Error; err != nil {
 			warnErr(c, fmt.Errorf("weird state, verification's user not found %#v", v))
 			tx.Rollback()
-			c.String(http.StatusInternalServerError, help.Render(help.HTML_LINK_ERROR, "verification link's user not found, this is very weird"))
+			wrong(fmt.Errorf("verification link's user not found, this is very weird"))
 			return
 		}
 
 		if u.Email != v.Email {
 			tx.Rollback()
 			warnErr(c, fmt.Errorf("weird state, user changed email %#v %#v", v, u))
-			c.String(http.StatusInternalServerError, help.Render(help.HTML_LINK_ERROR, "user email already changed, this is very weird"))
+			wrong(fmt.Errorf("user email already changed, this is very weird"))
 			return
 		}
 
@@ -473,6 +536,10 @@ func setupACC(srv *server) {
 			wrong(err)
 		}
 
-		c.String(http.StatusOK, help.Render(help.HTML_VERIFICATION_OK, v))
+		c.String(http.StatusOK, help.Render(help.HelpObject{
+			Template: help.HtmlVerificationOk,
+		}))
 	})
+
+	srv.registerHelp(false, help.HelpObject{Template: help.Profile}, "/protected", "/protected/*path", "/register")
 }

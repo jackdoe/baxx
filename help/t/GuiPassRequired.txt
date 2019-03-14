@@ -1,0 +1,8 @@
+Password is required.
+
+If you are not using a password manager
+please use good passwords, such as: 
+
+  'mickey mouse and metallica'
+
+https://www.xkcd.com/936/

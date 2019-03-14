@@ -1,0 +1,1 @@
+{{- if .FilePath }}{{.FilePath}}{{else}}/path/to/file{{end -}}

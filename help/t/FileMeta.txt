@@ -1,0 +1,31 @@
+██╗    ██╗ ██████╗ 
+██║   ██╔╝██╔═══██╗
+██║  ██╔╝ ██║   ██║
+██║ ██╔╝  ██║   ██║
+██║██╔╝   ╚██████╔╝
+╚═╝╚═╝     ╚═════╝ 
+                   
+{{ template "FileUpload.txt" . }}
+
+{{ template "FileDownload.txt" . }}
+
+{{ template "FileDelete.txt" . }}
+
+{{ template "FileList.txt" . }}
+
+## Write Only Tokens
+
+Write Only tokens require BasicAuth.
+The idea is that you can put them in in-secure places and not worry
+about someone reading your data if they get stolen.
+
+## Using WriteOnly tokens to access files:
+
+* Download
+curl -u {{ template "partial_email_extract.txt" . }} https://baxx.dev/io/$TOKEN/path/to/file
+
+* Delete
+curl -u {{ template "partial_email_extract.txt" . }} -XDELETE https://baxx.dev/io/$TOKEN/path/to/file
+
+* List
+curl -u {{ template "partial_email_extract.txt" . }} https://baxx.dev/ls/$TOKEN/path/

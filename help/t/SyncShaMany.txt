@@ -1,0 +1,39 @@
+## POST: https://baxx.dev/sync/sha256/$BAXX_TOKEN
+
+This endpoint takes the multiple lines of shasum output
+and returns only the lines that are not found, example input:
+
+2997f66d71b5c0f2f396872536beed30835add1e1de8740b3136c9d550b1eb7c  a
+8719d1dc6f98ebb5c04f8c1768342e865156b1582806b6c7d26e3fbdc99b8762  b
+8d0a34b05558ad54c4a5949cc42636165b6449cf3324406d62e923bc060478dc  c
+c7c2c1d3c83afbc522ae08779cd661546e578b2dfc6a398467d293bd63e03290  d
+
+
+if you have already uploaded the file c it will return
+
+2997f66d71b5c0f2f396872536beed30835add1e1de8740b3136c9d550b1eb7c  a
+8719d1dc6f98ebb5c04f8c1768342e865156b1582806b6c7d26e3fbdc99b8762  b
+c7c2c1d3c83afbc522ae08779cd661546e578b2dfc6a398467d293bd63e03290  d
+
+it is very handy for rsync like uploads:
+find | xargs shasum | curl diff | curl upload
+
+example:
+ find . -type f \
+  | xargs -P4 -I '{}' \
+    shasum -a 256 {} \
+  | curl -s --data-binary @- https://baxx.dev/sync/sha256/$BAXX_TOKEN \
+  | awk '{ print $2 }' \
+  | xargs -P4 -I '{}' \
+    curl -s -T {} https://baxx.dev/io/$BAXX_TOKEN/backup/{}
+
+it is *VERY* important to curl to /sync/sha256 with --data-binary
+otherwise curl is in ascii mode and does *not* send the new lines, and
+only the first line is checked.
+
+This is super annoying, and I am sure someone will lose backups
+because of this, and there is nothing I can do about it.
+
+This small script will find all files, then compute the shasums in
+parallel check the diff with what is uploaded on baxx and upload only
+the missing ones

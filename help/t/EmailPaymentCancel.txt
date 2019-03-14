@@ -1,0 +1,18 @@
+Hi,
+
+We just received subscription cancellation message from paypal.
+You will be able to upload/download backups for 1 more month.
+If you want to renew your subscription go to:
+
+https://baxx.dev/sub/{{.Status.PaymentID}}
+
+and you will be redirected to paypal.com.
+
+You can check the account status with:
+
+{{ template "partial_email_status.txt" . }}
+
+Thanks for using baxx.dev,
+if you have any feedback please send me an email to jack@baxx.dev.
+
+{{ template "partial_email_footer.txt" . }}

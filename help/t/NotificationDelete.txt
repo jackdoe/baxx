@@ -1,0 +1,5 @@
+## Delete Notification
+
+curl -u {{ template "partial_email_extract.txt" . }} \
+ -d '{"notification_uuid": "NOTIFICATION-UUID"}' \
+ https://baxx.dev/protected/delete/notification

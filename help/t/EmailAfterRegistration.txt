@@ -1,0 +1,45 @@
+Hi,
+
+The service I offer is still in Alpha stage, but I really appreciate
+the support.
+
+# Subscription
+
+## Plan (only one for now):
+
+Storage 10G
+Trial 1 Month 0.1E
+Subscription: 5E per Month
+Availability: ALPHA
+
+Here be Dragons! Data can be lost!
+
+## Subscribe
+
+In order to use baxx.dev you need a subscription,
+At the moment I support only paypal.com, please visit:
+
+https://baxx.dev/sub/{{.Status.PaymentID}}
+To be redirected to paypal.com.
+
+## Verify your email
+
+Email verification is also required, you should've received the
+verification link in another email.
+{{ if .Status.LastVerificationID }}
+Or you could also click on:
+
+https://baxx.dev/verify/{{.Status.LastVerificationID}}
+{{ end }}
+
+Thanks again!
+
+{{ template "TokenMeta.txt" . }}
+{{ template "FileMeta.txt" . }}
+{{ template "SyncMeta.txt" . }}
+{{ template "NotificationMeta.txt" . }}
+{{ template "Profile.txt" . }}
+{{ template "Examples.txt" . }}
+{{ template "Encryption.txt" . }}
+
+{{ template "partial_email_footer.txt" . }}

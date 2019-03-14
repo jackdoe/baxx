@@ -1,0 +1,9 @@
+## Delete tokens
+
+curl -u {{ template "partial_email_extract.txt" . }} -d '{"token": "TOKEN-UUID"}' \
+ https://baxx.dev/protected/delete/token
+
+this will delete:
+  * the token
+  * all the files in it
+  * all notifications attached to it

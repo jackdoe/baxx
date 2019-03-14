@@ -1,0 +1,5 @@
+## List Notifications
+
+To list your configured notifications you can use the /status endpoint:
+
+{{ template "partial_email_status.txt" . }}

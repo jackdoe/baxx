@@ -1,0 +1,5 @@
+## Modify tokens
+
+curl -u {{ template "partial_email_extract.txt" . }} \
+ -d '{"write_only":false,"token":"TOKEN-UUID","name":"example"}' \
+ https://baxx.dev/protected/change/token

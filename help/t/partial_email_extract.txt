@@ -1,0 +1,1 @@
+{{- if .Email }}{{.Email}}{{else}}your.email@example.com{{end -}}

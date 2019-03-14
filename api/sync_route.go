@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackdoe/baxx/file"
+	"github.com/jackdoe/baxx/help"
 	"github.com/jinzhu/gorm"
 )
 
@@ -31,10 +32,9 @@ func ShaDiff(db *gorm.DB, t *file.Token, body io.Reader) ([]string, error) {
 }
 
 func setupSYNC(srv *server) {
-	r := srv.r
 	db := srv.db
 
-	r.GET("/sync/sha256/:token/:sha256", func(c *gin.Context) {
+	srv.r.GET("/sync/sha256/:token/:sha256", func(c *gin.Context) {
 		t, _, err := srv.getViewTokenLoggedOrNot(c)
 		if err != nil {
 			warnErr(c, err)
@@ -61,7 +61,7 @@ func setupSYNC(srv *server) {
 	// expect input from:
 	// find . -type f | grep -v .git | xargs -P4 -I '{}' shasum -a 256 {}
 	// we want to have endpoint that is easy to hook to find . -type f | grep -v .git | xargs -P4 -I '{}' shasum -a 256 {} | curl -d@- https...
-	r.POST("/sync/sha256/:token", func(c *gin.Context) {
+	srv.r.POST("/sync/sha256/:token", func(c *gin.Context) {
 		t, _, err := srv.getViewTokenLoggedOrNot(c)
 		if err != nil {
 			warnErr(c, err)
@@ -80,5 +80,5 @@ func setupSYNC(srv *server) {
 		c.Header("Content-Type", "application/octet-stream")
 		c.String(http.StatusOK, strings.Join(out, "\n")+"\n")
 	})
-
+	srv.registerHelp(false, help.HelpObject{Template: help.SyncMeta}, "/sync", "/sync/*path")
 }

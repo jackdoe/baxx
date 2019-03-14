@@ -67,11 +67,6 @@ func sendNotificationEmails(db *gorm.DB) {
 	}
 }
 
-type PerRuleGroup struct {
-	PerFile []notification.FileNotification
-	Rule    *notification.NotificationRule
-}
-
 func runRules(db *gorm.DB) {
 	tx := db.Begin()
 	users := []*user.User{}
@@ -84,7 +79,7 @@ func runRules(db *gorm.DB) {
 		if err := tx.Where("user_id = ?", u.ID).Find(&tokens).Error; err != nil {
 			log.Fatal(err)
 		}
-		grouped := []PerRuleGroup{}
+		grouped := []notification.PerRuleGroup{}
 	TOKEN:
 		for _, t := range tokens {
 			rules := []*notification.NotificationRule{}

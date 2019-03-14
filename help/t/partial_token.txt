@@ -1,0 +1,7 @@
+TOKEN: {{.UUID}}
+  {{ if .Name }}Name: {{ .Name }}{{ end }}
+  Write Only: {{ .WriteOnly }}
+  Keep N Versions: {{ .NumberOfArchives }} (per file)
+{{- range .NotificationRules }}
+{{ template "partial_notification_info.txt" . -}}
+{{ end }}

@@ -133,7 +133,7 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 
 	window := tui.NewVBox(
 		tui.NewPadder(1, 1, tui.NewLabel(logo)),
-		tui.NewPadder(1, 0, tui.NewLabel(Render(GUI_INTRO, nil))),
+		tui.NewPadder(1, 0, tui.NewLabel(Render(HelpObject{Template: GuiInfo}))),
 		tui.NewPadder(1, 1, form),
 		tui.NewPadder(1, 0, tui.NewLabel("Registering means you agree with\nthe terms of service!")),
 		tui.NewPadder(1, 0, tui.NewLabel("")),
@@ -163,15 +163,15 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 	})
 
 	help.OnActivated(func(b *tui.Button) {
-		popup(ui, root, false, nil, "HELP", Render(EMAIL_AFTER_REGISTRATION, bcommon.EMPTY_STATUS))
+		popup(ui, root, false, nil, "HELP", Render(HelpObject{Template: EmailAfterRegistration, Status: bcommon.EMPTY_STATUS}))
 	})
 
 	pitch.OnActivated(func(b *tui.Button) {
-		popup(ui, root, false, nil, "HELP", Render(PITCH, nil))
+		popup(ui, root, false, nil, "HELP", Render(HelpObject{Template: GuiPitch}))
 	})
 
 	tos.OnActivated(func(b *tui.Button) {
-		popup(ui, root, false, nil, "Terms Of Service", Render(TERMS_AND_CONDITIONS, nil))
+		popup(ui, root, false, nil, "Terms Of Service", Render(HelpObject{Template: GuiPitch}))
 	})
 
 	login.OnActivated(func(b *tui.Button) {
@@ -232,11 +232,11 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 		}
 
 		if p1 == "" {
-			popup(ui, root, false, nil, "ERROR", Render(GUI_PASS_REQUIRED, nil))
+			popup(ui, root, false, nil, "ERROR", Render(HelpObject{Template: GuiPassRequired}))
 			return
 		}
 		if email == "" {
-			popup(ui, root, false, nil, "ERROR", Render(GUI_EMAIL_REQUIRED, nil))
+			popup(ui, root, false, nil, "ERROR", Render(HelpObject{Template: GuiEmailRequired}))
 			return
 		}
 		_, err := bc.Status(&bcommon.CreateUserInput{Email: email, Password: p1})
@@ -302,7 +302,7 @@ func postRegistration(ui tui.UI, bc *baxx.Client, email, pass string) *tui.Box {
 	})
 
 	help.OnActivated(func(b *tui.Button) {
-		popup(ui, content, false, nil, "HELP", Render(PITCH, nil), "", Render(EMAIL_AFTER_REGISTRATION, bcommon.EMPTY_STATUS))
+		popup(ui, content, false, nil, "HELP", Render(HelpObject{Template: GuiPassRequired}), "", Render(HelpObject{Template: EmailAfterRegistration, Status: bcommon.EMPTY_STATUS}))
 	})
 
 	refreshStatus := func() error {
@@ -323,7 +323,7 @@ func postRegistration(ui tui.UI, bc *baxx.Client, email, pass string) *tui.Box {
 		}
 		if status.Paid && status.EmailVerified != nil {
 			stop <- true
-			popup(ui, content, true, nil, "SUCCESS", "Your account is now ready to be used", "", "", Render(EMAIL_AFTER_REGISTRATION, status))
+			popup(ui, content, true, nil, "SUCCESS", "Your account is now ready to be used", "", "", Render(HelpObject{Template: EmailAfterRegistration, Status: status}))
 		}
 		return nil
 	}

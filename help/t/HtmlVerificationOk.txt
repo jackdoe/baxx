@@ -1,0 +1,6 @@
+Thanks!
+The email is verified now!
+
+You can check your account status at:
+
+  {{ template "partial_email_status.txt" . }}

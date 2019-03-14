@@ -1,0 +1,39 @@
+██████╗ ██████╗  ██████╗ ███████╗██╗██╗     ███████╗
+██╔══██╗██╔══██╗██╔═══██╗██╔════╝██║██║     ██╔════╝
+██████╔╝██████╔╝██║   ██║█████╗  ██║██║     █████╗  
+██╔═══╝ ██╔══██╗██║   ██║██╔══╝  ██║██║     ██╔══╝  
+██║     ██║  ██║╚██████╔╝██║     ██║███████╗███████╗
+╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚══════╝
+
+## Change Password
+
+curl -u {{ template "partial_email_extract.txt" . }} -d'{"new_password": "donald mouse"}' \
+ https://baxx.dev/protected/replace/password | json_pp
+
+(use https://www.xkcd.com/936/)
+
+## Change Email
+
+curl -u {{ template "partial_email_extract.txt" . }} -d'{"new_email": "x@example.com"}' \
+https://baxx.dev/protected/replace/email | json_pp
+
+It will also send new verification email, you can also use the
+replace/email endpoint to resend the verification email.
+
+## User Status
+
+{{ template "partial_email_status.txt" . }}
+
+shows things like
+ * is the email verified
+ * is subscription active [ not done yet ]
+ * current tokens
+ * size used
+
+## Register
+
+This is the /register endpoint
+
+curl -d '{"email":"{{ template "partial_email_extract.txt" . }}", "password":"mickey mouse"}' \
+ https://baxx.dev/register
+

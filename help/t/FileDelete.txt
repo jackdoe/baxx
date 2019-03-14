@@ -1,0 +1,7 @@
+## File Delete
+
+Delete single file:
+curl -XDELETE https://baxx.dev/io/$BAXX_TOKEN/path/to/file
+
+Delete all files in a directory, but not the subdirectories:
+curl -d '{"force":true}' https://baxx.dev/io/$BAXX_TOKEN/path

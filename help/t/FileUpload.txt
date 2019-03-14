@@ -1,0 +1,10 @@
+## File Upload
+
+cat path/to/file | encrypt | curl --data-binary @- \
+ https://baxx.dev/io/$BAXX_TOKEN/path/to/file
+
+or (no encryption, strongly discouraged)
+curl -T path/to/file https://baxx.dev/io/$BAXX_TOKEN/path/to/file
+
+Same filepath can have up to #N Versions depending on the token
+configuration.

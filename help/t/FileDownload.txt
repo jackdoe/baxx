@@ -1,0 +1,5 @@
+## File Download
+
+Download the last uploaded version of a file at specific path
+
+curl https://baxx.dev/io/$BAXX_TOKEN/path/to/file > file

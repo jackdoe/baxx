@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackdoe/baxx/common"
 	"github.com/jackdoe/baxx/file"
+	"github.com/jackdoe/baxx/help"
 
 	"github.com/jinzhu/gorm"
 )
@@ -80,7 +81,6 @@ func LSAL(files []file.FileMetadataAndVersion) string {
 }
 
 func setupIO(srv *server) {
-	r := srv.r
 	store := srv.store
 	db := srv.db
 	getViewTokenLoggedOrNot := srv.getViewTokenLoggedOrNot
@@ -217,14 +217,11 @@ func setupIO(srv *server) {
 	}
 
 	mutateSinglePATH := "/io/:token/*path"
-	r.GET(mutateSinglePATH, download)
-	r.POST(mutateSinglePATH, upload)
-	r.PUT(mutateSinglePATH, upload)
-	r.DELETE(mutateSinglePATH, deleteFile)
+	srv.r.GET(mutateSinglePATH, download)
+	srv.r.POST(mutateSinglePATH, upload)
+	srv.r.PUT(mutateSinglePATH, upload)
+	srv.r.DELETE(mutateSinglePATH, deleteFile)
+	srv.r.GET("/ls/:token/*path", listFiles)
 
-	for _, a := range []string{"dir", "ls"} {
-		lsPath := "/" + a + "/:token/*path"
-		r.GET(lsPath, listFiles)
-	}
-
+	srv.registerHelp(false, help.HelpObject{Template: help.FileMeta}, "/io", "/io/*path", "/ls", "/ls/*path")
 }

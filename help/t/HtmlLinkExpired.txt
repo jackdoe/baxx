@@ -1,0 +1,16 @@
+Oops, verification link has expired!
+
+You can generate new one with:
+
+ curl -u {{ template "partial_email_extract.txt" . }} \
+  -XPOST -d'{"new_email": "{{ template "partial_email_extract.txt" . }}"}' \
+  https://baxx.dev/protected/replace/email
+
+The verification links are valid for 24 hours,
+You can check your account status at:
+
+  curl -u {{ template "partial_email_extract.txt" . }} -XPOST https://baxx.dev/protected/status
+
+If something is wrong, please contact me at help@baxx.dev.
+
+Thanks!

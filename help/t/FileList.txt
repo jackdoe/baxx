@@ -1,0 +1,7 @@
+## List Files
+
+curl https://baxx.dev/ls/$BAXX_TOKEN/path/to
+
+Lists files in path LIKE /path/to%
+use '?format=json' if you want json back by default it prints human
+readable text

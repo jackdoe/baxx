@@ -4,11 +4,13 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackdoe/baxx/common"
 	"github.com/jackdoe/baxx/file"
+	"github.com/jackdoe/baxx/help"
 	"github.com/jackdoe/baxx/notification"
 	"github.com/jackdoe/baxx/user"
 	"github.com/jinzhu/gorm"
@@ -76,6 +78,20 @@ type server struct {
 	store      *file.Store
 	r          *gin.Engine
 	authorized *gin.RouterGroup
+}
+
+func (s *server) registerHelp(protected bool, helpobj help.HelpObject, path ...string) {
+	for _, p := range path {
+		if protected {
+			s.authorized.GET("/help"+p, func(c *gin.Context) {
+				c.String(http.StatusOK, help.Render(helpobj))
+			})
+		} else {
+			s.r.GET("/help"+p, func(c *gin.Context) {
+				c.String(http.StatusOK, help.Render(helpobj))
+			})
+		}
+	}
 }
 
 func (s *server) getViewTokenLoggedOrNot(c *gin.Context) (*file.Token, *user.User, error) {

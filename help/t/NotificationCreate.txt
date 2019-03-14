@@ -1,0 +1,26 @@
+## Create Notification
+
+curl -u {{ template "partial_email_extract.txt" . }}  -d '{
+  "name":"example name",
+  "token":"TOKEN-UUID",
+  "regexp":".*",
+  "age_days": 1,
+  "size_delta_percent": 50
+}' https://baxx.dev/protected/create/notification
+
+* Name
+  Human readable name that will be sent in the emails.
+
+* age_days
+  If the file has no new version in N days.
+
+* size_delta_percent
+  If the delta between the last version and previos version of the
+  file is bigger than N.
+
+  e.g.:
+  previous version: example.txt - 500 bytes
+   current version: example.txt - 10 bytes
+
+  the alert will trigger and you will be notified
+  
