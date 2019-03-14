@@ -118,17 +118,17 @@ func setupACC(srv *server) {
 		var json common.CreateUserInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		out, u, err := registerUser(store, db, json)
 		log.Printf("%s %s", u, err)
 		if err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, out)
+		c.IndentedJSON(http.StatusOK, out)
 	})
 
 	statusFn := func(c *gin.Context) {
@@ -136,10 +136,10 @@ func setupACC(srv *server) {
 		status, err := getUserStatus(db, u)
 		if err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, status)
+		c.IndentedJSON(http.StatusOK, status)
 	}
 
 	authorized.POST("/status", statusFn)
@@ -150,22 +150,22 @@ func setupACC(srv *server) {
 		var json common.ChangePasswordInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		if err := ValidatePassword(json.NewPassword); err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		u.SetPassword(json.NewPassword)
 		if err := db.Save(u).Error; err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		c.JSON(http.StatusOK, &common.Success{Success: true})
+		c.IndentedJSON(http.StatusOK, &common.Success{Success: true})
 	})
 
 	authorized.POST("/replace/verification", func(c *gin.Context) {
@@ -173,11 +173,11 @@ func setupACC(srv *server) {
 		verificationLink := u.GenerateVerificationLink()
 		if err := db.Save(verificationLink).Error; err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		c.JSON(http.StatusOK, &common.Success{Success: true})
+		c.IndentedJSON(http.StatusOK, &common.Success{Success: true})
 	})
 
 	authorized.POST("/replace/email", func(c *gin.Context) {
@@ -186,13 +186,13 @@ func setupACC(srv *server) {
 		var json common.ChangeEmailInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
 		if err := ValidateEmail(json.NewEmail); err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -205,7 +205,7 @@ func setupACC(srv *server) {
 			if err := sendVerificationLink(tx, verificationLink); err != nil {
 				tx.Rollback()
 				warnErr(c, err)
-				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
 			}
 		}
@@ -213,16 +213,16 @@ func setupACC(srv *server) {
 		if err := tx.Save(u).Error; err != nil {
 			tx.Rollback()
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
 		if err := tx.Commit().Error; err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 
-		c.JSON(http.StatusOK, &common.Success{Success: true})
+		c.IndentedJSON(http.StatusOK, &common.Success{Success: true})
 	})
 
 	authorized.POST("/create/notification", func(c *gin.Context) {
@@ -230,17 +230,17 @@ func setupACC(srv *server) {
 		var json *common.CreateNotificationInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
 		n, err := createNotificationRule(db, u, json)
 		if err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, transformRuleToOutput(n))
+		c.IndentedJSON(http.StatusOK, transformRuleToOutput(n))
 	})
 
 	authorized.POST("/change/notification", func(c *gin.Context) {
@@ -248,17 +248,17 @@ func setupACC(srv *server) {
 		var json *common.ModifyNotificationInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
 		n, err := changeNotificationRule(db, u, json)
 		if err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, transformRuleToOutput(n))
+		c.IndentedJSON(http.StatusOK, transformRuleToOutput(n))
 	})
 
 	authorized.POST("/create/token", func(c *gin.Context) {
@@ -266,18 +266,18 @@ func setupACC(srv *server) {
 		var json common.CreateTokenInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
 		token, err := CreateTokenAndBucket(store, db, u, json.WriteOnly, json.NumberOfArchives, json.Name)
 		if err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		c.JSON(http.StatusOK, transformTokenForSending(token, 0, 0, []*notification.NotificationRule{}))
+		c.IndentedJSON(http.StatusOK, transformTokenForSending(token, 0, 0, []*notification.NotificationRule{}))
 	})
 
 	authorized.POST("/change/token", func(c *gin.Context) {
@@ -285,13 +285,13 @@ func setupACC(srv *server) {
 		var json common.ModifyTokenInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		token, err := FindTokenForUser(db, json.UUID, u)
 		if err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		if json.NumberOfArchives > 0 {
@@ -303,11 +303,11 @@ func setupACC(srv *server) {
 		token.Name = json.Name
 		if err := db.Save(token).Error; err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		c.JSON(http.StatusOK, transformTokenForSending(token, 0, 0, []*notification.NotificationRule{}))
+		c.IndentedJSON(http.StatusOK, transformTokenForSending(token, 0, 0, []*notification.NotificationRule{}))
 	})
 
 	authorized.POST("/delete/token", func(c *gin.Context) {
@@ -315,23 +315,23 @@ func setupACC(srv *server) {
 		var json common.DeleteTokenInput
 		if err := c.ShouldBindJSON(&json); err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		token, err := FindTokenForUser(db, json.UUID, u)
 		if err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
 		if err := file.DeleteToken(store, db, token); err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		c.JSON(http.StatusOK, &common.Success{Success: true})
+		c.IndentedJSON(http.StatusOK, &common.Success{Success: true})
 	})
 	ipn.Listener(r, "/ipn/:paymentID", func(c *gin.Context, err error, body string, n *ipn.Notification) error {
 		if err != nil {

@@ -88,13 +88,13 @@ func setupIO(srv *server) {
 		t, _, err := getViewTokenLoggedOrNot(c)
 		if err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		fv, _, err := file.FindFile(db, t, c.Param("path"))
 		if err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 
 		}
@@ -102,7 +102,7 @@ func setupIO(srv *server) {
 		reader, err := store.DownloadFile(t.Salt, t.Bucket, fv.StoreID)
 		if err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		// FIXME: close?
@@ -121,14 +121,14 @@ func setupIO(srv *server) {
 		t, _, err := getViewTokenLoggedOrNot(c)
 		if err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		p := c.Param("path")
 		fv, fm, err := SaveFileProcess(store, db, t, body, p)
 		if err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -136,7 +136,7 @@ func setupIO(srv *server) {
 
 		actionLog(db, t.UserID, "file", "upload", c.Request, fmt.Sprintf("FileVersion: %d/%d", fv.ID, fv.FileMetadataID))
 		if wantJson(c) {
-			c.JSON(http.StatusOK, fv)
+			c.IndentedJSON(http.StatusOK, fv)
 			return
 		}
 		c.String(http.StatusOK, FileLine(fm, fv))
@@ -146,7 +146,7 @@ func setupIO(srv *server) {
 		t, _, err := getViewTokenLoggedOrNot(c)
 		if err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -180,21 +180,21 @@ func setupIO(srv *server) {
 		} else {
 			if err := file.DeleteFileWithPath(store, db, t, p); err != nil {
 				warnErr(c, err)
-				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
 			}
 			n = 1
 		}
 
 		actionLog(db, t.UserID, "file", "delete", c.Request, "")
-		c.JSON(http.StatusOK, &common.DeleteSuccess{Success: true, Count: n})
+		c.IndentedJSON(http.StatusOK, &common.DeleteSuccess{Success: true, Count: n})
 	}
 
 	listFiles := func(c *gin.Context) {
 		t, _, err := getViewTokenLoggedOrNot(c)
 		if err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -206,11 +206,11 @@ func setupIO(srv *server) {
 		files, err := file.ListFilesInPath(db, t, p, false)
 		if err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		if wantJson(c) {
-			c.JSON(http.StatusOK, files)
+			c.IndentedJSON(http.StatusOK, files)
 			return
 		}
 		c.String(http.StatusOK, LSAL(files))

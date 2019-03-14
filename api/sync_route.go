@@ -38,19 +38,19 @@ func setupSYNC(srv *server) {
 		t, _, err := srv.getViewTokenLoggedOrNot(c)
 		if err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
 		fv, fm, err := file.FindFileBySHA(db, t, c.Param("sha256"))
 		if err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
 		if wantJson(c) {
-			c.JSON(http.StatusOK, gin.H{"sha": fv.SHA256, "path": fm.Path, "name": fm.Filename})
+			c.IndentedJSON(http.StatusOK, gin.H{"sha": fv.SHA256, "path": fm.Path, "name": fm.Filename})
 			return
 		}
 
@@ -65,7 +65,7 @@ func setupSYNC(srv *server) {
 		t, _, err := srv.getViewTokenLoggedOrNot(c)
 		if err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		body := c.Request.Body
@@ -73,7 +73,7 @@ func setupSYNC(srv *server) {
 		out, err := ShaDiff(db, t, body)
 		if err != nil {
 			warnErr(c, err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		c.Header("Content-Transfer-Encoding", "binary")
