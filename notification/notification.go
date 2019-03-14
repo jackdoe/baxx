@@ -10,11 +10,9 @@ import (
 )
 
 type AgeNotification struct {
-	FullPath    string
-	CreatedAt   time.Time
-	ActualAge   time.Duration
-	Overdue     time.Duration
-	FileVersion *file.FileVersion
+	CreatedAt time.Time
+	ActualAge time.Duration
+	Overdue   time.Duration
 }
 
 func (n *AgeNotification) String() string {
@@ -22,8 +20,6 @@ func (n *AgeNotification) String() string {
 }
 
 type SizeNotification struct {
-	FullPath     string
-	CreatedAt    time.Time
 	CurrentSize  uint64
 	PreviousSize uint64
 	Delta        float64
@@ -38,6 +34,9 @@ type FileNotification struct {
 	Age         *AgeNotification
 	Size        *SizeNotification
 	FileVersion *file.FileVersion
+	FullPath    string
+
+	CreatedAt time.Time
 }
 
 func ExecuteRule(rule *NotificationRule, files []file.FileMetadataAndVersion) ([]FileNotification, error) {
@@ -64,6 +63,8 @@ func ExecuteRule(rule *NotificationRule, files []file.FileMetadataAndVersion) ([
 			// FIXME(jackdoe): more work is needed!
 			current := FileNotification{
 				FileVersion: f.Versions[0],
+				CreatedAt:   f.Versions[0].CreatedAt,
+				FullPath:    fullpath,
 			}
 
 			if rule.AcceptableAgeSeconds > 0 {
@@ -71,8 +72,6 @@ func ExecuteRule(rule *NotificationRule, files []file.FileMetadataAndVersion) ([
 				acceptableAge := version.CreatedAt.Add(time.Duration(rule.AcceptableAgeSeconds) * time.Second)
 				if now.After(acceptableAge) {
 					n := &AgeNotification{
-						FullPath:  fullpath,
-						CreatedAt: version.CreatedAt,
 						ActualAge: now.Sub(version.CreatedAt),
 						Overdue:   now.Sub(acceptableAge),
 					}
@@ -87,8 +86,6 @@ func ExecuteRule(rule *NotificationRule, files []file.FileMetadataAndVersion) ([
 				if (math.Abs(delta) * 100) > float64(rule.AcceptableSizeDeltaPercentBetweenVersions) {
 					// delta trigger
 					n := &SizeNotification{
-						FullPath:     fullpath,
-						CreatedAt:    lastVersion.CreatedAt,
 						CurrentSize:  lastVersion.Size,
 						PreviousSize: previousVersion.Size,
 						Delta:        delta * 100,
@@ -124,6 +121,7 @@ type NotificationForFileVersion struct {
 	ID                 uint64    `gorm:"primary_key"`
 	NotificationRuleID uint64    `gorm:"type:bigint not null REFERENCES notification_rules(id) ON DELETE CASCADE"`
 	FileVersionID      uint64    `gorm:"type:bigint not null REFERENCES file_versions(id) ON DELETE CASCADE"`
+	Count              uint64    `gorm:"type:bigint not null`
 	CreatedAt          time.Time `json:"created_at"`
 	UpdatedAt          time.Time `json:"updated_at"`
 }

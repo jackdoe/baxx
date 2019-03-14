@@ -47,27 +47,28 @@ type PerRuleGroup struct {
 }
 
 func runRules(db *gorm.DB) {
+	tx := db.Begin()
 	users := []*user.User{}
-	if err := db.Find(&users).Error; err != nil {
+	if err := tx.Find(&users).Error; err != nil {
 		log.Fatal(err)
 	}
 
 	for _, u := range users {
 		tokens := []*file.Token{}
-		if err := db.Where("user_id = ?", u.ID).Find(&tokens).Error; err != nil {
+		if err := tx.Where("user_id = ?", u.ID).Find(&tokens).Error; err != nil {
 			log.Fatal(err)
 		}
 		grouped := []PerRuleGroup{}
 	TOKEN:
 		for _, t := range tokens {
 			rules := []*notification.NotificationRule{}
-			if err := db.Where("user_id = ? AND token_id = ?", u.ID, t.ID).Find(&rules).Error; err != nil {
+			if err := tx.Where("user_id = ? AND token_id = ?", u.ID, t.ID).Find(&rules).Error; err != nil {
 				log.Fatal(err)
 			}
 			if len(rules) == 0 {
 				continue TOKEN
 			}
-			files, err := file.ListFilesInPath(db, t, "", false)
+			files, err := file.ListFilesInPath(tx, t, "", false)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -75,12 +76,12 @@ func runRules(db *gorm.DB) {
 			for _, rule := range rules {
 				// get all files in token
 				t := &file.Token{}
-				if err := db.First(&t, rule.TokenID).Error; err != nil {
+				if err := tx.First(&t, rule.TokenID).Error; err != nil {
 					log.Fatal(err)
 				}
 
 				u := &user.User{}
-				if err := db.First(&u, rule.UserID).Error; err != nil {
+				if err := tx.First(&u, rule.UserID).Error; err != nil {
 					log.Fatal(err)
 				}
 
@@ -88,20 +89,33 @@ func runRules(db *gorm.DB) {
 				if err != nil {
 					log.Fatal(err)
 				}
-				//				for _, per := range pf {
-				//					nfv := &NotificationForFileVersion{NotificationRuleID: rule.ID, FileVersionID: 1}
-				//				}
+				unseen := []notification.FileNotification{}
+				for _, p := range pf {
+					nfv := &notification.NotificationForFileVersion{
+						NotificationRuleID: rule.ID,
+						FileVersionID:      p.FileVersion.ID,
+					}
+					res := tx.Where(nfv).First(&nfv)
+					if res.RecordNotFound() {
+						unseen = append(unseen, p)
+					}
+					nfv.Count++
+					if err := tx.Save(nfv).Error; err != nil {
+						log.Fatal(err)
+					}
+				}
 
-				grouped = append(grouped, PerRuleGroup{
-					Rule:    rule,
-					PerFile: pf,
-				})
+				if len(unseen) > 0 {
+					grouped = append(grouped, PerRuleGroup{
+						Rule:    rule,
+						PerFile: unseen,
+					})
+				}
 			}
 		}
 
 		if len(grouped) != 0 {
 			uuid := common.GetUUID()
-			// check if the file was notified before
 
 			n := &common.EmailQueueItem{
 				UUID:   uuid,
@@ -115,9 +129,12 @@ func runRules(db *gorm.DB) {
 				}),
 			}
 
-			if err := db.Save(n).Error; err != nil {
+			if err := tx.Save(n).Error; err != nil {
 				log.Fatal(err)
 			}
 		}
+	}
+	if err := tx.Commit().Error; err != nil {
+		log.Fatal(err)
 	}
 }
