@@ -68,7 +68,7 @@ func (user *User) GenerateVerificationLink() *VerificationLink {
 		ID:     common.GetUUID(),
 		UserID: user.ID,
 		Email:  user.Email,
-		SentAt: time.Now().UnixNano() / 1e6,
+		SentAt: uint64(time.Now().UnixNano() / 1e6),
 	}
 }
 
