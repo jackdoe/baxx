@@ -84,7 +84,7 @@ func CreateTokenAndBucket(s *file.Store, db *gorm.DB, u *user.User, writeOnly bo
 func transformTokenForSending(t *file.Token, usedSize, usedInodes int64, rules []*notification.NotificationRule) *common.TokenOutput {
 	ru := []common.NotificationRuleOutput{}
 	for _, r := range rules {
-		ru = append(ru, transformRuleToOutput(r))
+		ru = append(ru, notification.TransformRuleToOutput(r))
 	}
 	return &common.TokenOutput{
 		ID:                t.ID,

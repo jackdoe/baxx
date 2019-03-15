@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/jackdoe/baxx/common"
 	"github.com/jackdoe/baxx/file"
@@ -19,8 +18,7 @@ import (
 func main() {
 	var pdebug = flag.Bool("debug", false, "debug")
 	flag.Parse()
-	//	db, err := gorm.Open("postgres", os.Getenv("BAXX_POSTGRES"))
-	db, err := gorm.Open("postgres", "host=localhost user=baxx dbname=baxx password=baxx")
+	db, err := gorm.Open("postgres", os.Getenv("BAXX_POSTGRES"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,43 +26,6 @@ func main() {
 	defer db.Close()
 
 	runRules(db)
-	//	sendEmails(db)
-}
-
-func sendNotificationEmails(db *gorm.DB) {
-	sendgrid := os.Getenv("BAXX_SENDGRID_KEY")
-	if sendgrid == "" {
-		log.Fatalf("empty BAXX_SENDGRID_KEY")
-	}
-	toSend := []*common.EmailQueueItem{}
-	if err := db.Where("sent = ?", false).Order("asc").Find(&toSend).Error; err != nil {
-		log.Fatal(err)
-	}
-	for _, m := range toSend {
-		u := &user.User{}
-		if err := db.Where("user_id = ?", m.UserID).First(&u).Error; err != nil {
-			log.Fatal(err)
-		}
-		if u.EmailVerified == nil {
-			log.Infof("skipping notification for %s, unverified email", u.Email)
-			continue
-		}
-
-		err := common.Sendmail(sendgrid, common.Message{
-			From:    "jack@baxx.dev",
-			To:      []string{u.Email},
-			Subject: m.EmailSubject,
-			Body:    m.EmailText,
-		})
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		m.SentAt = time.Now()
-		if err := db.Save(m).Error; err != nil {
-			log.Fatal(err)
-		}
-	}
 }
 
 func runRules(db *gorm.DB) {
@@ -79,9 +40,11 @@ func runRules(db *gorm.DB) {
 		if err := tx.Where("user_id = ?", u.ID).Find(&tokens).Error; err != nil {
 			log.Fatal(err)
 		}
-		grouped := []notification.PerRuleGroup{}
+		count := 0
+		grouped := []common.PerRuleGroup{}
 	TOKEN:
 		for _, t := range tokens {
+
 			rules := []*notification.NotificationRule{}
 			if err := tx.Where("user_id = ? AND token_id = ?", u.ID, t.ID).Find(&rules).Error; err != nil {
 				log.Fatal(err)
@@ -110,16 +73,17 @@ func runRules(db *gorm.DB) {
 				if err != nil {
 					log.Fatal(err)
 				}
-				unseen := []notification.FileNotification{}
+				unseen := []common.FileNotification{}
 				for _, p := range pf {
 					nfv := &notification.NotificationForFileVersion{
 						NotificationRuleID: rule.ID,
-						FileVersionID:      p.FileVersion.ID,
+						FileVersionID:      p.FileVersionID,
 					}
 					res := tx.Where(nfv).First(&nfv)
 					if res.RecordNotFound() {
 						unseen = append(unseen, p)
 					}
+					count++
 					nfv.Count++
 					if err := tx.Save(nfv).Error; err != nil {
 						log.Fatal(err)
@@ -127,8 +91,8 @@ func runRules(db *gorm.DB) {
 				}
 
 				if len(unseen) > 0 {
-					grouped = append(grouped, PerRuleGroup{
-						Rule:    rule,
+					grouped = append(grouped, common.PerRuleGroup{
+						Rule:    notification.TransformRuleToOutput(rule),
 						PerFile: unseen,
 					})
 				}
@@ -142,11 +106,12 @@ func runRules(db *gorm.DB) {
 				UUID:   uuid,
 				UserID: u.ID,
 
-				EmailSubject: fmt.Sprintf("[ baxx.dev ] backup issues from %d notification rules", len(grouped)),
-				EmailText: help.Render(help.EMAIL_NOTIFICATION, map[string]interface{}{
-					"Email":   u.Email,
-					"Grouped": grouped,
-					"UUID":    uuid,
+				EmailSubject: fmt.Sprintf("[ baxx.dev ] backup issues for %d files", count),
+				EmailText: help.Render(help.HelpObject{
+					Template:      help.EmailNotification,
+					Email:         u.Email,
+					Notifications: grouped,
+					Status:        common.EMPTY_STATUS,
 				}),
 			}
 

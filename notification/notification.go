@@ -35,6 +35,7 @@ func ExecuteRule(rule *NotificationRule, files []file.FileMetadataAndVersion) ([
 				CreatedAt:       f.Versions[0].CreatedAt,
 				FullPath:        fullpath,
 				LastVersionSize: f.Versions[0].Size,
+				FileVersionID:   f.Versions[0].ID,
 			}
 
 			if rule.AcceptableAgeSeconds > 0 {
@@ -52,13 +53,13 @@ func ExecuteRule(rule *NotificationRule, files []file.FileMetadataAndVersion) ([
 			if rule.AcceptableSizeDeltaPercentBetweenVersions > 0 && len(f.Versions) > 1 {
 				lastVersion := f.Versions[0]
 				previousVersion := f.Versions[1]
-				delta := (float64(lastVersion.Size) - float64(previousVersion.Size)) / float64(lastVersion.Size)
+				delta := (1 + (float64(lastVersion.Size) - float64(previousVersion.Size))) / float64(1+lastVersion.Size)
 				if (math.Abs(delta) * 100) > float64(rule.AcceptableSizeDeltaPercentBetweenVersions) {
 					// delta trigger
 					n := &common.SizeNotification{
 						PreviousSize: previousVersion.Size,
 						Delta:        delta * 100,
-						Overflow:     uint64(float64(lastVersion.Size) * delta),
+						Overflow:     uint64(math.Abs(float64(lastVersion.Size) * delta)),
 					}
 					current.Size = n
 				}
@@ -93,4 +94,14 @@ type NotificationForFileVersion struct {
 	Count              uint64    `gorm:"type:bigint not null"`
 	CreatedAt          time.Time `json:"created_at"`
 	UpdatedAt          time.Time `json:"updated_at"`
+}
+
+func TransformRuleToOutput(n *NotificationRule) common.NotificationRuleOutput {
+	return common.NotificationRuleOutput{
+		AcceptableAgeDays:                         n.AcceptableAgeSeconds / 86400,
+		AcceptableSizeDeltaPercentBetweenVersions: n.AcceptableSizeDeltaPercentBetweenVersions,
+		UUID:   n.UUID,
+		Regexp: n.Regexp,
+		Name:   n.Name,
+	}
 }

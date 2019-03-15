@@ -87,16 +87,6 @@ func changeNotificationRule(db *gorm.DB, u *user.User, json *common.ModifyNotifi
 	return n, nil
 }
 
-func transformRuleToOutput(n *notification.NotificationRule) common.NotificationRuleOutput {
-	return common.NotificationRuleOutput{
-		AcceptableAgeDays:                         n.AcceptableAgeSeconds / 86400,
-		AcceptableSizeDeltaPercentBetweenVersions: n.AcceptableSizeDeltaPercentBetweenVersions,
-		UUID:   n.UUID,
-		Regexp: n.Regexp,
-		Name:   n.Name,
-	}
-}
-
 func ListNotifications(db *gorm.DB, t *file.Token) ([]*notification.NotificationRule, error) {
 	rules := []*notification.NotificationRule{}
 	if err := db.Where("token_id = ?", t.ID).Find(&rules).Error; err != nil {

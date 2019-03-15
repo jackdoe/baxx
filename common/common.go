@@ -179,6 +179,7 @@ type FileNotification struct {
 	Size            *SizeNotification
 	FullPath        string
 	LastVersionSize uint64
+	FileVersionID   uint64
 	CreatedAt       time.Time
 }
 

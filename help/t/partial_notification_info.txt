@@ -1,4 +1,4 @@
-  Alert:
+  Alert Rule:
      Name: {{ .Name }}
      Matching on Regexp: "{{ .Regexp }}"
      UUID: {{ .UUID }}

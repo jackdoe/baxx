@@ -263,7 +263,7 @@ func setupACC(srv *server) {
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		c.IndentedJSON(http.StatusOK, transformRuleToOutput(n))
+		c.IndentedJSON(http.StatusOK, notification.TransformRuleToOutput(n))
 	})
 
 	authorized.POST("/delete/notification", func(c *gin.Context) {
@@ -305,7 +305,7 @@ func setupACC(srv *server) {
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		c.IndentedJSON(http.StatusOK, transformRuleToOutput(n))
+		c.IndentedJSON(http.StatusOK, notification.TransformRuleToOutput(n))
 	})
 
 	authorized.POST("/create/token", func(c *gin.Context) {

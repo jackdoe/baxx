@@ -4,6 +4,9 @@ There are some (possible) issues with your backups.
 {{ $email := .Status.Email }}
 
 {{ range .Notifications }}
+
+  #######################
+
   {{ template "partial_notification_info.txt" .Rule }}
   {{ range .PerFile }}
     {{ .FullPath }}
@@ -16,7 +19,7 @@ There are some (possible) issues with your backups.
     {{ end -}}
     {{- if .Size }}
       Weird size delta:
-        size {{ prettySize .LastVersionSize }}
+        current size {{ prettySize .LastVersionSize }}
         previous size {{ prettySize .Size.PreviousSize }}
         delta {{ prettyFloat .Size.Delta }}%
         overflow {{ prettySize .Size.Overflow }}
@@ -39,7 +42,13 @@ There are some (possible) issues with your backups.
     "notification_uuid": "{{.Rule.UUID }}"
   }' https://baxx.dev/protected/change/notification
 
+  to delete this notification rule:
+  curl -u {{ $email }} -d '{"notification_uuid": "{{.Rule.UUID}}"}' https://baxx.dev/protected/delete/notification
+
+  #######################
 {{end }}
 
---
-baxx.dev
+Help:
+curl https://baxx.dev/help/notifications
+
+{{ template "partial_email_footer.txt" . }}
