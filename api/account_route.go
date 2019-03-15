@@ -541,7 +541,7 @@ func setupACC(srv *server) {
 		}))
 	})
 
-	srv.registerHelp(false, help.HelpObject{Template: help.Profile}, "/register")
-	srv.registerHelp(false, help.HelpObject{Template: help.TokenMeta}, "/protected/token", "/protected/token/*path", "/token")
-	srv.registerHelp(false, help.HelpObject{Template: help.NotificationMeta}, "/protected/notification", "/protected/notification/*path", "/notification")
+	srv.registerHelp(false, help.HelpObject{Template: help.Profile, Status: common.EMPTY_STATUS}, "/register")
+	srv.registerHelp(false, help.HelpObject{Template: help.TokenMeta, Status: common.EMPTY_STATUS}, "/protected/token", "/protected/token/*path", "/token", "/tokens")
+	srv.registerHelp(false, help.HelpObject{Template: help.NotificationMeta, Status: common.EMPTY_STATUS}, "/protected/notification", "/protected/notification/*path", "/notification", "/notifications")
 }

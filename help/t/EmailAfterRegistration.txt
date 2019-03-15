@@ -40,14 +40,21 @@ curl https://baxx.dev/help
 * i/o operations
 curl https://baxx.dev/help/io
 
+* create / delete tokens
+curl https://baxx.dev/help/tokens
+
+* create / delete notification rules
+curl https://baxx.dev/help/notifications
+
 * sync (upload what is needed)
 curl https://baxx.dev/help/sync
 
 * profile
 curl https://baxx.dev/help/register
 
+## Source
 
-
+https://github.com/jackdoe/baxx/
 
 Thanks again!
 
