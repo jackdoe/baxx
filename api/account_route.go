@@ -471,7 +471,7 @@ func setupACC(srv *server) {
 	})
 
 	r.GET("/help", func(c *gin.Context) {
-		c.String(http.StatusOK, help.Render(help.HelpObject{Template: help.EmailAfterRegistration, Email: common.EMPTY_STATUS.Email, Status: common.EMPTY_STATUS}))
+		c.String(http.StatusOK, help.Render(help.HelpObject{Template: help.AllHelp, Email: common.EMPTY_STATUS.Email, Status: common.EMPTY_STATUS}))
 	})
 
 	r.GET("/thanks_for_paying", func(c *gin.Context) {
@@ -541,5 +541,7 @@ func setupACC(srv *server) {
 		}))
 	})
 
-	srv.registerHelp(false, help.HelpObject{Template: help.Profile}, "/protected", "/protected/*path", "/register")
+	srv.registerHelp(false, help.HelpObject{Template: help.Profile}, "/register")
+	srv.registerHelp(false, help.HelpObject{Template: help.TokenMeta}, "/protected/token", "/protected/token/*path", "/token")
+	srv.registerHelp(false, help.HelpObject{Template: help.NotificationMeta}, "/protected/notification", "/protected/notification/*path", "/notification")
 }

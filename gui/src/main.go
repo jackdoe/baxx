@@ -163,7 +163,7 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 	})
 
 	help.OnActivated(func(b *tui.Button) {
-		popup(ui, root, false, nil, "HELP", Render(HelpObject{Template: EmailAfterRegistration, Status: bcommon.EMPTY_STATUS}))
+		popup(ui, root, false, nil, "HELP", Render(HelpObject{Template: AllHelp, Status: bcommon.EMPTY_STATUS}))
 	})
 
 	pitch.OnActivated(func(b *tui.Button) {
@@ -302,7 +302,7 @@ func postRegistration(ui tui.UI, bc *baxx.Client, email, pass string) *tui.Box {
 	})
 
 	help.OnActivated(func(b *tui.Button) {
-		popup(ui, content, false, nil, "HELP", Render(HelpObject{Template: GuiPassRequired}), "", Render(HelpObject{Template: EmailAfterRegistration, Status: bcommon.EMPTY_STATUS}))
+		popup(ui, content, false, nil, "HELP", Render(HelpObject{Template: GuiPassRequired}), "", Render(HelpObject{Template: AllHelp, Status: bcommon.EMPTY_STATUS}))
 	})
 
 	refreshStatus := func() error {
@@ -323,7 +323,7 @@ func postRegistration(ui tui.UI, bc *baxx.Client, email, pass string) *tui.Box {
 		}
 		if status.Paid && status.EmailVerified != nil {
 			stop <- true
-			popup(ui, content, true, nil, "SUCCESS", "Your account is now ready to be used", "", "", Render(HelpObject{Template: EmailAfterRegistration, Status: status}))
+			popup(ui, content, true, nil, "SUCCESS", "Your account is now ready to be used", "", "", Render(HelpObject{Template: AllHelp, Status: status}))
 		}
 		return nil
 	}

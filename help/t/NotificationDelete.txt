@@ -1,4 +1,4 @@
-## Delete Notification
+## Delete Notification Rule
 
 curl -u {{ template "partial_email_extract.txt" . }} \
  -d '{"notification_uuid": "NOTIFICATION-UUID"}' \

@@ -1,4 +1,4 @@
-## List Notifications
+## List Notification Rules
 
 To list your configured notifications you can use the /status endpoint:
 

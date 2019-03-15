@@ -33,4 +33,5 @@ const (
 	TokenMeta
 	Profile
 	NotificationMeta
+	AllHelp
 )

@@ -1,4 +1,4 @@
-## Create Notification
+## Create Notification Rule
 
 curl -u {{ template "partial_email_extract.txt" . }}  -d '{
   "name":"example name",

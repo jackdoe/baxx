@@ -78,10 +78,11 @@ func Load() *template.Template {
 	return t
 }
 
-//var root = Load()
+var root = Load()
+
 func Render(data HelpObject) string {
 	var out bytes.Buffer
-	root := Load()
+	//root := Load()
 	err := root.ExecuteTemplate(&out, data.Template.String()+".txt", data)
 	if err != nil {
 		panic(err)

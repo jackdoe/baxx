@@ -29,3 +29,5 @@ curl -u {{ template "partial_email_extract.txt" . }} -XDELETE https://baxx.dev/i
 
 * List
 curl -u {{ template "partial_email_extract.txt" . }} https://baxx.dev/ls/$TOKEN/path/
+
+

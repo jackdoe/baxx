@@ -32,14 +32,23 @@ Or you could also click on:
 https://baxx.dev/verify/{{.Status.LastVerificationID}}
 {{ end }}
 
-Thanks again!
+Documentation:
 
-{{ template "TokenMeta.txt" . }}
-{{ template "FileMeta.txt" . }}
-{{ template "SyncMeta.txt" . }}
-{{ template "NotificationMeta.txt" . }}
-{{ template "Profile.txt" . }}
-{{ template "Examples.txt" . }}
-{{ template "Encryption.txt" . }}
+* A bunch of help
+curl https://baxx.dev/help
+
+* i/o operations
+curl https://baxx.dev/help/io
+
+* sync (upload what is needed)
+curl https://baxx.dev/help/sync
+
+* profile
+curl https://baxx.dev/help/register
+
+
+
+
+Thanks again!
 
 {{ template "partial_email_footer.txt" . }}
