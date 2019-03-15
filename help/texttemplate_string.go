@@ -4,9 +4,9 @@ package help
 
 import "strconv"
 
-const _TextTemplate_name = "EmailAfterRegistrationEmailNotificationEmailPaymentCancelEmailPaymentThanksEmailValidationFileDeleteFileDownloadFileListFileUploadFileMetaSyncShaOneSyncShaManySyncMetaGuiEmailRequiredGuiInfoGuiPassRequiredGuiPitchGuiTosHtmlLinkErrorHtmlLinkExpiredHtmlVerificationOkHtmlWaitPaypalTokenCreateTokenDeleteTokenListTokenModifyTokenMetaProfileNotificationMetaAllHelp"
+const _TextTemplate_name = "EmailAfterRegistrationEmailNotificationEmailPaymentCancelEmailPaymentThanksEmailValidationFileMetaSyncMetaGuiEmailRequiredGuiInfoGuiPassRequiredGuiPitchGuiTosHtmlLinkErrorHtmlLinkExpiredHtmlVerificationOkHtmlWaitPaypalTokenMetaProfileNotificationMetaAllHelp"
 
-var _TextTemplate_index = [...]uint16{0, 22, 39, 57, 75, 90, 100, 112, 120, 130, 138, 148, 159, 167, 183, 190, 205, 213, 219, 232, 247, 265, 279, 290, 301, 310, 321, 330, 337, 353, 360}
+var _TextTemplate_index = [...]uint16{0, 22, 39, 57, 75, 90, 98, 106, 122, 129, 144, 152, 158, 171, 186, 204, 218, 227, 234, 250, 257}
 
 func (i TextTemplate) String() string {
 	if i < 0 || i >= TextTemplate(len(_TextTemplate_index)-1) {

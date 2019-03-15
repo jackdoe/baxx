@@ -9,13 +9,7 @@ const (
 	EmailPaymentCancel
 	EmailPaymentThanks
 	EmailValidation
-	FileDelete
-	FileDownload
-	FileList
-	FileUpload
 	FileMeta
-	SyncShaOne
-	SyncShaMany
 	SyncMeta
 	GuiEmailRequired
 	GuiInfo
@@ -26,10 +20,6 @@ const (
 	HtmlLinkExpired
 	HtmlVerificationOk
 	HtmlWaitPaypal
-	TokenCreate
-	TokenDelete
-	TokenList
-	TokenModify
 	TokenMeta
 	Profile
 	NotificationMeta

@@ -21,8 +21,6 @@ no guarnatees about the data [yet]
 Because I want to see if someone really cares about this.
 Lets work together to make usable backup service!
 
-{{ template "Encryption.txt" . }}
-
 ## End goal
 
 * zero configuration notifications
