@@ -17,6 +17,7 @@ type Config struct {
 	DefaultInodeQuota uint64
 	SendGridKey       string
 	Local             *Local
+	SlackWebHook      string
 }
 
 var CONFIG = &Config{
@@ -24,4 +25,5 @@ var CONFIG = &Config{
 	DefaultQuota:      10 * 1024 * 1024 * 1024,
 	DefaultInodeQuota: 1000,
 	SendGridKey:       "",
+	SlackWebHook:      "",
 }

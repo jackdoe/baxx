@@ -139,6 +139,7 @@ func setupIO(srv *server) {
 			c.IndentedJSON(http.StatusOK, fv)
 			return
 		}
+
 		c.String(http.StatusOK, FileLine(fm, fv))
 	}
 

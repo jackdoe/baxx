@@ -138,6 +138,7 @@ func setupAPI(db *gorm.DB, bind string) {
 	}
 
 	r := gin.Default()
+	r.Use(SlackRecovery())
 	r.Use(func(c *gin.Context) {
 		su, pass := BasicAuthDecode(c)
 		if su != "" {
@@ -160,7 +161,9 @@ func setupAPI(db *gorm.DB, bind string) {
 			c.Abort()
 		}
 	})
-
+	//	r.GET("/panic", func(c *gin.Context) {
+	//		panic("ABC")
+	//	})
 	srv := &server{db: db, r: r, store: store, authorized: authorized}
 	setupIO(srv)
 	setupACC(srv)
@@ -178,6 +181,7 @@ func main() {
 
 	CONFIG.MaxTokens = 100
 	CONFIG.SendGridKey = os.Getenv("BAXX_SENDGRID_KEY")
+	CONFIG.SlackWebHook = os.Getenv("BAXX_SLACK_PANIC")
 
 	if *prelease {
 		gin.SetMode(gin.ReleaseMode)
