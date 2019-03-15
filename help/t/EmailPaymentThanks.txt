@@ -4,14 +4,11 @@ Thanks for subscribing!
 Even though the service is just in alpha state, it is much
 appreciated!
 
-https://baxx.dev/sub/{{ .Status.PaymentID}}
-
-or go to:
+To unsubscribe you can go to:
 https://baxx.dev/unsub/{{ .Status.PaymentID }}
-which will redirect you there.
+
+Or use the paypal.com interface directly.
 
 You can check the account status with:
-
-{{ template "partial_email_status.txt" . }}
 
 {{ template "partial_email_footer.txt" . }}
