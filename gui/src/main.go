@@ -171,7 +171,7 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 	})
 
 	tos.OnActivated(func(b *tui.Button) {
-		popup(ui, root, false, nil, "Terms Of Service", Render(HelpObject{Template: GuiPitch}))
+		popup(ui, root, false, nil, "Terms Of Service", Render(HelpObject{Template: GuiTos}))
 	})
 
 	login.OnActivated(func(b *tui.Button) {
