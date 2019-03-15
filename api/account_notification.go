@@ -51,7 +51,7 @@ func createNotificationRule(db *gorm.DB, u *user.User, json *common.CreateNotifi
 
 func changeNotificationRule(db *gorm.DB, u *user.User, json *common.ModifyNotificationInput) (*notification.NotificationRule, error) {
 	n := &notification.NotificationRule{}
-	if err := db.Where("uuid = ? AND user_id = ?", json.UUID, u.ID).Error; err != nil {
+	if err := db.Where("uuid = ? AND user_id = ?", json.UUID, u.ID).First(&u).Error; err != nil {
 		return nil, err
 	}
 
