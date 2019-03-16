@@ -18,15 +18,16 @@
     [ digital ocean lb ] 10$                  [ gui.baxx.dev ] 5$                     [ notify.baxx.dev ] $5
   ssl terminate, letsencrypt                     |                                        run the notification rules
         /          |                              +-- running passwordless baxx.gui       and send emails
-       /           \                                  for register@gui.baxx.dev
-     a.baxx.dev    b.baxx.dev  ... [ 5$ per dropplet ]
-     |   \         /   |
-     |    \ managed    |
-     |      postgres   |
-      .     15$       .
+       /           \                                  for register@gui.baxx.dev               |
+     a.baxx.dev    b.baxx.dev  ... [ 5$ per dropplet ]                                        |
+     | \               | \                                                                    |
+     |  \              |  \                                                                  /
+     |   \-------------+---\-------- managed postgress ]------------------------------------+
+      .               /                        15$
        ,           ,
-          [do s3]
-             5$
+     [digital ocean s3]
+             5$ for 250G
+
   each dropplet has its own keys for postgres/s3/sendgrid
   sendgrid key is limited to email send only
 
