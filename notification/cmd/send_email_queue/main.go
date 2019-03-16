@@ -23,7 +23,10 @@ func main() {
 	db.LogMode(*pdebug)
 	defer db.Close()
 
-	sendEmails(db)
+	for {
+		sendEmails(db)
+		time.Sleep(1 * time.Second)
+	}
 }
 
 func sendEmails(db *gorm.DB) {
