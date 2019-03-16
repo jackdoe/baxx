@@ -8,6 +8,7 @@ import (
 
 	"github.com/badoux/checkmail"
 	"github.com/gin-gonic/gin"
+	"github.com/jackdoe/baxx/common"
 	"github.com/jackdoe/baxx/user"
 	log "github.com/sirupsen/logrus"
 )
@@ -56,4 +57,15 @@ func warnErr(c *gin.Context, err error) {
 	_, fn, line, _ := runtime.Caller(1)
 
 	log.Warnf("uid: %d, uri: %s, err: >> %s << [%s:%d] %s", u.ID, c.Request.RequestURI, err.Error(), fn, line)
+}
+
+func slack(title, body string) {
+	if CONFIG.SlackWebHook != "" {
+		err := common.SendSlack(CONFIG.SlackWebHook, title, body)
+		if err != nil {
+			log.Warnf("error sending to slack: %s", err.Error())
+		}
+	} else {
+		log.Warnf("not sending to slack: %s/%s", title, body)
+	}
 }
