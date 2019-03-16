@@ -7,8 +7,6 @@ check it out `ssh register@ui.baxx.dev`
 # backup service
 (also i am learning how to build a product without a website haha)
 
-[![asciicast](https://asciinema.org/a/WlbMiaUP5R1a7VY5XCMdrEu6K.svg)](https://asciinema.org/a/WlbMiaUP5R1a7VY5XCMdrEu6K)
-
 # screenshots
 ```
 ┌────────────────────────────────────────────┐
