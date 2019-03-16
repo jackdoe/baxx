@@ -16,11 +16,12 @@ import (
 )
 
 func main() {
+	defer notification.SlackPanic("notification rules")
 	var pdebug = flag.Bool("debug", false, "debug")
 	flag.Parse()
 	db, err := gorm.Open("postgres", os.Getenv("BAXX_POSTGRES"))
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	db.LogMode(*pdebug)
 	defer db.Close()
@@ -29,20 +30,18 @@ func main() {
 }
 
 func runRules(db *gorm.DB) {
+
 	tx := db.Begin()
 	users := []*user.User{}
 	if err := tx.Find(&users).Error; err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
-
-	totalFilesAlerted := 0
 
 	for _, u := range users {
 		tokens := []*file.Token{}
 		if err := tx.Where("user_id = ?", u.ID).Find(&tokens).Error; err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
-		totalUsers++
 
 		count := 0
 		grouped := []common.PerRuleGroup{}
@@ -51,31 +50,31 @@ func runRules(db *gorm.DB) {
 
 			rules := []*notification.NotificationRule{}
 			if err := tx.Where("user_id = ? AND token_id = ?", u.ID, t.ID).Find(&rules).Error; err != nil {
-				log.Fatal(err)
+				log.Panic(err)
 			}
 			if len(rules) == 0 {
 				continue TOKEN
 			}
 			files, err := file.ListFilesInPath(tx, t, "", false)
 			if err != nil {
-				log.Fatal(err)
+				log.Panic(err)
 			}
 
 			for _, rule := range rules {
 				// get all files in token
 				t := &file.Token{}
 				if err := tx.First(&t, rule.TokenID).Error; err != nil {
-					log.Fatal(err)
+					log.Panic(err)
 				}
 
 				u := &user.User{}
 				if err := tx.First(&u, rule.UserID).Error; err != nil {
-					log.Fatal(err)
+					log.Panic(err)
 				}
 
 				pf, err := notification.ExecuteRule(rule, files)
 				if err != nil {
-					log.Fatal(err)
+					log.Panic(err)
 				}
 				unseen := []common.FileNotification{}
 				for _, p := range pf {
@@ -88,10 +87,9 @@ func runRules(db *gorm.DB) {
 						unseen = append(unseen, p)
 					}
 					count++
-					totalFilesAlerted++
 					nfv.Count++
 					if err := tx.Save(nfv).Error; err != nil {
-						log.Fatal(err)
+						log.Panic(err)
 					}
 				}
 
@@ -105,7 +103,7 @@ func runRules(db *gorm.DB) {
 		}
 
 		if len(grouped) != 0 {
-			err := common.EnqueueMail(
+			err := notification.EnqueueMail(
 				tx,
 				u.ID,
 				fmt.Sprintf("[ baxx.dev ] backup issues for %d files", count),
@@ -116,11 +114,11 @@ func runRules(db *gorm.DB) {
 					Status:        common.EMPTY_STATUS,
 				}))
 			if err != nil {
-				log.Fatal(err)
+				log.Panic(err)
 			}
 		}
 	}
 	if err := tx.Commit().Error; err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 }

@@ -30,44 +30,44 @@ func initDatabase(db *gorm.DB) {
 		&notification.NotificationForFileVersion{},
 		&notification.EmailQueueItem{},
 	).Error; err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	if err := db.Model(&notification.EmailQueueItem{}).AddIndex("idx_email_sent", "sent").Error; err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	if err := db.Model(&user.VerificationLink{}).AddUniqueIndex("idx_user_sent_at", "user_id", "sent_at").Error; err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	// not unique index, we can have many links for same email, they could expire
 	if err := db.Model(&user.VerificationLink{}).AddIndex("idx_vl_email", "email").Error; err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	if err := db.Model(&user.User{}).AddUniqueIndex("idx_payment_id", "payment_id").Error; err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	if err := db.Model(&file.FileVersion{}).AddIndex("idx_token_sha", "token_id", "sha256").Error; err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	if err := db.Model(&file.FileVersion{}).AddIndex("idx_fv_metadata", "file_metadata_id").Error; err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	if err := db.Model(&file.FileMetadata{}).AddUniqueIndex("idx_fm_token_id_path_2", "token_id", "path", "filename").Error; err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	if err := db.Model(&notification.NotificationRule{}).AddIndex("idx_n_user_id_token_id", "user_id", "token_id").Error; err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	if err := db.Model(&notification.NotificationForFileVersion{}).AddUniqueIndex("idx_nfv_rule_fv", "file_version_id", "notification_rule_id").Error; err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 }
@@ -133,7 +133,7 @@ func setupAPI(db *gorm.DB, bind string) {
 	store, err := file.NewStore(os.Getenv("BAXX_S3_ENDPOINT"), os.Getenv("BAXX_S3_ACCESS_KEY"), os.Getenv("BAXX_S3_SECRET"), os.Getenv("BAXX_S3_DISABLE_SSL") == "true")
 
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	r := gin.Default()
@@ -168,10 +168,12 @@ func setupAPI(db *gorm.DB, bind string) {
 	setupACC(srv)
 	setupSYNC(srv)
 
-	log.Fatal(r.Run(bind))
+	log.Panic(r.Run(bind))
 }
 
 func main() {
+	defer notification.SlackPanic("main api")
+
 	var pbind = flag.String("bind", ":9123", "bind")
 	var pdebug = flag.Bool("debug", false, "debug")
 	var pinit = flag.Bool("create-tables", false, "create tables")
@@ -186,7 +188,7 @@ func main() {
 
 	db, err := gorm.Open("postgres", os.Getenv("BAXX_POSTGRES"))
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	db.LogMode(*pdebug)
 	defer db.Close()

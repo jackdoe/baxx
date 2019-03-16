@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
+	"runtime/debug"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -45,5 +47,15 @@ func SendSlackDefault(title, body string) {
 		}
 	} else {
 		log.Warnf("not sending to slack: %s/%s", title, body)
+	}
+}
+
+func SlackPanic(topic string) {
+	if r := recover(); r != nil {
+		stack := debug.Stack()
+		m := fmt.Sprintf("%s: %s ```%s```", topic, r, stack)
+
+		SendSlackDefault(topic, m)
+		panic(r)
 	}
 }
