@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"runtime/debug"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -19,6 +20,7 @@ type Slack struct {
 }
 
 func SendSlack(webhook string, title string, body string) error {
+	log.Infof("sending slack message %s %s", title, body)
 	encoded, err := json.Marshal(Slack{
 		Title:    title,
 		Text:     body,
@@ -27,15 +29,22 @@ func SendSlack(webhook string, title string, body string) error {
 	if err != nil {
 		return err
 	}
-
-	resp, err := http.Post(webhook, "application/json", bytes.NewReader(encoded))
-	if err != nil {
+	wait := make(chan error, 1)
+	go func() {
+		resp, err := http.Post(webhook, "application/json", bytes.NewReader(encoded))
+		if err != nil {
+			wait <- err
+		}
+		if resp.StatusCode != 200 {
+			wait <- errors.New(resp.Status)
+		}
+	}()
+	select {
+	case err := <-wait:
 		return err
+	case <-time.After(3 * time.Second):
+		return errors.New("slack request timed out")
 	}
-	if resp.StatusCode != 200 {
-		return errors.New(resp.Status)
-	}
-	return nil
 }
 
 func SendSlackDefault(title, body string) {
