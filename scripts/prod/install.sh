@@ -32,10 +32,10 @@ BAXX_POSTGRES='host=localhost port=5432 user=baxx dbname=baxx password=baxx'
 BAXX_S3_SECRET='XXX'
 BAXX_S3_ACCESS_KEY='XXX'
 BAXX_S3_TOKEN='XXX'
-BAXX_S3_BUCKET='baxx'
 BAXX_S3_ENDPOINT='ams3.digitaloceanspaces.com'
 BAXX_S3_REGION='ams3'
 BAXX_SENDGRID_KEY='XXX'
+BAXX_SLACK_PANIC='XXX'
 EOF
 
 chown root /home/baxx/config

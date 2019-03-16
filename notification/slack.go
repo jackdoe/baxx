@@ -1,10 +1,13 @@
-package common
+package notification
 
 import (
 	"bytes"
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type Slack struct {
@@ -31,4 +34,16 @@ func SendSlack(webhook string, title string, body string) error {
 		return errors.New(resp.Status)
 	}
 	return nil
+}
+
+func SendSlackDefault(title, body string) {
+	hook := os.Getenv("BAXX_SLACK_PANIC")
+	if hook != "" {
+		err := SendSlack(hook, title, body)
+		if err != nil {
+			log.Warnf("error sending to slack: %s", err.Error())
+		}
+	} else {
+		log.Warnf("not sending to slack: %s/%s", title, body)
+	}
 }

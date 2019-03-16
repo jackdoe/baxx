@@ -45,6 +45,7 @@ func getUserStatus(db *gorm.DB, u *user.User) (*common.UserStatusOutput, error) 
 	db.Where("email = ?", u.Email).Last(vl)
 
 	return &common.UserStatusOutput{
+		UserID:                u.ID,
 		EmailVerified:         u.EmailVerified,
 		StartedSubscription:   u.StartedSubscription,
 		CancelledSubscription: u.CancelledSubscription,
@@ -100,15 +101,17 @@ func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (
 		return nil, nil, err
 	}
 
-	if err := tx.Commit().Error; err != nil {
+	if err := sendVerificationLink(tx, status); err != nil {
+		tx.Rollback()
+		return nil, nil, err
+	}
+	if err := sendRegistrationHelp(tx, status); err != nil {
+		tx.Rollback()
 		return nil, nil, err
 	}
 
-	if err := sendVerificationLink(status); err != nil {
-		log.Warnf("failed to send email, ignoring error and moving on,  %s", err.Error())
-	}
-	if err := sendRegistrationHelp(status); err != nil {
-		log.Warnf("failed to send email, ignoring error and moving on,  %s", err.Error())
+	if err := tx.Commit().Error; err != nil {
+		return nil, nil, err
 	}
 
 	return status, u, nil
@@ -232,17 +235,18 @@ func setupACC(srv *server) {
 			return
 		}
 
-		if err := tx.Commit().Error; err != nil {
-			warnErr(c, err)
-			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		}
-
 		if verificationLink != nil {
-			if err := sendVerificationLink(status); err != nil {
+			if err := sendVerificationLink(tx, status); err != nil {
+				tx.Rollback()
 				warnErr(c, err)
 				c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
 			}
+		}
+
+		if err := tx.Commit().Error; err != nil {
+			warnErr(c, err)
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
 
 		c.IndentedJSON(http.StatusOK, &common.Success{Success: true})
@@ -442,14 +446,14 @@ func setupACC(srv *server) {
 		}
 		if cancel {
 			go func() {
-				err := sendPaymentCancelMail(status)
+				err := sendPaymentCancelMail(db, status)
 				if err != nil {
 					warnErr(c, err)
 				}
 			}()
 		} else if subscribe {
 			go func() {
-				err := sendPaymentThanksMail(status)
+				err := sendPaymentThanksMail(db, status)
 				if err != nil {
 					warnErr(c, err)
 				}

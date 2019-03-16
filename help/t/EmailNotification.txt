@@ -1,8 +1,6 @@
 Hi,
 There are some (possible) issues with your backups.
-
-{{ $email := .Status.Email }}
-
+{{- $email := .Email -}}
 {{ range .Notifications }}
 
   #######################
@@ -22,11 +20,11 @@ There are some (possible) issues with your backups.
         current size {{ prettySize .LastVersionSize }}
         previous size {{ prettySize .Size.PreviousSize }}
         delta {{ prettyFloat .Size.Delta }}%
-        overflow {{ prettySize .Size.Overflow }}
     {{ end }}
   {{ end }}
 
   Alert is too strict?
+  {{- if .Rule.AcceptableAgeDays }}
   increase expected age +1 day '{{ .Rule.Name }}':
   curl -u {{ $email }} \
     -XPOST \
@@ -34,14 +32,15 @@ There are some (possible) issues with your backups.
       "age_days": {{ add .Rule.AcceptableAgeDays 1 }},
       "notification_uuid": "{{.Rule.UUID }}"
      }' https://baxx.dev/protected/change/notification
-  
-  increase to delta% + 10 for '{{ .Rule.Name }}':
+  {{ end -}}
+  {{- if .Rule.AcceptableSizeDeltaPercentBetweenVersions }}
+  increase to delta% +10 for '{{ .Rule.Name }}':
   curl -u {{ $email }} -XPOST \
   -d '{
-    "delta_percent": {{ add .Rule.AcceptableSizeDeltaPercentBetweenVersions 10 }},
+    "size_delta_percent": {{ add .Rule.AcceptableSizeDeltaPercentBetweenVersions 10 }},
     "notification_uuid": "{{.Rule.UUID }}"
   }' https://baxx.dev/protected/change/notification
-
+  {{end}}
   to delete this notification rule:
   curl -u {{ $email }} -d '{"notification_uuid": "{{.Rule.UUID}}"}' https://baxx.dev/protected/delete/notification
 

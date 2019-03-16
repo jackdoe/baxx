@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackdoe/baxx/common"
 	"github.com/jackdoe/baxx/file"
 	"github.com/jackdoe/baxx/help"
 	"github.com/jackdoe/baxx/notification"
@@ -29,12 +28,12 @@ func initDatabase(db *gorm.DB) {
 		&user.PaymentHistory{},
 		&notification.NotificationRule{},
 		&notification.NotificationForFileVersion{},
-		&common.EmailQueueItem{},
+		&notification.EmailQueueItem{},
 	).Error; err != nil {
 		log.Fatal(err)
 	}
 
-	if err := db.Model(&common.EmailQueueItem{}).AddIndex("idx_email_sent", "sent").Error; err != nil {
+	if err := db.Model(&notification.EmailQueueItem{}).AddIndex("idx_email_sent", "sent").Error; err != nil {
 		log.Fatal(err)
 	}
 
@@ -161,9 +160,9 @@ func setupAPI(db *gorm.DB, bind string) {
 			c.Abort()
 		}
 	})
-	r.GET("/panic", func(c *gin.Context) {
-		panic("ABC")
-	})
+	//	r.GET("/panic", func(c *gin.Context) {
+	//		panic("ABC")
+	//	})
 	srv := &server{db: db, r: r, store: store, authorized: authorized}
 	setupIO(srv)
 	setupACC(srv)
@@ -180,8 +179,6 @@ func main() {
 	flag.Parse()
 
 	CONFIG.MaxTokens = 100
-	CONFIG.SendGridKey = os.Getenv("BAXX_SENDGRID_KEY")
-	CONFIG.SlackWebHook = os.Getenv("BAXX_SLACK_PANIC")
 
 	if *prelease {
 		gin.SetMode(gin.ReleaseMode)

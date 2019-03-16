@@ -31,15 +31,16 @@ func sendEmails(db *gorm.DB) {
 		log.Fatalf("empty BAXX_SENDGRID_KEY")
 	}
 	toSend := []*common.EmailQueueItem{}
-	if err := db.Where("sent = ?", false).Order("asc").Find(&toSend).Error; err != nil {
+	if err := db.Where("sent = ?", false).Find(&toSend).Error; err != nil {
 		log.Fatal(err)
 	}
 	for _, m := range toSend {
 		u := &user.User{}
-		if err := db.Where("user_id = ?", m.UserID).First(&u).Error; err != nil {
+		if err := db.Where("id = ?", m.UserID).First(&u).Error; err != nil {
 			log.Fatal(err)
 		}
-		if u.EmailVerified == nil {
+
+		if u.EmailVerified == nil && !m.IsVerificationMessage {
 			log.Infof("skipping notification for %s, unverified email", u.Email)
 			continue
 		}

@@ -98,6 +98,7 @@ type UserStatusOutput struct {
 	CancelledSubscription *time.Time     `json:"cancelled_subscription"`
 	PaymentID             string         `json:"payment_id"`
 	LastVerificationID    string         `json:"-"`
+	UserID                uint64         `json:"-"`
 	Tokens                []*TokenOutput `json:"tokens"`
 	Email                 string         `json:"email"`
 }
@@ -171,7 +172,6 @@ type AgeNotification struct {
 type SizeNotification struct {
 	PreviousSize uint64
 	Delta        float64
-	Overflow     uint64
 }
 
 type FileNotification struct {

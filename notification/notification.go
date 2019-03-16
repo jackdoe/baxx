@@ -9,6 +9,28 @@ import (
 	"github.com/jackdoe/baxx/file"
 )
 
+type NotificationRule struct {
+	ID                                        uint64 `gorm:"primary_key"`
+	UserID                                    uint64 `gorm:"type:bigint not null REFERENCES users(id) ON DELETE CASCADE"`
+	TokenID                                   uint64 `gorm:"type:bigint not null REFERENCES tokens(id) ON DELETE CASCADE"`
+	UUID                                      string `gorm:"type:varchar(255) not null unique"`
+	Name                                      string `gorm:"type:varchar(255) not null"`
+	Regexp                                    string `gorm:"type:varchar(255) not null"`
+	AcceptableAgeSeconds                      uint64
+	AcceptableSizeDeltaPercentBetweenVersions uint64
+	CreatedAt                                 time.Time `json:"created_at"`
+	UpdatedAt                                 time.Time `json:"updated_at"`
+}
+
+type NotificationForFileVersion struct {
+	ID                 uint64    `gorm:"primary_key"`
+	NotificationRuleID uint64    `gorm:"type:bigint not null REFERENCES notification_rules(id) ON DELETE CASCADE"`
+	FileVersionID      uint64    `gorm:"type:bigint not null REFERENCES file_versions(id) ON DELETE CASCADE"`
+	Count              uint64    `gorm:"type:bigint not null"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
+}
+
 func ExecuteRule(rule *NotificationRule, files []file.FileMetadataAndVersion) ([]common.FileNotification, error) {
 	// super bad implementation
 	// just checking the flow
@@ -59,7 +81,6 @@ func ExecuteRule(rule *NotificationRule, files []file.FileMetadataAndVersion) ([
 					n := &common.SizeNotification{
 						PreviousSize: previousVersion.Size,
 						Delta:        delta * 100,
-						Overflow:     uint64(math.Abs(float64(lastVersion.Size) * delta)),
 					}
 					current.Size = n
 				}
@@ -72,28 +93,6 @@ func ExecuteRule(rule *NotificationRule, files []file.FileMetadataAndVersion) ([
 	}
 
 	return out, nil
-}
-
-type NotificationRule struct {
-	ID                                        uint64 `gorm:"primary_key"`
-	UserID                                    uint64 `gorm:"type:bigint not null REFERENCES users(id) ON DELETE CASCADE"`
-	TokenID                                   uint64 `gorm:"type:bigint not null REFERENCES tokens(id) ON DELETE CASCADE"`
-	UUID                                      string `gorm:"type:varchar(255) not null unique"`
-	Name                                      string `gorm:"type:varchar(255) not null"`
-	Regexp                                    string `gorm:"type:varchar(255) not null"`
-	AcceptableAgeSeconds                      uint64
-	AcceptableSizeDeltaPercentBetweenVersions uint64
-	CreatedAt                                 time.Time `json:"created_at"`
-	UpdatedAt                                 time.Time `json:"updated_at"`
-}
-
-type NotificationForFileVersion struct {
-	ID                 uint64    `gorm:"primary_key"`
-	NotificationRuleID uint64    `gorm:"type:bigint not null REFERENCES notification_rules(id) ON DELETE CASCADE"`
-	FileVersionID      uint64    `gorm:"type:bigint not null REFERENCES file_versions(id) ON DELETE CASCADE"`
-	Count              uint64    `gorm:"type:bigint not null"`
-	CreatedAt          time.Time `json:"created_at"`
-	UpdatedAt          time.Time `json:"updated_at"`
 }
 
 func TransformRuleToOutput(n *NotificationRule) common.NotificationRuleOutput {

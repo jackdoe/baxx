@@ -1,4 +1,4 @@
-package common
+package notification
 
 import (
 	"os"

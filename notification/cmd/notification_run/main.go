@@ -35,11 +35,15 @@ func runRules(db *gorm.DB) {
 		log.Fatal(err)
 	}
 
+	totalFilesAlerted := 0
+
 	for _, u := range users {
 		tokens := []*file.Token{}
 		if err := tx.Where("user_id = ?", u.ID).Find(&tokens).Error; err != nil {
 			log.Fatal(err)
 		}
+		totalUsers++
+
 		count := 0
 		grouped := []common.PerRuleGroup{}
 	TOKEN:
@@ -84,6 +88,7 @@ func runRules(db *gorm.DB) {
 						unseen = append(unseen, p)
 					}
 					count++
+					totalFilesAlerted++
 					nfv.Count++
 					if err := tx.Save(nfv).Error; err != nil {
 						log.Fatal(err)
@@ -100,22 +105,17 @@ func runRules(db *gorm.DB) {
 		}
 
 		if len(grouped) != 0 {
-			uuid := common.GetUUID()
-
-			n := &common.EmailQueueItem{
-				UUID:   uuid,
-				UserID: u.ID,
-
-				EmailSubject: fmt.Sprintf("[ baxx.dev ] backup issues for %d files", count),
-				EmailText: help.Render(help.HelpObject{
+			err := common.EnqueueMail(
+				tx,
+				u.ID,
+				fmt.Sprintf("[ baxx.dev ] backup issues for %d files", count),
+				help.Render(help.HelpObject{
 					Template:      help.EmailNotification,
 					Email:         u.Email,
 					Notifications: grouped,
 					Status:        common.EMPTY_STATUS,
-				}),
-			}
-
-			if err := tx.Save(n).Error; err != nil {
+				}))
+			if err != nil {
 				log.Fatal(err)
 			}
 		}

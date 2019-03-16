@@ -7,6 +7,7 @@ import (
 	"runtime/debug"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackdoe/baxx/notification"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -19,7 +20,7 @@ func SlackRecovery() gin.HandlerFunc {
 				stack := debug.Stack()
 				log.Warnf("[Recovery] panic recovered:\n%s\n%s\n%s", string(httprequest), err, stack)
 				m := fmt.Sprintf("%s%s ```%s```", httprequest, err, stack)
-				slack("panic", m)
+				notification.SendSlackDefault("panic", m)
 				c.AbortWithStatus(500)
 			}
 		}()
