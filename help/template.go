@@ -83,6 +83,9 @@ var root = Load()
 func Render(data HelpObject) string {
 	var out bytes.Buffer
 	//root := Load()
+	if data.Email == "" && data.Status != nil {
+		data.Email = data.Status.Email
+	}
 	err := root.ExecuteTemplate(&out, data.Template.String()+".txt", data)
 	if err != nil {
 		panic(err)

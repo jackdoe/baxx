@@ -11,4 +11,6 @@ Or use the paypal.com interface directly.
 
 You can check the account status with:
 
+{{ template "partial_email_status.txt" . }}
+
 {{ template "partial_email_footer.txt" . }}
