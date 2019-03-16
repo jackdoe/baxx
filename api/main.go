@@ -160,9 +160,11 @@ func setupAPI(db *gorm.DB, bind string) {
 			c.Abort()
 		}
 	})
-	//	r.GET("/panic", func(c *gin.Context) {
-	//		panic("ABC")
-	//	})
+
+	r.GET("/digitalocean", func(c *gin.Context) {
+		c.String(200, "ok")
+	})
+
 	srv := &server{db: db, r: r, store: store, authorized: authorized}
 	setupIO(srv)
 	setupACC(srv)
