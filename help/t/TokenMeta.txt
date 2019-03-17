@@ -13,6 +13,8 @@ There are 2 kinds of tokens, ReadWrite and WriteOnly, ReadWrite tokens
 dont require any credentials for create, delete and list files,
 WriteOnly tokens require credentials for *list* and *delete*.
 
+To get your current tokens use:
+{{ template "partial_email_status.txt" . }}
 
 {{ template "TokenList.txt" . }}
 
