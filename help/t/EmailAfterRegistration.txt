@@ -32,6 +32,8 @@ Or you could also click on:
 https://baxx.dev/verify/{{.Status.LastVerificationID}}
 {{ end }}
 
+{{ template "TokenList.txt" . }}
+
 Documentation:
 
 * A bunch of help
