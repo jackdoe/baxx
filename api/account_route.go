@@ -365,8 +365,14 @@ func setupACC(srv *server) {
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		rules, err := ListNotifications(db, token)
+		if err != nil {
+			warnErr(c, err)
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 
-		c.IndentedJSON(http.StatusOK, transformTokenForSending(token, 0, 0, []*notification.NotificationRule{}))
+		c.IndentedJSON(http.StatusOK, transformTokenForSending(token, 0, 0, rules))
 	})
 
 	authorized.POST("/delete/token", func(c *gin.Context) {
