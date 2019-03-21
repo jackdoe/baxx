@@ -142,6 +142,10 @@ var EMPTY_STATUS = &UserStatusOutput{
 			WriteOnly:        false,
 			NumberOfArchives: 3,
 			Name:             "content-example-b",
+			Quota:            10 * 1024 * 1024 * 1024,
+			QuotaUsed:        1024 * 10,
+			QuotaInode:       1000,
+			QuotaInodeUsed:   5,
 			NotificationRules: []NotificationRuleOutput{
 				NotificationRuleOutput{
 					Name:              "more than 1 day old config backup",

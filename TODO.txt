@@ -1,6 +1,7 @@
 next:
  + gui to manage the tokens and notifications
- + forgotten password
+ + move the todo list to somewhere elsex
+ + make stickers
 
 * experiments
   + upload backups to ipfs
@@ -98,6 +99,7 @@ next:
    [ deleted Tue  5 Mar 21:49:48 CET 2019 ]
 
  + forgotten password
+   (important but not important since we have no users haha)
 
 * gui (can make it like midnight commander)
  + manage tokens
