@@ -31,6 +31,13 @@ type NotificationForFileVersion struct {
 	UpdatedAt          time.Time `json:"updated_at"`
 }
 
+type NotificationForQuota struct {
+	ID        uint64    `gorm:"primary_key"`
+	TokenID   uint64    `gorm:"type:bigint not null REFERENCES tokens(id) ON DELETE CASCADE"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 func ExecuteRule(rule *NotificationRule, files []file.FileMetadataAndVersion) ([]common.FileNotification, error) {
 	// super bad implementation
 	// just checking the flow

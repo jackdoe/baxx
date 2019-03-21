@@ -1,0 +1,18 @@
+Hi,
+you have ran out of quota for one of your tokens.
+
+
+
+{{ range .Status.Tokens -}}
+{{ template "partial_token.txt" . -}}
+{{end -}}
+
+This email will be sent only once every time you reach your quota
+(either on inodes or on 
+
+
+you can see the help about how to delete files at:
+  curl https://baxx.dev/help/io
+
+
+{{ template "partial_email_footer.txt" . }}

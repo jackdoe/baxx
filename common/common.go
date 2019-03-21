@@ -116,6 +116,10 @@ var EMPTY_STATUS = &UserStatusOutput{
 			UUID:             "TOKEN-UUID-A",
 			WriteOnly:        false,
 			NumberOfArchives: 3,
+			Quota:            10 * 1024 * 1024 * 1024,
+			QuotaUsed:        1024 * 10,
+			QuotaInode:       1000,
+			QuotaInodeUsed:   5,
 			Name:             "db-example-a",
 			NotificationRules: []NotificationRuleOutput{
 				NotificationRuleOutput{

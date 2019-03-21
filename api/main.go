@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackdoe/baxx/api/helpers"
 	"github.com/jackdoe/baxx/file"
 	"github.com/jackdoe/baxx/help"
 	"github.com/jackdoe/baxx/notification"
@@ -28,6 +29,7 @@ func initDatabase(db *gorm.DB) {
 		&user.PaymentHistory{},
 		&notification.NotificationRule{},
 		&notification.NotificationForFileVersion{},
+		&notification.NotificationForQuota{},
 		&notification.EmailQueueItem{},
 	).Error; err != nil {
 		log.Panic(err)
@@ -70,6 +72,10 @@ func initDatabase(db *gorm.DB) {
 		log.Panic(err)
 	}
 
+	if err := db.Model(&notification.NotificationForQuota{}).AddUniqueIndex("idx_nfq_token", "token_id").Error; err != nil {
+		log.Panic(err)
+	}
+
 }
 
 type server struct {
@@ -101,12 +107,12 @@ func (s *server) getViewTokenLoggedOrNot(c *gin.Context) (*file.Token, *user.Use
 	x, isLoggedIn := c.Get("user")
 	if isLoggedIn {
 		u = x.(*user.User)
-		t, err = FindTokenForUser(s.db, token, u)
+		t, err = helpers.FindTokenForUser(s.db, token, u)
 		if err != nil {
 			return nil, nil, err
 		}
 	} else {
-		t, u, err = FindTokenAndUser(s.db, token)
+		t, u, err = helpers.FindTokenAndUser(s.db, token)
 		if err != nil {
 			return nil, nil, err
 		}

@@ -24,4 +24,5 @@ const (
 	Profile
 	NotificationMeta
 	AllHelp
+	EmailQuotaLeft
 )

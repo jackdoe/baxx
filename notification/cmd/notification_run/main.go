@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/jackdoe/baxx/api/helpers"
 	"github.com/jackdoe/baxx/common"
 	"github.com/jackdoe/baxx/file"
 	"github.com/jackdoe/baxx/help"
@@ -28,9 +29,7 @@ func main() {
 
 	runRules(db)
 }
-
 func runRules(db *gorm.DB) {
-
 	tx := db.Begin()
 	users := []*user.User{}
 	if err := tx.Find(&users).Error; err != nil {
@@ -38,16 +37,56 @@ func runRules(db *gorm.DB) {
 	}
 
 	for _, u := range users {
+		status, err := helpers.GetUserStatus(tx, u)
+		if err != nil {
+			log.Panic(err)
+		}
 		tokens := []*file.Token{}
 		if err := tx.Where("user_id = ?", u.ID).Find(&tokens).Error; err != nil {
 			log.Panic(err)
+		}
+		sendQuotaNotification := false
+		for _, t := range tokens {
+			// if the quota is over, just send an email about it
+			leftSize, leftInodes, err := file.GetQuotaLeft(tx, t)
+			if err != nil {
+				log.Panic(err)
+			}
+
+			if leftInodes < 1 || leftSize <= 0 {
+				alreadySentForToken := &notification.NotificationForQuota{}
+				if tx.Where("token_id = ?", t.ID).First(&alreadySentForToken).RecordNotFound() {
+					sendQuotaNotification = true
+					if err := tx.Create(&notification.NotificationForQuota{TokenID: t.ID}).Error; err != nil {
+						log.Panic(err)
+					}
+				}
+			} else {
+				// always delete the fact that we sent
+				// so we can send again if space gets cleared and then full again
+				tx.Where("token_id = ?", t.ID).Delete(&notification.NotificationForQuota{})
+			}
+		}
+
+		if sendQuotaNotification {
+			err := notification.EnqueueMail(
+				tx,
+				u.ID,
+				"[ baxx.dev ] quota limit reached",
+				help.Render(help.HelpObject{
+					Template: help.EmailQuotaLeft,
+					Email:    u.Email,
+					Status:   status,
+				}))
+			if err != nil {
+				log.Panic(err)
+			}
 		}
 
 		count := 0
 		grouped := []common.PerRuleGroup{}
 	TOKEN:
 		for _, t := range tokens {
-
 			rules := []*notification.NotificationRule{}
 			if err := tx.Where("user_id = ? AND token_id = ?", u.ID, t.ID).Find(&rules).Error; err != nil {
 				log.Panic(err)
@@ -111,7 +150,7 @@ func runRules(db *gorm.DB) {
 					Template:      help.EmailNotification,
 					Email:         u.Email,
 					Notifications: grouped,
-					Status:        common.EMPTY_STATUS,
+					Status:        status,
 				}))
 			if err != nil {
 				log.Panic(err)

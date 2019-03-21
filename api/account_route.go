@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackdoe/baxx/api/helpers"
 	"github.com/jackdoe/baxx/common"
 	"github.com/jackdoe/baxx/file"
 	"github.com/jackdoe/baxx/help"
@@ -16,48 +17,6 @@ import (
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
 )
-
-func getUserStatus(db *gorm.DB, u *user.User) (*common.UserStatusOutput, error) {
-	tokens, err := ListTokens(db, u)
-	if err != nil {
-		return nil, err
-	}
-	tokensTransformed := []*common.TokenOutput{}
-	for _, t := range tokens {
-		usedSize, usedInodes, err := file.GetQuotaUsed(db, t)
-		if err != nil {
-			return nil, err
-		}
-		rules, err := ListNotifications(db, t)
-		if err != nil {
-			return nil, err
-		}
-
-		tokensTransformed = append(tokensTransformed, transformTokenForSending(t, usedSize, usedInodes, rules))
-	}
-
-	used := uint64(0)
-	for _, t := range tokens {
-		used += t.SizeUsed
-	}
-
-	vl := &user.VerificationLink{}
-	db.Where("email = ?", u.Email).Last(vl)
-
-	return &common.UserStatusOutput{
-		UserID:                u.ID,
-		EmailVerified:         u.EmailVerified,
-		StartedSubscription:   u.StartedSubscription,
-		CancelledSubscription: u.CancelledSubscription,
-		Tokens:                tokensTransformed,
-
-		LastVerificationID: vl.ID,
-
-		Paid:      u.Paid(),
-		PaymentID: u.PaymentID,
-		Email:     u.Email,
-	}, nil
-}
 
 func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (*common.UserStatusOutput, *user.User, error) {
 	if err := ValidatePassword(json.Password); err != nil {
@@ -89,13 +48,13 @@ func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (
 		return nil, nil, err
 	}
 
-	_, err := CreateTokenAndBucket(store, tx, u, false, 7, "generic-read-write-7")
+	_, err := helpers.CreateTokenAndBucket(store, tx, u, false, 7, "generic-read-write-7", CONFIG.DefaultQuota, CONFIG.DefaultInodeQuota, CONFIG.MaxTokens)
 	if err != nil {
 		tx.Rollback()
 		return nil, nil, err
 	}
 
-	status, err := getUserStatus(tx, u)
+	status, err := helpers.GetUserStatus(tx, u)
 	if err != nil {
 		tx.Rollback()
 		return nil, nil, err
@@ -141,7 +100,7 @@ func setupACC(srv *server) {
 
 	statusFn := func(c *gin.Context) {
 		u := c.MustGet("user").(*user.User)
-		status, err := getUserStatus(db, u)
+		status, err := helpers.GetUserStatus(db, u)
 		if err != nil {
 			warnErr(c, err)
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -227,7 +186,7 @@ func setupACC(srv *server) {
 			return
 		}
 
-		status, err := getUserStatus(tx, u)
+		status, err := helpers.GetUserStatus(tx, u)
 		if err != nil {
 			tx.Rollback()
 			warnErr(c, err)
@@ -261,7 +220,7 @@ func setupACC(srv *server) {
 			return
 		}
 
-		n, err := createNotificationRule(db, u, json)
+		n, err := helpers.CreateNotificationRule(db, u, json)
 		if err != nil {
 			warnErr(c, err)
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -303,7 +262,7 @@ func setupACC(srv *server) {
 			return
 		}
 
-		n, err := changeNotificationRule(db, u, json)
+		n, err := helpers.ChangeNotificationRule(db, u, json)
 		if err != nil {
 			warnErr(c, err)
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -321,14 +280,14 @@ func setupACC(srv *server) {
 			return
 		}
 
-		token, err := CreateTokenAndBucket(store, db, u, json.WriteOnly, json.NumberOfArchives, json.Name)
+		token, err := helpers.CreateTokenAndBucket(store, db, u, json.WriteOnly, json.NumberOfArchives, json.Name, CONFIG.DefaultQuota, CONFIG.DefaultInodeQuota, CONFIG.MaxTokens)
 		if err != nil {
 			warnErr(c, err)
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		rules, err := ListNotifications(db, token)
+		rules, err := helpers.ListNotifications(db, token)
 		if err != nil {
 			warnErr(c, err)
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -336,7 +295,7 @@ func setupACC(srv *server) {
 
 		}
 
-		c.IndentedJSON(http.StatusOK, transformTokenForSending(token, 0, 0, rules))
+		c.IndentedJSON(http.StatusOK, helpers.TransformTokenForSending(token, 0, 0, rules))
 	})
 
 	authorized.POST("/change/token", func(c *gin.Context) {
@@ -347,7 +306,7 @@ func setupACC(srv *server) {
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		token, err := FindTokenForUser(db, json.UUID, u)
+		token, err := helpers.FindTokenForUser(db, json.UUID, u)
 		if err != nil {
 			warnErr(c, err)
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -365,14 +324,14 @@ func setupACC(srv *server) {
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		rules, err := ListNotifications(db, token)
+		rules, err := helpers.ListNotifications(db, token)
 		if err != nil {
 			warnErr(c, err)
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		c.IndentedJSON(http.StatusOK, transformTokenForSending(token, 0, 0, rules))
+		c.IndentedJSON(http.StatusOK, helpers.TransformTokenForSending(token, 0, 0, rules))
 	})
 
 	authorized.POST("/delete/token", func(c *gin.Context) {
@@ -383,7 +342,7 @@ func setupACC(srv *server) {
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		token, err := FindTokenForUser(db, json.UUID, u)
+		token, err := helpers.FindTokenForUser(db, json.UUID, u)
 		if err != nil {
 			warnErr(c, err)
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -453,7 +412,7 @@ func setupACC(srv *server) {
 			return err
 		}
 
-		status, err := getUserStatus(db, u)
+		status, err := helpers.GetUserStatus(db, u)
 		if err != nil {
 			warnErr(c, err)
 			return err

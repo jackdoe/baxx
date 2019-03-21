@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackdoe/baxx/api/helpers"
 	"github.com/jackdoe/baxx/common"
 	. "github.com/jackdoe/baxx/common"
 	"github.com/jackdoe/baxx/file"
@@ -30,7 +31,7 @@ func setup() *file.Store {
 }
 
 func testNotificationCreate(t *testing.T, db *gorm.DB, u *user.User, token *file.Token) {
-	n, err := createNotificationRule(db, u, &common.CreateNotificationInput{
+	n, err := helpers.CreateNotificationRule(db, u, &common.CreateNotificationInput{
 		TokenUUID:         token.UUID,
 		Regexp:            ".*",
 		Name:              "hello",
@@ -70,7 +71,7 @@ func TestFileQuota(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	token, _, err := FindTokenAndUser(db, status.Tokens[0].UUID)
+	token, _, err := helpers.FindTokenAndUser(db, status.Tokens[0].UUID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -205,13 +206,13 @@ func TestFileQuota(t *testing.T) {
 	CONFIG.MaxTokens = 10
 	created := []*file.Token{}
 	for i := 0; i < 9; i++ {
-		to, err := CreateToken(db, false, user, 1, "some-name")
+		to, err := helpers.CreateToken(db, false, user, 1, "some-name", 10000, 10000, CONFIG.MaxTokens)
 		if err != nil {
 			t.Fatal(err)
 		}
 		created = append(created, to)
 	}
-	_, err = CreateToken(db, false, user, 1, "some-other-name")
+	_, err = helpers.CreateToken(db, false, user, 1, "some-other-name", 10000, 10000, CONFIG.MaxTokens)
 	if err.Error() != "max tokens created (max=10)" {
 		t.Fatalf("expected max tokens created (max=10) got %s", err.Error())
 	}
@@ -242,7 +243,7 @@ func listSync(s *file.Store, tokenID string) []string {
 }
 
 func getUsed(t *testing.T, db *gorm.DB, user *user.User) uint64 {
-	tokens, err := ListTokens(db, user)
+	tokens, err := helpers.ListTokens(db, user)
 	if err != nil {
 		t.Fatal(err)
 	}
