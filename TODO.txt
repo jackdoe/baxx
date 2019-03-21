@@ -4,7 +4,7 @@
  + delete [ done Sat 16 Mar 09:33:58 CET 2019 ]
  + run periodically [ done Sat 16 Mar 14:59:30 CET 2019 ]
  + send email [ done Sat 16 Mar 14:59:30 CET 2019 ]
- + send email on quota reach 80%
+ + send email on quota reach [ done Thu 21 Mar 09:32:46 CET 2019 ]
 
 
 * run local copy that sends metadata remotely [ wontfix: not now ]
