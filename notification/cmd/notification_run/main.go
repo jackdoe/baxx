@@ -33,16 +33,19 @@ func runRules(db *gorm.DB) {
 	tx := db.Begin()
 	users := []*user.User{}
 	if err := tx.Find(&users).Error; err != nil {
+		tx.Rollback()
 		log.Panic(err)
 	}
 
 	for _, u := range users {
 		status, err := helpers.GetUserStatus(tx, u)
 		if err != nil {
+			tx.Rollback()
 			log.Panic(err)
 		}
 		tokens := []*file.Token{}
 		if err := tx.Where("user_id = ?", u.ID).Find(&tokens).Error; err != nil {
+			tx.Rollback()
 			log.Panic(err)
 		}
 		sendQuotaNotification := false
@@ -50,6 +53,7 @@ func runRules(db *gorm.DB) {
 			// if the quota is over, just send an email about it
 			leftSize, leftInodes, err := file.GetQuotaLeft(tx, t)
 			if err != nil {
+				tx.Rollback()
 				log.Panic(err)
 			}
 
@@ -58,6 +62,7 @@ func runRules(db *gorm.DB) {
 				if tx.Where("token_id = ?", t.ID).First(&alreadySentForToken).RecordNotFound() {
 					sendQuotaNotification = true
 					if err := tx.Create(&notification.NotificationForQuota{TokenID: t.ID}).Error; err != nil {
+						tx.Rollback()
 						log.Panic(err)
 					}
 				}
@@ -79,6 +84,7 @@ func runRules(db *gorm.DB) {
 					Status:   status,
 				}))
 			if err != nil {
+				tx.Rollback()
 				log.Panic(err)
 			}
 		}
@@ -89,6 +95,7 @@ func runRules(db *gorm.DB) {
 		for _, t := range tokens {
 			rules := []*notification.NotificationRule{}
 			if err := tx.Where("user_id = ? AND token_id = ?", u.ID, t.ID).Find(&rules).Error; err != nil {
+				tx.Rollback()
 				log.Panic(err)
 			}
 			if len(rules) == 0 {
@@ -96,6 +103,7 @@ func runRules(db *gorm.DB) {
 			}
 			files, err := file.ListFilesInPath(tx, t, "", false)
 			if err != nil {
+				tx.Rollback()
 				log.Panic(err)
 			}
 
@@ -103,16 +111,19 @@ func runRules(db *gorm.DB) {
 				// get all files in token
 				t := &file.Token{}
 				if err := tx.First(&t, rule.TokenID).Error; err != nil {
+					tx.Rollback()
 					log.Panic(err)
 				}
 
 				u := &user.User{}
 				if err := tx.First(&u, rule.UserID).Error; err != nil {
+					tx.Rollback()
 					log.Panic(err)
 				}
 
 				pf, err := notification.ExecuteRule(rule, files)
 				if err != nil {
+					tx.Rollback()
 					log.Panic(err)
 				}
 				unseen := []common.FileNotification{}
@@ -128,6 +139,7 @@ func runRules(db *gorm.DB) {
 					count++
 					nfv.Count++
 					if err := tx.Save(nfv).Error; err != nil {
+						tx.Rollback()
 						log.Panic(err)
 					}
 				}
@@ -153,6 +165,7 @@ func runRules(db *gorm.DB) {
 					Status:        status,
 				}))
 			if err != nil {
+				tx.Rollback()
 				log.Panic(err)
 			}
 		}
