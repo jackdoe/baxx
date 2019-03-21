@@ -1,3 +1,10 @@
+next:
+ + gui to manage the tokens and notifications
+ + forgotten password
+
+* experiments
+  + upload backups to ipfs
+
 * notifications
  + create [ done Thu 14 Mar 10:12:58 CET 2019 ]
  + modify [ done Thu 14 Mar 10:12:58 CET 2019 ]
@@ -81,8 +88,9 @@
  + add status endpoint
    - to show if email is verified [ done Sat  2 Mar 16:30:59 CET 2019 ]
    - to show if subscription is acctive [ done Sun  3 Mar 14:13:14 CET 2019 ]
-   - quota info
-   - activity info
+   - quota info [ done ]
+ + activity info
+   which <who> did <what> <when>
 
  + generate new secret
    [ done Sat  2 Mar 16:02:37 CET 2019]
@@ -103,9 +111,9 @@
  + when you scroll buffer there is no upper/lower bound
 
 * help
- + baxx.dev/help/register*
- + baxx.dev/help/io*
- + baxx.dev/help/create/token*
+ + baxx.dev/help/register* [ done Thu 21 Mar 09:36:16 CET 2019 ]
+ + baxx.dev/help/io* [ done Thu 21 Mar 09:36:16 CET 2019 ]
+ + baxx.dev/help/token* [ done Thu 21 Mar 09:36:16 CET 2019 ]
  + baxx.dev/help [ done Tue  5 Mar 22:12:29 CET 2019 ]
  + move to templates [ done Tue  5 Mar 22:12:29 CET 2019 ]
 
