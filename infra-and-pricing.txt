@@ -31,28 +31,49 @@
   each dropplet has its own keys for postgres/s3
   sendgrid key is limited to email send only on notify.baxx.dev
 
-  + digitalocean's loadbalancer's timeout is not configurable
-  which means if a droplet is doing work for longer than 1 minute
-  or so LB returns 504
-   + just run one instance of nginx for 10$ and be done with it [ done ]
-   + make the whole api streaming responses back as activity
-     like progress bar [ done ]
-   + move the slow processes to completely async mode using queues
-   + encourage people to use
-     small files by rejecting files bigger than 64mb or so
-     this seems like good practice anyway
 
  * second phase
    + buy 3x40tb machines from hetzner [ 78E per month for 32G ram, 40TB, quad]
      = 234E + 200E setup
-
-   + run some rack-aware binary store on them with replica=2
-     and 1 node per disk (no need for raid)
-   + run baxx.api in docker on each one
-   + run the host ssh on different port and run the ssh services for register@ui.baxx.dev in docker
-
+   + 3gbps capacity, it will take ~30 hours to upload/downoad 40tb
+   (40_000_000MB / 375MB/s / 3600)
+   + run some rack-aware binary store on them with replica=3
+     and 1 node per disk (no need for raid), making 1 machine to be a "rack"
+   
    + add support for glacier that is paid extra
      + dropbox plus costs 10E for 1TB
        dropbox pro costs 20E for 2TB
      + glacier costs 0.0045 per gb (4.5E per TB)
-
+  
+  * money
+  40tb for 250E per month means we an do 6E for 1TB
+  it really depends on our customers, but we can assume some oversubscription and bet that people 
+  will consume 200gb on average (which is still a lot considering they have to upload it on 1gbps),
+  that means we can sell 40tb as 200tb, and then we can sell 1tb for 5E or make 
+    1000E revenue - 250E hosting
+    750E profit - 50% tax = 375E profit
+  if we manage to find 200 customers haha
+  
+  with this price we will be 50% of dropbox's price
+  
+  * market segments
+   backup landscape:
+      + github free private repos
+      + most managed databases have automatic backups
+      + most cms hostings have their backup
+      + enormous amount of choice
+      + digital ocean, s3 - cheap cloud
+      even though our service is mainly about the api and notifications,
+      it is unlikely anyone using the existing solutions will switch
+      regardless how cheap or better it is
+      
+   segment we are interested in:
+     + people having to maintain few old boxes and back them up
+       (like me)
+     + data hoarders, since our price is half of dropbox we are attractive
+     + unix geeks, that just want to curl their stuff and write scripts using it
+    
+     lets hope there are 200 of those people in the world
+     
+   * how can we get 200 customers for a product without a website
+     no idea, but start with reddit :D     
