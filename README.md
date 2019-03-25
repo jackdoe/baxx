@@ -19,8 +19,8 @@ check it out `ssh register@ui.baxx.dev`
 │ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝           │
 │                                            │
 │ Storage 10G                                │
-│   Trial 1 Month 0.1E                       │
-│   Subscription: 5E per Month               │
+│   Trial 1 Month 0.1EUR                     │
+│   Subscription: 5EUR per Month             │
 │   Availability: ALPHA                      │
 │                                            │
 │ Email                                      │
