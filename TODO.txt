@@ -2,6 +2,7 @@ next:
  + gui to manage the tokens and notifications
  + move the todo list to somewhere elsex
  + make stickers
+ + make mailing list
 
 * experiments
   + upload backups to ipfs
