@@ -28,8 +28,8 @@
      [digital ocean s3]
              5$ for 250G
 
-  each dropplet has its own keys for postgres/s3/sendgrid
-  sendgrid key is limited to email send only
+  each dropplet has its own keys for postgres/s3
+  sendgrid key is limited to email send only on notify.baxx.dev
 
   + digitalocean's loadbalancer's timeout is not configurable
   which means if a droplet is doing work for longer than 1 minute
