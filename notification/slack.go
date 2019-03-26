@@ -38,6 +38,7 @@ func SendSlack(webhook string, title string, body string) error {
 		if resp.StatusCode != 200 {
 			wait <- errors.New(resp.Status)
 		}
+		wait <- nil
 	}()
 	select {
 	case err := <-wait:
