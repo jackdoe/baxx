@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 
+	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/jackdoe/baxx/api/helpers"
 	"github.com/jackdoe/baxx/file"
@@ -16,6 +17,8 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	log "github.com/sirupsen/logrus"
+	"os/signal"
+	"time"
 )
 
 func initDatabase(db *gorm.DB) {
@@ -179,8 +182,26 @@ func setupAPI(db *gorm.DB, bind string) {
 	setupIO(srv)
 	setupACC(srv)
 	setupSYNC(srv)
+	mux := &http.Server{
+		Addr:    bind,
+		Handler: r,
+	}
+	go func() {
+		if err := mux.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Panicf("listen: %s\n", err)
+		}
+	}()
+	quit := make(chan os.Signal)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
+	log.Println("Shutdown Server ...")
 
-	log.Panic(r.Run(bind))
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := mux.Shutdown(ctx); err != nil {
+		log.Fatal("Server Shutdown:", err)
+	}
+	log.Println("Server exiting")
 }
 
 func main() {

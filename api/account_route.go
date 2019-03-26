@@ -48,12 +48,6 @@ func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (
 		return nil, nil, err
 	}
 
-	_, err := helpers.CreateTokenAndBucket(store, tx, u, false, 7, "generic-read-write-7", CONFIG.DefaultQuota, CONFIG.DefaultInodeQuota, CONFIG.MaxTokens)
-	if err != nil {
-		tx.Rollback()
-		return nil, nil, err
-	}
-
 	status, err := helpers.GetUserStatus(tx, u)
 	if err != nil {
 		tx.Rollback()
@@ -61,10 +55,6 @@ func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (
 	}
 
 	if err := sendVerificationLink(tx, status); err != nil {
-		tx.Rollback()
-		return nil, nil, err
-	}
-	if err := sendRegistrationHelp(tx, status); err != nil {
 		tx.Rollback()
 		return nil, nil, err
 	}
@@ -88,8 +78,7 @@ func setupACC(srv *server) {
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		out, u, err := registerUser(store, db, json)
-		log.Printf("%s %s", u, err)
+		out, _, err := registerUser(store, db, json)
 		if err != nil {
 			warnErr(c, err)
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -280,7 +269,7 @@ func setupACC(srv *server) {
 			return
 		}
 
-		token, err := helpers.CreateTokenAndBucket(store, db, u, json.WriteOnly, json.NumberOfArchives, json.Name, CONFIG.DefaultQuota, CONFIG.DefaultInodeQuota, CONFIG.MaxTokens)
+		token, err := helpers.CreateTokenAndNotification(store, db, u, CONFIG.Bucket, json.WriteOnly, json.NumberOfArchives, json.Name, CONFIG.DefaultQuota, CONFIG.DefaultInodeQuota, CONFIG.MaxTokens)
 		if err != nil {
 			warnErr(c, err)
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -369,9 +358,10 @@ func setupACC(srv *server) {
 
 		// check currency and amount and etc
 		// otherwise anyone can create ipn request with wrong amount :D
-
+		tx := db.Begin()
 		u := &user.User{}
-		if err := db.Where("payment_id = ?", c.Param("paymentID")).Take(u).Error; err != nil {
+		if err := tx.Where("payment_id = ?", c.Param("paymentID")).Take(u).Error; err != nil {
+			tx.Rollback()
 			return err
 		}
 		encoded, err := n.JSON()
@@ -386,7 +376,8 @@ func setupACC(srv *server) {
 			IPNRAW: body,
 		}
 
-		if err := db.Create(ph).Error; err != nil {
+		if err := tx.Create(ph).Error; err != nil {
+			tx.Rollback()
 			warnErr(c, err)
 			return err
 		}
@@ -403,35 +394,60 @@ func setupACC(srv *server) {
 			cancel = true
 		} else {
 			log.Warnf("unknown txn type, ignoring: %s", n.TxnType)
+			tx.Rollback()
 			return nil
 			// not sure what to do, just ignore
 		}
 
-		if err := db.Save(u).Error; err != nil {
+		if err := tx.Save(u).Error; err != nil {
+			tx.Rollback()
+			warnErr(c, err)
+			return err
+		}
+		status, err := helpers.GetUserStatus(tx, u)
+		if err != nil {
+			tx.Rollback()
 			warnErr(c, err)
 			return err
 		}
 
-		status, err := helpers.GetUserStatus(db, u)
-		if err != nil {
+		if cancel {
+			err := sendPaymentCancelMail(tx, status)
+			if err != nil {
+				tx.Rollback()
+				warnErr(c, err)
+				return err
+
+			}
+		} else if subscribe {
+			if len(status.Tokens) == 0 {
+				// in case someone re-subscribes, dont make new token for them
+				_, err := helpers.CreateTokenAndNotification(store, tx, u, CONFIG.Bucket, false, 7, "generic-read-write-7", CONFIG.DefaultQuota, CONFIG.DefaultInodeQuota, CONFIG.MaxTokens)
+				if err != nil {
+					tx.Rollback()
+					warnErr(c, err)
+					return err
+				}
+			}
+
+			status, err = helpers.GetUserStatus(tx, u)
+			if err != nil {
+				tx.Rollback()
+				warnErr(c, err)
+				return err
+			}
+
+			if err = sendRegistrationHelp(tx, status); err != nil {
+				tx.Rollback()
+				warnErr(c, err)
+				return err
+			}
+		}
+		if err := tx.Commit().Error; err != nil {
 			warnErr(c, err)
 			return err
 		}
-		if cancel {
-			go func() {
-				err := sendPaymentCancelMail(db, status)
-				if err != nil {
-					warnErr(c, err)
-				}
-			}()
-		} else if subscribe {
-			go func() {
-				err := sendPaymentThanksMail(db, status)
-				if err != nil {
-					warnErr(c, err)
-				}
-			}()
-		}
+
 		return nil
 	})
 

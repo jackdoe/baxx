@@ -7,7 +7,6 @@ const (
 	EmailAfterRegistration TextTemplate = iota
 	EmailNotification
 	EmailPaymentCancel
-	EmailPaymentThanks
 	EmailValidation
 	FileMeta
 	SyncMeta

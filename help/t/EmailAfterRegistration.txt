@@ -1,9 +1,15 @@
 Hi,
 
-The service I offer is still in Alpha stage, but I really appreciate
-the support.
+The service I offer is still in Alpha stage, so please have fun with it
+and if you have any feedback send me an email to jack@baxx.dev
 
-# Subscription
+# Thanks for subscribing
+Even though the service is just in alpha state, it is much appreciated!
+
+To unsubscribe you can go to:
+https://baxx.dev/unsub/{{ .Status.PaymentID }}
+
+Or use the paypal.com interface directly.
 
 ## Plan (only one for now):
 
@@ -13,24 +19,6 @@ Subscription: 5 EUR per Month
 Availability: ALPHA
 
 Here be Dragons! Data can be lost!
-
-## Subscribe
-
-In order to use baxx.dev you need a subscription,
-At the moment I support only paypal.com, please visit:
-
-https://baxx.dev/sub/{{.Status.PaymentID}}
-To be redirected to paypal.com.
-
-## Verify your email
-
-Email verification is also required, you should've received the
-verification link in another email.
-{{ if .Status.LastVerificationID }}
-Or you could also click on:
-
-https://baxx.dev/verify/{{.Status.LastVerificationID}}
-{{ end }}
 
 {{ template "TokenList.txt" . }}
 

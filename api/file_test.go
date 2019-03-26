@@ -206,13 +206,13 @@ func TestFileQuota(t *testing.T) {
 	CONFIG.MaxTokens = 10
 	created := []*file.Token{}
 	for i := 0; i < 9; i++ {
-		to, err := helpers.CreateToken(db, false, user, 1, "some-name", 10000, 10000, CONFIG.MaxTokens)
+		to, err := helpers.CreateToken(db, false, user, "baxx", 1, "some-name", 10000, 10000, CONFIG.MaxTokens)
 		if err != nil {
 			t.Fatal(err)
 		}
 		created = append(created, to)
 	}
-	_, err = helpers.CreateToken(db, false, user, 1, "some-other-name", 10000, 10000, CONFIG.MaxTokens)
+	_, err = helpers.CreateToken(db, false, user, "baxx", 1, "some-other-name", 10000, 10000, CONFIG.MaxTokens)
 	if err.Error() != "max tokens created (max=10)" {
 		t.Fatalf("expected max tokens created (max=10) got %s", err.Error())
 	}

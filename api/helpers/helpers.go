@@ -94,11 +94,11 @@ func FindTokenForUser(db *gorm.DB, token string, u *user.User) (*file.Token, err
 	return t, nil
 }
 
-func CreateToken(db *gorm.DB, writeOnly bool, u *user.User, numOfArchives uint64, name string, quota uint64, quotaInode uint64, maxTokens uint64) (*file.Token, error) {
+func CreateToken(db *gorm.DB, writeOnly bool, u *user.User, bucket string, numOfArchives uint64, name string, quota uint64, quotaInode uint64, maxTokens uint64) (*file.Token, error) {
 	t := &file.Token{
 		UUID:             common.GetUUID(),
 		Salt:             strings.Replace(common.GetUUID(), "-", "", -1),
-		Bucket:           strings.Replace(common.GetUUID(), "-", "", -1),
+		Bucket:           bucket,
 		UserID:           u.ID,
 		WriteOnly:        writeOnly,
 		NumberOfArchives: numOfArchives,
@@ -140,8 +140,8 @@ func FindTokenAndUser(db *gorm.DB, token string) (*file.Token, *user.User, error
 	return t, u, nil
 }
 
-func CreateTokenAndBucket(s *file.Store, db *gorm.DB, u *user.User, writeOnly bool, numOfArchives uint64, name string, quota uint64, quotaInode uint64, maxTokens uint64) (*file.Token, error) {
-	t, err := CreateToken(db, writeOnly, u, numOfArchives, name, quota, quotaInode, maxTokens)
+func CreateTokenAndNotification(s *file.Store, db *gorm.DB, u *user.User, bucket string, writeOnly bool, numOfArchives uint64, name string, quota uint64, quotaInode uint64, maxTokens uint64) (*file.Token, error) {
+	t, err := CreateToken(db, writeOnly, u, bucket, numOfArchives, name, quota, quotaInode, maxTokens)
 	if err != nil {
 		return nil, err
 	}
@@ -152,15 +152,11 @@ func CreateTokenAndBucket(s *file.Store, db *gorm.DB, u *user.User, writeOnly bo
 		TokenUUID: t.UUID,
 		AcceptableSizeDeltaPercentBetweenVersions: 90,
 	})
+
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.MakeBucket(t.Bucket)
-	if err != nil {
-		db.Delete(t)
-		return nil, err
-	}
 	return t, nil
 }
 
@@ -187,12 +183,12 @@ func CreateNotificationRule(db *gorm.DB, u *user.User, json *common.CreateNotifi
 		return nil, fmt.Errorf("both ")
 	}
 	n := &notification.NotificationRule{
-		TokenID:                                   token.ID,
-		UserID:                                    u.ID,
-		Regexp:                                    json.Regexp,
-		Name:                                      json.Name,
-		UUID:                                      common.GetUUID(),
-		AcceptableAgeSeconds:                      uint64(json.AcceptableAgeDays) * 86400,
+		TokenID:              token.ID,
+		UserID:               u.ID,
+		Regexp:               json.Regexp,
+		Name:                 json.Name,
+		UUID:                 common.GetUUID(),
+		AcceptableAgeSeconds: uint64(json.AcceptableAgeDays) * 86400,
 		AcceptableSizeDeltaPercentBetweenVersions: uint64(json.AcceptableSizeDeltaPercentBetweenVersions),
 	}
 
