@@ -3,7 +3,7 @@ next:
  + move the todo list to somewhere elsex
  + make stickers
  + make mailing list
-
+ + add nice cli client that does encryption
 * experiments
   + upload backups to ipfs
 
