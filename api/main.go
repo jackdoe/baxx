@@ -8,6 +8,9 @@ import (
 	"os"
 
 	"context"
+	"os/signal"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jackdoe/baxx/api/helpers"
 	"github.com/jackdoe/baxx/file"
@@ -17,8 +20,6 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	log "github.com/sirupsen/logrus"
-	"os/signal"
-	"time"
 )
 
 func initDatabase(db *gorm.DB) {
@@ -154,7 +155,9 @@ func setupAPI(db *gorm.DB, bind string) {
 			if err == nil {
 				if u.MatchPassword(pass) {
 					c.Set("user", u)
-					actionLog(db, u.ID, c.Request.Method, c.Request.RequestURI, c.Request)
+					if c.Request.RequestURI != "/protected/status" {
+						actionLog(db, u.ID, c.Request.Method, c.Request.RequestURI, c.Request)
+					}
 				}
 			}
 		}
