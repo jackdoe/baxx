@@ -80,7 +80,9 @@ func setupACC(srv *server) {
 		}
 		out, _, err := registerUser(store, db, json)
 		if err != nil {
-			warnErr(c, err)
+			if err != ERR_BAD_PASSWORD {
+				warnErr(c, err)
+			}
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
@@ -110,7 +112,9 @@ func setupACC(srv *server) {
 			return
 		}
 		if err := ValidatePassword(json.NewPassword); err != nil {
-			warnErr(c, err)
+			if err != ERR_BAD_PASSWORD {
+				warnErr(c, err)
+			}
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}

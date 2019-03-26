@@ -21,9 +21,11 @@ func ValidateEmail(email string) error {
 	return nil
 }
 
+var ERR_BAD_PASSWORD = fmt.Errorf("password is too short, refer to https://www.xkcd.com/936/")
+
 func ValidatePassword(p string) error {
 	if len(p) < 8 {
-		return fmt.Errorf("password is too short, refer to https://www.xkcd.com/936/")
+		return ERR_BAD_PASSWORD
 	}
 	return nil
 }
