@@ -64,3 +64,5 @@ DAMAGE.
 We are not sharing the data with anyone for no purposes what so ever.
 We are keeping logs of IP adress uploading/downloading files,and the
 paypal payment notifications for starting/ending the subscription.
+We use the email you provide for notifications and alerts, also in order
+to be login into the system as your user identifier.
