@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"net/http/httputil"
 	"strings"
 	"time"
 
@@ -33,6 +32,5 @@ func actionLog(db *gorm.DB, user uint64, actionType, action string, req *http.Re
 }
 
 func extractLogFromRequest(req *http.Request) (string, error) {
-	l, err := httputil.DumpRequest(req, false)
-	return fmt.Sprintf("%sRemoteAddr: %s\nURL: %s", string(l), req.RemoteAddr, req.URL), err
+	return fmt.Sprintf("X-Forwarded-For: %s\nRemoteAddr: %s\nURL: %s\nUser-Agent: %s", req.Header.Get("X-Forwarded-For"), req.RemoteAddr, req.URL, req.Header.Get("X-Forwarded-For")), nil
 }
