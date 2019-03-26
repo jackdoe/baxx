@@ -141,19 +141,13 @@ func FindTokenAndUser(db *gorm.DB, token string) (*file.Token, *user.User, error
 	return t, u, nil
 }
 
-func CreateTokenAndNotification(s *file.Store, db *gorm.DB, u *user.User, bucket string, writeOnly bool, numOfArchives uint64, name string, quota uint64, quotaInode uint64, maxTokens uint64) (*file.Token, error) {
+func CreateTokenAndNotification(s *file.Store, db *gorm.DB, u *user.User, bucket string, writeOnly bool, numOfArchives uint64, name string, quota uint64, quotaInode uint64, maxTokens uint64, n common.CreateNotificationInput) (*file.Token, error) {
 	t, err := CreateToken(db, writeOnly, u, bucket, numOfArchives, name, quota, quotaInode, maxTokens)
 	if err != nil {
 		return nil, err
 	}
-
-	_, err = CreateNotificationRule(db, u, &common.CreateNotificationInput{
-		Name:      "versions are too different",
-		Regexp:    ".*",
-		TokenUUID: t.UUID,
-		AcceptableSizeDeltaPercentBetweenVersions: 90,
-	})
-
+	n.TokenUUID = t.UUID
+	_, err = CreateNotificationRule(db, u, &n)
 	if err != nil {
 		return nil, err
 	}

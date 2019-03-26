@@ -18,6 +18,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var DEFAULT_NOTIFICATION_OLD_AND_DIFFERENT = common.CreateNotificationInput{
+	Name:   "versions are too different or too old",
+	Regexp: ".*",
+	AcceptableSizeDeltaPercentBetweenVersions: 90,
+	AcceptableAgeDays:                         2,
+}
+
+var DEFAULT_NOTIFICATION_DIFFERENT = common.CreateNotificationInput{
+	Name:   "versions are too different",
+	Regexp: ".*",
+	AcceptableSizeDeltaPercentBetweenVersions: 90,
+	AcceptableAgeDays:                         0,
+}
+
 func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (*common.UserStatusOutput, *user.User, error) {
 	if err := ValidatePassword(json.Password); err != nil {
 		return nil, nil, err
@@ -273,7 +287,8 @@ func setupACC(srv *server) {
 			return
 		}
 
-		token, err := helpers.CreateTokenAndNotification(store, db, u, CONFIG.Bucket, json.WriteOnly, json.NumberOfArchives, json.Name, CONFIG.DefaultQuota, CONFIG.DefaultInodeQuota, CONFIG.MaxTokens)
+		token, err := helpers.CreateTokenAndNotification(store, db, u, CONFIG.Bucket, json.WriteOnly, json.NumberOfArchives, json.Name, CONFIG.DefaultQuota, CONFIG.DefaultInodeQuota, CONFIG.MaxTokens, DEFAULT_NOTIFICATION_OLD_AND_DIFFERENT)
+
 		if err != nil {
 			warnErr(c, err)
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -426,12 +441,36 @@ func setupACC(srv *server) {
 		} else if subscribe {
 			if len(status.Tokens) == 0 {
 				// in case someone re-subscribes, dont make new token for them
-				_, err := helpers.CreateTokenAndNotification(store, tx, u, CONFIG.Bucket, false, 7, "generic-read-write-7", CONFIG.DefaultQuota, CONFIG.DefaultInodeQuota, CONFIG.MaxTokens)
+				_, err := helpers.CreateTokenAndNotification(store, tx, u,
+					CONFIG.Bucket,
+					false,
+					7,
+					"generic-read-write-7",
+					CONFIG.DefaultQuota,
+					CONFIG.DefaultInodeQuota,
+					CONFIG.MaxTokens,
+					DEFAULT_NOTIFICATION_DIFFERENT)
 				if err != nil {
 					tx.Rollback()
 					warnErr(c, err)
 					return err
 				}
+
+				_, err = helpers.CreateTokenAndNotification(store, tx, u,
+					CONFIG.Bucket,
+					false,
+					7,
+					"generic-daily-backup-7",
+					CONFIG.DefaultQuota,
+					CONFIG.DefaultInodeQuota,
+					CONFIG.MaxTokens,
+					DEFAULT_NOTIFICATION_OLD_AND_DIFFERENT)
+				if err != nil {
+					tx.Rollback()
+					warnErr(c, err)
+					return err
+				}
+
 			}
 
 			status, err = helpers.GetUserStatus(tx, u)
