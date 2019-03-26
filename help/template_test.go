@@ -13,8 +13,8 @@ func TestAll(t *testing.T) {
 	status := common.EMPTY_STATUS
 
 	fmt.Println(Render(HelpObject{Template: EmailAfterRegistration, Email: status.Email, Status: status}))
-
 	fmt.Println(Render(HelpObject{Template: EmailPaymentCancel, Email: status.Email, Status: status}))
+	fmt.Println(Render(HelpObject{Template: EmailPaymentPlease, Email: status.Email, Status: status}))
 	fmt.Println(Render(HelpObject{Template: EmailValidation, Email: status.Email, Status: status}))
 	fmt.Println(Render(HelpObject{Template: FileMeta, Email: status.Email, Status: status}))
 	fmt.Println(Render(HelpObject{Template: GuiEmailRequired, Email: status.Email, Status: status}))

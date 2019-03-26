@@ -524,6 +524,22 @@ func setupACC(srv *server) {
 			wrong(err)
 			return
 		}
+
+		if !u.Paid() {
+			status, err := helpers.GetUserStatus(tx, u)
+			if err != nil {
+				tx.Rollback()
+				warnErr(c, err)
+				wrong(err)
+			}
+
+			if err := sendPaymentPlease(tx, status); err != nil {
+				tx.Rollback()
+				warnErr(c, err)
+				wrong(err)
+			}
+		}
+
 		if err := tx.Commit().Error; err != nil {
 			warnErr(c, err)
 			wrong(err)
@@ -535,6 +551,7 @@ func setupACC(srv *server) {
 	})
 
 	srv.registerHelp(false, help.HelpObject{Template: help.Profile, Status: common.EMPTY_STATUS}, "/register")
+	srv.registerHelp(false, help.HelpObject{Template: help.GuiTos, Status: common.EMPTY_STATUS}, "/register/tos")
 	srv.registerHelp(false, help.HelpObject{Template: help.TokenMeta, Status: common.EMPTY_STATUS}, "/protected/token", "/protected/token/*path", "/token", "/tokens")
 	srv.registerHelp(false, help.HelpObject{Template: help.NotificationMeta, Status: common.EMPTY_STATUS}, "/protected/notification", "/protected/notification/*path", "/notification", "/notifications")
 }

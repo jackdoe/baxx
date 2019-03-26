@@ -7,6 +7,8 @@ import (
 	"io"
 	"strings"
 
+	"time"
+
 	"github.com/minio/minio-go"
 	"github.com/minio/sio"
 	uuid "github.com/satori/go.uuid"
@@ -28,7 +30,7 @@ func NewStore(endpoint, key, secret string, disableSSL bool) (*Store, error) {
 }
 
 func GetStoreId() string {
-	return strings.ToLower(uuid.Must(uuid.NewV4()).String())
+	return fmt.Sprintf("%d.%s", time.Now().UnixNano(), strings.ToLower(uuid.Must(uuid.NewV4()).String()))
 }
 
 // this leak of FileVersion here is not needed, but it is nice for logging

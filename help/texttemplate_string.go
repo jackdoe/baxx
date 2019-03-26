@@ -4,35 +4,9 @@ package help
 
 import "strconv"
 
-func _() {
-	// An "invalid array index" compiler error signifies that the constant values have changed.
-	// Re-run the stringer command to generate them again.
-	var x [1]struct{}
-	_ = x[EmailAfterRegistration-0]
-	_ = x[EmailNotification-1]
-	_ = x[EmailPaymentCancel-2]
-	_ = x[EmailValidation-3]
-	_ = x[FileMeta-4]
-	_ = x[SyncMeta-5]
-	_ = x[GuiEmailRequired-6]
-	_ = x[GuiInfo-7]
-	_ = x[GuiPassRequired-8]
-	_ = x[GuiPitch-9]
-	_ = x[GuiTos-10]
-	_ = x[HtmlLinkError-11]
-	_ = x[HtmlLinkExpired-12]
-	_ = x[HtmlVerificationOk-13]
-	_ = x[HtmlWaitPaypal-14]
-	_ = x[TokenMeta-15]
-	_ = x[Profile-16]
-	_ = x[NotificationMeta-17]
-	_ = x[AllHelp-18]
-	_ = x[EmailQuotaLeft-19]
-}
+const _TextTemplate_name = "EmailAfterRegistrationEmailNotificationEmailPaymentCancelEmailPaymentPleaseEmailValidationFileMetaSyncMetaGuiEmailRequiredGuiInfoGuiPassRequiredGuiPitchGuiTosHtmlLinkErrorHtmlLinkExpiredHtmlVerificationOkHtmlWaitPaypalTokenMetaProfileNotificationMetaAllHelpEmailQuotaLeft"
 
-const _TextTemplate_name = "EmailAfterRegistrationEmailNotificationEmailPaymentCancelEmailValidationFileMetaSyncMetaGuiEmailRequiredGuiInfoGuiPassRequiredGuiPitchGuiTosHtmlLinkErrorHtmlLinkExpiredHtmlVerificationOkHtmlWaitPaypalTokenMetaProfileNotificationMetaAllHelpEmailQuotaLeft"
-
-var _TextTemplate_index = [...]uint8{0, 22, 39, 57, 72, 80, 88, 104, 111, 126, 134, 140, 153, 168, 186, 200, 209, 216, 232, 239, 253}
+var _TextTemplate_index = [...]uint16{0, 22, 39, 57, 75, 90, 98, 106, 122, 129, 144, 152, 158, 171, 186, 204, 218, 227, 234, 250, 257, 271}
 
 func (i TextTemplate) String() string {
 	if i < 0 || i >= TextTemplate(len(_TextTemplate_index)-1) {

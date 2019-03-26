@@ -22,7 +22,11 @@ func setup() *file.Store {
 	// sudo docker run -e MINIO_SECRET_KEY=bbbbbbbb -e MINIO_ACCESS_KEY=aaa -p 9000:9000  minio/minio server /home/shared
 
 	store, err := file.NewStore("localhost:9000", "aaa", "bbbbbbbb", true)
+	if err != nil {
+		log.Fatal(err)
+	}
 
+	err = store.MakeBucket("baxx")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -68,6 +72,15 @@ func TestFileQuota(t *testing.T) {
 	user.EmailVerified = &now
 
 	if err := db.Save(user).Error; err != nil {
+		t.Fatal(err)
+	}
+	_, err = helpers.CreateToken(db, false, user, "baxx", 7, "some-name", 10000, 10000, CONFIG.MaxTokens)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	status, err = helpers.GetUserStatus(db, user)
+	if err != nil {
 		t.Fatal(err)
 	}
 

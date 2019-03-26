@@ -1,0 +1,28 @@
+Hi,
+
+Even though the service is just in alpha state, early subscriptions
+are very important to me, especially for feedback.
+
+To subscribe by going to:
+https://baxx.dev/sub/{{ .Status.PaymentID }}
+
+This will redirect you to paypal.com.
+
+to check the terms of service you can go to:
+https://baxx.dev/help/register/tos
+
+Subscribing means you agree with it, so please
+check it out.
+(it pretty much says I am not liable for anything)
+
+## Plan (only one for now):
+
+Storage 10G
+Trial 1 Month 0.1 EUR
+Subscription: 5 EUR per Month
+Availability: ALPHA
+
+You can check the account status with:
+{{ template "partial_email_status.txt" . }}
+
+{{ template "partial_email_footer.txt" . }}
