@@ -44,7 +44,6 @@ func setupSYNC(srv *server) {
 
 		fv, fm, err := file.FindFileBySHA(db, t, c.Param("sha256"))
 		if err != nil {
-			warnErr(c, err)
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
