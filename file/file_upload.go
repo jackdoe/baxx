@@ -11,7 +11,7 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, fullpath string, body io.Reader) 
 	// get the metadata
 
 	// upload the file to s3
-	storeID := GetStoreId()
+	storeID := GetStoreId(t.ID)
 	sha, size, err := s.UploadFile(t.Salt, t.Bucket, storeID, body)
 	if err != nil {
 		return nil, nil, err

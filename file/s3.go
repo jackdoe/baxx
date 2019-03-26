@@ -29,8 +29,8 @@ func NewStore(endpoint, key, secret string, disableSSL bool) (*Store, error) {
 	}, nil
 }
 
-func GetStoreId() string {
-	return fmt.Sprintf("%d.%s", time.Now().UnixNano(), strings.ToLower(uuid.Must(uuid.NewV4()).String()))
+func GetStoreId(prefix uint64) string {
+	return fmt.Sprintf("%d.%d.%s", prefix, time.Now().UnixNano(), strings.ToLower(uuid.Must(uuid.NewV4()).String()))
 }
 
 // this leak of FileVersion here is not needed, but it is nice for logging

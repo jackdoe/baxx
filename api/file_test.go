@@ -93,7 +93,7 @@ func TestFileQuota(t *testing.T) {
 	var fmFirst *file.FileMetadata
 	for i := 0; i < 20; i++ {
 		s := fmt.Sprintf("a b c d %d", i)
-		_, fmFirst, err = SaveFileProcess(store, db, token, bytes.NewBuffer([]byte(s)), filePath)
+		_, fmFirst, err = SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(s)), filePath)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -119,7 +119,7 @@ func TestFileQuota(t *testing.T) {
 	}
 
 	testShaDiff(t, db, token)
-	_, fmSecond, err := SaveFileProcess(store, db, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
+	_, fmSecond, err := SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,7 +182,7 @@ func TestFileQuota(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, _, err = SaveFileProcess(store, db, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
+	_, _, err = SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,7 +201,7 @@ func TestFileQuota(t *testing.T) {
 	if err := db.Save(token).Error; err != nil {
 		t.Fatal(err)
 	}
-	_, _, err = SaveFileProcess(store, db, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), filePath+"second")
+	_, _, err = SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), filePath+"second")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,7 +211,7 @@ func TestFileQuota(t *testing.T) {
 		t.Fatalf("expected 1 got %d", inodeLeft)
 	}
 	log.Printf("left: %d inodes: %d", left, inodeLeft)
-	_, _, err = SaveFileProcess(store, db, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), filePath+"second")
+	_, _, err = SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), filePath+"second")
 	if err.Error() != "inode quota limit reached" {
 		t.Fatalf("expected inode quota limit reached got %s", err.Error())
 	}
@@ -228,6 +228,17 @@ func TestFileQuota(t *testing.T) {
 	_, err = helpers.CreateToken(db, false, user, "baxx", 1, "some-other-name", 10000, 10000, CONFIG.MaxTokens)
 	if err.Error() != "max tokens created (max=10)" {
 		t.Fatalf("expected max tokens created (max=10) got %s", err.Error())
+	}
+	CONFIG.MaxUserQuota = 1
+	_, _, err = SaveFileProcess(store, db, user, created[0], bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), filePath+"secondz")
+	if err.Error() != "quota limit reached" {
+		t.Fatalf("expected quota limit reached got %s", err.Error())
+	}
+
+	CONFIG.MaxUserQuota = 10000
+	_, _, err = SaveFileProcess(store, db, user, created[0], bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), filePath+"secondz")
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	created = append(created, token)

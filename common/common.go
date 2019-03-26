@@ -96,6 +96,7 @@ type UserStatusOutput struct {
 	Paid                  bool           `json:"paid"`
 	StartedSubscription   *time.Time     `json:"started_subscription"`
 	CancelledSubscription *time.Time     `json:"cancelled_subscription"`
+	UsedSize              uint64         `json:"-"`
 	PaymentID             string         `json:"payment_id"`
 	LastVerificationID    string         `json:"-"`
 	UserID                uint64         `json:"-"`

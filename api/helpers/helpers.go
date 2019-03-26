@@ -41,6 +41,7 @@ func GetUserStatus(db *gorm.DB, u *user.User) (*common.UserStatusOutput, error) 
 
 	return &common.UserStatusOutput{
 		UserID:                u.ID,
+		UsedSize:              used,
 		EmailVerified:         u.EmailVerified,
 		StartedSubscription:   u.StartedSubscription,
 		CancelledSubscription: u.CancelledSubscription,
@@ -183,12 +184,12 @@ func CreateNotificationRule(db *gorm.DB, u *user.User, json *common.CreateNotifi
 		return nil, fmt.Errorf("both ")
 	}
 	n := &notification.NotificationRule{
-		TokenID:              token.ID,
-		UserID:               u.ID,
-		Regexp:               json.Regexp,
-		Name:                 json.Name,
-		UUID:                 common.GetUUID(),
-		AcceptableAgeSeconds: uint64(json.AcceptableAgeDays) * 86400,
+		TokenID:                                   token.ID,
+		UserID:                                    u.ID,
+		Regexp:                                    json.Regexp,
+		Name:                                      json.Name,
+		UUID:                                      common.GetUUID(),
+		AcceptableAgeSeconds:                      uint64(json.AcceptableAgeDays) * 86400,
 		AcceptableSizeDeltaPercentBetweenVersions: uint64(json.AcceptableSizeDeltaPercentBetweenVersions),
 	}
 

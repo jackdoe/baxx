@@ -12,9 +12,11 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackdoe/baxx/api/helpers"
 	"github.com/jackdoe/baxx/common"
 	"github.com/jackdoe/baxx/file"
 	"github.com/jackdoe/baxx/help"
+	"github.com/jackdoe/baxx/user"
 
 	"github.com/jinzhu/gorm"
 )
@@ -27,7 +29,16 @@ func FileLine(fm *file.FileMetadata, fv *file.FileVersion) string {
 	return fmt.Sprintf("%d\t%s\t%s@v%d%s\t%s\n", fv.Size, fv.CreatedAt.Format(time.ANSIC), fm.FullPath(), fv.ID, isCurrent, fv.SHA256)
 }
 
-func SaveFileProcess(s *file.Store, db *gorm.DB, t *file.Token, body io.Reader, p string) (*file.FileVersion, *file.FileMetadata, error) {
+func SaveFileProcess(s *file.Store, db *gorm.DB, u *user.User, t *file.Token, body io.Reader, p string) (*file.FileVersion, *file.FileMetadata, error) {
+	status, err := helpers.GetUserStatus(db, u)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if status.UsedSize > CONFIG.MaxUserQuota {
+		return nil, nil, errors.New("quota limit reached")
+	}
+
 	leftSize, leftInodes, err := file.GetQuotaLeft(db, t)
 	if err != nil {
 		return nil, nil, err
@@ -118,14 +129,14 @@ func setupIO(srv *server) {
 		body := c.Request.Body
 		defer body.Close()
 
-		t, _, err := getViewTokenLoggedOrNot(c)
+		t, u, err := getViewTokenLoggedOrNot(c)
 		if err != nil {
 			warnErr(c, err)
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		p := c.Param("path")
-		fv, fm, err := SaveFileProcess(store, db, t, body, p)
+		fv, fm, err := SaveFileProcess(store, db, u, t, body, p)
 		if err != nil {
 			warnErr(c, err)
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
