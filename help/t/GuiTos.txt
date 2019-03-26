@@ -31,6 +31,9 @@ Contract Duration
   every 30 days. Service may be interrupted on accounts that reach 30
   days past due.
 
+  The contract can be cancelled from Baxx at any time with 30 days advance
+  notice
+
 Backup
   Subscriber is solely responsible for the preservation of
   Subscriber's data which Subscriber saves onto its Baxx account (the
@@ -39,8 +42,7 @@ Backup
   responsibility to preserve Data. We shall have no liability for any
   Data that may be lost.
 
-  The data must sent *encrypted* to to Baxx, and can not be read by
-  Baxx employees or third parties.
+  The data must sent *encrypted* to to Baxx.
 
 
 Use of the service is at your own risk.
