@@ -63,7 +63,7 @@ func TestFileQuota(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
+	log.Printf("%#v", status)
 	log.Print(help.Render(help.HelpObject{Template: help.EmailAfterRegistration, Email: status.Email, Status: status}))
 	/* test uploading a file */
 	log.Printf("%#v", user)

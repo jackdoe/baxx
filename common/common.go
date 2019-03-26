@@ -98,6 +98,8 @@ type UserStatusOutput struct {
 	CancelledSubscription *time.Time     `json:"cancelled_subscription"`
 	UsedSize              uint64         `json:"-"`
 	PaymentID             string         `json:"payment_id"`
+	SubscribeURL          string         `json:"subscribe_url"`
+	CancelSubscriptionURL string         `json:"cancel_subscription_url"`
 	LastVerificationID    string         `json:"-"`
 	UserID                uint64         `json:"-"`
 	Tokens                []*TokenOutput `json:"tokens"`

@@ -46,12 +46,12 @@ func GetUserStatus(db *gorm.DB, u *user.User) (*common.UserStatusOutput, error) 
 		StartedSubscription:   u.StartedSubscription,
 		CancelledSubscription: u.CancelledSubscription,
 		Tokens:                tokensTransformed,
-
-		LastVerificationID: vl.ID,
-
-		Paid:      u.Paid(),
-		PaymentID: u.PaymentID,
-		Email:     u.Email,
+		SubscribeURL:          fmt.Sprintf("https://baxx.dev/sub/%s", u.PaymentID),
+		CancelSubscriptionURL: fmt.Sprintf("https://baxx.dev/unsub/%s", u.PaymentID),
+		LastVerificationID:    vl.ID,
+		Paid:                  u.Paid(),
+		PaymentID:             u.PaymentID,
+		Email:                 u.Email,
 	}, nil
 }
 
