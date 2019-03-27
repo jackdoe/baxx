@@ -12,12 +12,14 @@
 #   [ Wed 27 Mar 21:10:50 CET 2019 ] buy milk
 #   %
 
+TODOFILE=todo.txt
+
 _todo_set() {
-    curl -f -s --data-binary @- https://baxx.dev/io/$BAXX_TOKEN/todo.txt > /dev/null
+    curl -f -s --data-binary @- https://baxx.dev/io/$BAXX_TOKEN/$TODOFILE > /dev/null
 }
 
 todo_list() {
-    curl https://baxx.dev/io/$BAXX_TOKEN/todo.txt -f -s || (echo -n | _todo_set > /dev/null)
+    curl https://baxx.dev/io/$BAXX_TOKEN/$TODOFILE -f -s || (echo -n | _todo_set > /dev/null)
 }
 
 todo_add() {
@@ -63,6 +65,3 @@ todo_delete_matching() {
         ) | _todo_set && todo_list
     fi
 }
-
-
-
