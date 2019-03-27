@@ -1,3 +1,17 @@
+# Example of having a todo list file stored in baxx.dev
+#
+#   % todo_add buy milk
+#   [ Wed 27 Mar 21:10:50 CET 2019 ] buy milk
+#   % todo_add fix milk
+#   [ Wed 27 Mar 21:10:50 CET 2019 ] buy milk
+#   [ Wed 27 Mar 21:10:57 CET 2019 ] fix milk
+#   % todo_done fix milk
+#   [ Wed 27 Mar 21:10:50 CET 2019 ] buy milk
+#   [ Wed 27 Mar 21:10:57 CET 2019 ] fix milk [ Wed 27 Mar 21:11:04 CET 2019 ]
+#   % todo_delete fix milk
+#   [ Wed 27 Mar 21:10:50 CET 2019 ] buy milk
+#   %
+
 _todo_set() {
     curl -f -s --data-binary @- https://baxx.dev/io/$BAXX_TOKEN/todo.txt > /dev/null
 }
@@ -49,3 +63,6 @@ todo_delete_matching() {
         ) | _todo_set && todo_list
     fi
 }
+
+
+
