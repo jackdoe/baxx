@@ -37,7 +37,7 @@ To discuss features and ideas please join us at:
 
 * Google Groups:
   baxx-users@googlegroups.com
-  https://baxx.dev/join/google
+  https://baxx.dev/join/groups
 
 # Documentation:
 
