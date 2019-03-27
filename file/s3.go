@@ -84,8 +84,9 @@ func (s *Store) UploadFile(key string, bucket string, id string, body io.Reader)
 	if err != nil {
 		return "", 0, err
 	}
-
+	t0 := time.Now()
 	_, err = s.s3.PutObject(bucket, id, reader, -1, minio.PutObjectOptions{})
+	log.Infof("took: %dms to create %d sized file", time.Now().Sub(t0).Nanoseconds()/int64(1000000), counter.count)
 	// report on the actual size, not the encrypted size
 	return counter.Sum(), counter.count, err
 }

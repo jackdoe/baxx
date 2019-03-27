@@ -32,5 +32,5 @@ func actionLog(db *gorm.DB, user uint64, actionType, action string, req *http.Re
 }
 
 func extractLogFromRequest(req *http.Request) (string, error) {
-	return fmt.Sprintf("X-Forwarded-For: %s\nRemoteAddr: %s\nURL: %s\nUser-Agent: %s", req.Header.Get("X-Forwarded-For"), req.RemoteAddr, req.URL, req.Header.Get("X-Forwarded-For")), nil
+	return fmt.Sprintf("X-Forwarded-For: %s\nRemoteAddr: %s\nURL: %s\nUser-Agent: %s", req.Header.Get("X-Forwarded-For"), req.RemoteAddr, req.URL, req.Header.Get("User-Agent")), nil
 }
