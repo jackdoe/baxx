@@ -22,7 +22,24 @@ Here be Dragons! Data can be lost!
 
 {{ template "TokenList.txt" . }}
 
-Documentation:
+# Communication
+
+We will not be using your email for anything besides notifications for
+quota/payment/alerts etc.
+
+To discuss features and ideas please join us at:
+
+* Slack:
+  https://baxxdev.slack.com
+
+  invite link:
+  https://baxx.dev/join/slack
+
+* Google Groups:
+  baxx-users@googlegroups.com
+  https://baxx.dev/join/google
+
+# Documentation:
 
 * A bunch of help
 curl https://baxx.dev/help

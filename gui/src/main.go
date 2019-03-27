@@ -96,10 +96,8 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 	isRegisterMode := true
 	form.AppendRow(tui.NewLabel("E-mail"))
 	form.AppendRow(user)
-	form.AppendRow(tui.NewSpacer())
 	form.AppendRow(tui.NewLabel("Password"))
 	form.AppendRow(password)
-	form.AppendRow(tui.NewSpacer())
 	form.AppendRow(tui.NewLabel("Confirm Password"))
 	form.AppendRow(confirmPassword)
 
@@ -134,8 +132,13 @@ func registrationForm(ui tui.UI, bc *baxx.Client, onRegister func(string, string
 	window := tui.NewVBox(
 		tui.NewPadder(1, 1, tui.NewLabel(logo)),
 		tui.NewPadder(1, 0, tui.NewLabel(Render(HelpObject{Template: GuiInfo}))),
+		tui.NewPadder(1, 0, tui.NewLabel("Contact Us:")),
+		tui.NewPadder(1, 0, tui.NewLabel(" * Slack         https://baxx.dev/join/slack")),
+		tui.NewPadder(1, 0, tui.NewLabel(" * Google Groups https://baxx.dev/join/groups")),
+
 		tui.NewPadder(1, 1, form),
-		tui.NewPadder(1, 0, tui.NewLabel("Registering means you agree with\nthe terms of service!")),
+		tui.NewPadder(1, 0, tui.NewLabel("Registering means you agree with")),
+		tui.NewPadder(1, 0, tui.NewLabel("the terms of service!")),
 		tui.NewPadder(1, 0, tui.NewLabel("")),
 		buttonsRegister,
 		tui.NewPadder(1, 0, tui.NewLabel("")),

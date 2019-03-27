@@ -177,8 +177,18 @@ func setupAPI(db *gorm.DB, bind string) {
 		c.String(200, "ok")
 	})
 
+	r.GET("/join/groups", func(c *gin.Context) {
+		url := "https://groups.google.com/forum/#!forum/baxx-users"
+		c.Redirect(http.StatusFound, url)
+	})
+
+	r.GET("/join/slack", func(c *gin.Context) {
+		url := "https://join.slack.com/t/baxxdev/shared_invite/enQtNTkwODg2ODYyOTE5LTVhMDkwYzVlMTIxNWJkYzMzZjI1ZGIxYjdjYTZhNzkyZTRiOTlmNWI2ZDU5MDZiOWUwZjAzNTU1MDViYmJkODM"
+		c.Redirect(http.StatusFound, url)
+	})
+
 	r.GET("/", func(c *gin.Context) {
-		c.String(200, "sign up: ssh register@ui.baxx.dev\nhelp: curl https://baxx.dev/help")
+		c.String(200, "sign up: ssh register@ui.baxx.dev\nhelp: curl https://baxx.dev/help\nslack https://baxx.dev/join/slack\ngoogle groups: https://baxx.dev/join/google")
 	})
 
 	srv := &server{db: db, r: r, store: store, authorized: authorized}
