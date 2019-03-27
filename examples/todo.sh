@@ -19,7 +19,7 @@ _todo_set() {
 }
 
 todo_list() {
-    curl https://baxx.dev/io/$BAXX_TOKEN/$TODOFILE -f -s || (echo -n | _todo_set > /dev/null)
+    curl https://baxx.dev/io/$BAXX_TOKEN/$TODOFILE -f -s || (echo -n | _todo_set)
 }
 
 todo_add() {
