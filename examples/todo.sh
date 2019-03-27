@@ -8,7 +8,7 @@
 #   % todo_done fix milk
 #   [ Wed 27 Mar 21:10:50 CET 2019 ] buy milk
 #   [ Wed 27 Mar 21:10:57 CET 2019 ] fix milk [ Wed 27 Mar 21:11:04 CET 2019 ]
-#   % todo_delete fix milk
+#   % todo_delete_matching fix milk
 #   [ Wed 27 Mar 21:10:50 CET 2019 ] buy milk
 #   %
 
