@@ -188,7 +188,7 @@ func setupAPI(db *gorm.DB, bind string) {
 	})
 
 	r.GET("/", func(c *gin.Context) {
-		c.String(200, "sign up: ssh register@ui.baxx.dev\nhelp: curl https://baxx.dev/help\nslack https://baxx.dev/join/slack\ngoogle groups: https://baxx.dev/join/google")
+		c.String(200, "sign up: ssh register@ui.baxx.dev\nhelp: curl https://baxx.dev/help\nslack: https://baxx.dev/join/slack\ngoogle groups: https://baxx.dev/join/google")
 	})
 
 	srv := &server{db: db, r: r, store: store, authorized: authorized}
