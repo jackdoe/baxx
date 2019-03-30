@@ -1,10 +1,10 @@
-package notification
+package notification_rules
 
 import (
 	"testing"
 	"time"
 
-	"github.com/jackdoe/baxx/file"
+	"github.com/jackdoe/baxx/api/file"
 )
 
 func secondsAgo(s int) time.Time {

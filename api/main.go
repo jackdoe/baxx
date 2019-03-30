@@ -12,14 +12,16 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackdoe/baxx/api/helpers"
-	"github.com/jackdoe/baxx/file"
-	"github.com/jackdoe/baxx/help"
-	"github.com/jackdoe/baxx/notification"
-	"github.com/jackdoe/baxx/user"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/jackdoe/baxx/api/file"
+	"github.com/jackdoe/baxx/api/helpers"
+	notification "github.com/jackdoe/baxx/api/notification_rules"
+	"github.com/jackdoe/baxx/api/user"
+	"github.com/jackdoe/baxx/help"
+	"github.com/jackdoe/baxx/message"
 )
 
 func initDatabase(db *gorm.DB) {
@@ -34,12 +36,12 @@ func initDatabase(db *gorm.DB) {
 		&notification.NotificationRule{},
 		&notification.NotificationForFileVersion{},
 		&notification.NotificationForQuota{},
-		&notification.EmailQueueItem{},
+		&message.EmailQueueItem{},
 	).Error; err != nil {
 		log.Panic(err)
 	}
 
-	if err := db.Model(&notification.EmailQueueItem{}).AddIndex("idx_email_sent", "sent").Error; err != nil {
+	if err := db.Model(&message.EmailQueueItem{}).AddIndex("idx_email_sent", "sent").Error; err != nil {
 		log.Panic(err)
 	}
 
@@ -140,7 +142,11 @@ func (s *server) getViewTokenLoggedOrNot(c *gin.Context) (*file.Token, *user.Use
 }
 
 func setupAPI(db *gorm.DB, bind string) {
-	store, err := file.NewStore(os.Getenv("BAXX_S3_ENDPOINT"), os.Getenv("BAXX_S3_ACCESS_KEY"), os.Getenv("BAXX_S3_SECRET"), os.Getenv("BAXX_S3_DISABLE_SSL") == "true")
+	j := os.Getenv("BAXX_JUDOC_URL")
+	if j == "" {
+		j = "http://localhost:9122"
+	}
+	store, err := file.NewStore(j)
 
 	if err != nil {
 		log.Panic(err)
@@ -218,7 +224,7 @@ func setupAPI(db *gorm.DB, bind string) {
 }
 
 func main() {
-	defer notification.SlackPanic("main api")
+	defer message.SlackPanic("main api")
 
 	var pbind = flag.String("bind", ":9123", "bind")
 	var pdebug = flag.Bool("debug", false, "debug")

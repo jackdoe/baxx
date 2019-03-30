@@ -7,13 +7,15 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/jackdoe/baxx/api/file"
 	"github.com/jackdoe/baxx/api/helpers"
+	"github.com/jackdoe/baxx/api/ipn"
+	notification "github.com/jackdoe/baxx/api/notification_rules"
+	"github.com/jackdoe/baxx/api/user"
 	"github.com/jackdoe/baxx/common"
-	"github.com/jackdoe/baxx/file"
 	"github.com/jackdoe/baxx/help"
-	"github.com/jackdoe/baxx/ipn"
-	"github.com/jackdoe/baxx/notification"
-	"github.com/jackdoe/baxx/user"
+
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
 )
@@ -287,7 +289,7 @@ func setupACC(srv *server) {
 			return
 		}
 
-		token, err := helpers.CreateTokenAndNotification(store, db, u, CONFIG.Bucket, json.WriteOnly, json.NumberOfArchives, json.Name, CONFIG.DefaultQuota, CONFIG.DefaultInodeQuota, CONFIG.MaxTokens, DEFAULT_NOTIFICATION_OLD_AND_DIFFERENT)
+		token, err := helpers.CreateTokenAndNotification(store, db, u, json.WriteOnly, json.NumberOfArchives, json.Name, CONFIG.DefaultQuota, CONFIG.DefaultInodeQuota, CONFIG.MaxTokens, DEFAULT_NOTIFICATION_OLD_AND_DIFFERENT)
 
 		if err != nil {
 			warnErr(c, err)
@@ -442,7 +444,6 @@ func setupACC(srv *server) {
 			if len(status.Tokens) == 0 {
 				// in case someone re-subscribes, dont make new token for them
 				_, err := helpers.CreateTokenAndNotification(store, tx, u,
-					CONFIG.Bucket,
 					false,
 					7,
 					"generic-read-write-7",
@@ -457,7 +458,6 @@ func setupACC(srv *server) {
 				}
 
 				_, err = helpers.CreateTokenAndNotification(store, tx, u,
-					CONFIG.Bucket,
 					false,
 					7,
 					"generic-daily-backup-7",

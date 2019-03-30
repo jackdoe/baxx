@@ -5,19 +5,23 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jackdoe/baxx/api/helpers"
-	"github.com/jackdoe/baxx/common"
-	"github.com/jackdoe/baxx/file"
-	"github.com/jackdoe/baxx/help"
-	"github.com/jackdoe/baxx/notification"
-	"github.com/jackdoe/baxx/user"
+	"time"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/jackdoe/baxx/api/file"
+	"github.com/jackdoe/baxx/api/helpers"
+	notification "github.com/jackdoe/baxx/api/notification_rules"
+	"github.com/jackdoe/baxx/api/user"
+	"github.com/jackdoe/baxx/common"
+	"github.com/jackdoe/baxx/help"
+	"github.com/jackdoe/baxx/message"
 )
 
 func main() {
-	defer notification.SlackPanic("notification rules")
+	defer message.SlackPanic("notification rules")
 	var pdebug = flag.Bool("debug", false, "debug")
 	flag.Parse()
 	db, err := gorm.Open("postgres", os.Getenv("BAXX_POSTGRES"))
@@ -27,8 +31,12 @@ func main() {
 	db.LogMode(*pdebug)
 	defer db.Close()
 
-	runRules(db)
+	for {
+		runRules(db)
+		time.Sleep(1 * time.Hour)
+	}
 }
+
 func runRules(db *gorm.DB) {
 	tx := db.Begin()
 	users := []*user.User{}
@@ -74,7 +82,7 @@ func runRules(db *gorm.DB) {
 		}
 
 		if sendQuotaNotification {
-			err := notification.EnqueueMail(
+			err := message.EnqueueMail(
 				tx,
 				u.ID,
 				"[ baxx.dev ] quota limit reached",
@@ -154,7 +162,7 @@ func runRules(db *gorm.DB) {
 		}
 
 		if len(grouped) != 0 {
-			err := notification.EnqueueMail(
+			err := message.EnqueueMail(
 				tx,
 				u.ID,
 				fmt.Sprintf("[ baxx.dev ] backup issues for %d files", count),

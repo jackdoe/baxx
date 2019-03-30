@@ -5,10 +5,11 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/jackdoe/baxx/api/file"
+	notification "github.com/jackdoe/baxx/api/notification_rules"
+	"github.com/jackdoe/baxx/api/user"
 	"github.com/jackdoe/baxx/common"
-	"github.com/jackdoe/baxx/file"
-	"github.com/jackdoe/baxx/notification"
-	"github.com/jackdoe/baxx/user"
+
 	"github.com/jinzhu/gorm"
 )
 
@@ -95,11 +96,10 @@ func FindTokenForUser(db *gorm.DB, token string, u *user.User) (*file.Token, err
 	return t, nil
 }
 
-func CreateToken(db *gorm.DB, writeOnly bool, u *user.User, bucket string, numOfArchives uint64, name string, quota uint64, quotaInode uint64, maxTokens uint64) (*file.Token, error) {
+func CreateToken(db *gorm.DB, writeOnly bool, u *user.User, numOfArchives uint64, name string, quota uint64, quotaInode uint64, maxTokens uint64) (*file.Token, error) {
 	t := &file.Token{
 		UUID:             common.GetUUID(),
 		Salt:             strings.Replace(common.GetUUID(), "-", "", -1),
-		Bucket:           bucket,
 		UserID:           u.ID,
 		WriteOnly:        writeOnly,
 		NumberOfArchives: numOfArchives,
@@ -141,8 +141,8 @@ func FindTokenAndUser(db *gorm.DB, token string) (*file.Token, *user.User, error
 	return t, u, nil
 }
 
-func CreateTokenAndNotification(s *file.Store, db *gorm.DB, u *user.User, bucket string, writeOnly bool, numOfArchives uint64, name string, quota uint64, quotaInode uint64, maxTokens uint64, n common.CreateNotificationInput) (*file.Token, error) {
-	t, err := CreateToken(db, writeOnly, u, bucket, numOfArchives, name, quota, quotaInode, maxTokens)
+func CreateTokenAndNotification(s *file.Store, db *gorm.DB, u *user.User, writeOnly bool, numOfArchives uint64, name string, quota uint64, quotaInode uint64, maxTokens uint64, n common.CreateNotificationInput) (*file.Token, error) {
+	t, err := CreateToken(db, writeOnly, u, numOfArchives, name, quota, quotaInode, maxTokens)
 	if err != nil {
 		return nil, err
 	}

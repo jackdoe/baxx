@@ -12,11 +12,12 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/jackdoe/baxx/api/file"
 	"github.com/jackdoe/baxx/api/helpers"
+	"github.com/jackdoe/baxx/api/user"
 	"github.com/jackdoe/baxx/common"
-	"github.com/jackdoe/baxx/file"
 	"github.com/jackdoe/baxx/help"
-	"github.com/jackdoe/baxx/user"
 
 	"github.com/jinzhu/gorm"
 )
@@ -110,7 +111,7 @@ func setupIO(srv *server) {
 
 		}
 
-		reader, err := store.DownloadFile(t.Salt, t.Bucket, fv.StoreID)
+		reader, err := store.DownloadFile(t.Salt, t.UUID, fv.StoreID)
 		if err != nil {
 			warnErr(c, err)
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})

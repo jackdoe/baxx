@@ -3,9 +3,10 @@ package ipn
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/schema"
 	"net/url"
 	"time"
+
+	"github.com/gorilla/schema"
 )
 
 var decoder = schema.NewDecoder()

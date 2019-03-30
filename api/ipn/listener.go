@@ -2,12 +2,13 @@ package ipn
 
 import (
 	"bytes"
-	"github.com/gin-gonic/gin"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+
+	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 //LiveIPNEndpoint contains the notification verification URL

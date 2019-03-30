@@ -1,14 +1,15 @@
 package main
 
 import (
+	"github.com/jinzhu/gorm"
+
 	. "github.com/jackdoe/baxx/common"
 	"github.com/jackdoe/baxx/help"
-	"github.com/jackdoe/baxx/notification"
-	"github.com/jinzhu/gorm"
+	"github.com/jackdoe/baxx/message"
 )
 
 func sendPaymentPlease(db *gorm.DB, status *UserStatusOutput) error {
-	err := notification.EnqueueVerificationMail(
+	err := message.EnqueueVerificationMail(
 		db,
 		status.UserID,
 		"Subscription info",
@@ -17,7 +18,7 @@ func sendPaymentPlease(db *gorm.DB, status *UserStatusOutput) error {
 }
 
 func sendVerificationLink(db *gorm.DB, status *UserStatusOutput) error {
-	err := notification.EnqueueVerificationMail(
+	err := message.EnqueueVerificationMail(
 		db,
 		status.UserID,
 		"Please verify your email",
@@ -26,7 +27,7 @@ func sendVerificationLink(db *gorm.DB, status *UserStatusOutput) error {
 }
 
 func sendPaymentCancelMail(db *gorm.DB, status *UserStatusOutput) error {
-	err := notification.EnqueueMail(
+	err := message.EnqueueMail(
 		db,
 		status.UserID,
 		"Subscription cancelled!",
@@ -35,7 +36,7 @@ func sendPaymentCancelMail(db *gorm.DB, status *UserStatusOutput) error {
 }
 
 func sendRegistrationHelp(db *gorm.DB, status *UserStatusOutput) error {
-	err := notification.EnqueueMail(
+	err := message.EnqueueMail(
 		db,
 		status.UserID,
 		"Welcome to baxx.dev!",

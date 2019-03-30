@@ -8,25 +8,25 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jackdoe/baxx/api/helpers"
-	"github.com/jackdoe/baxx/common"
-	. "github.com/jackdoe/baxx/common"
-	"github.com/jackdoe/baxx/file"
-	"github.com/jackdoe/baxx/help"
-	"github.com/jackdoe/baxx/user"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
+
+	"github.com/jackdoe/baxx/api/file"
+	"github.com/jackdoe/baxx/api/helpers"
+	"github.com/jackdoe/baxx/api/user"
+	"github.com/jackdoe/baxx/common"
+	. "github.com/jackdoe/baxx/common"
+	"github.com/jackdoe/baxx/help"
 )
 
 func setup() *file.Store {
-	// sudo docker run -e MINIO_SECRET_KEY=bbbbbbbb -e MINIO_ACCESS_KEY=aaa -p 9000:9000  minio/minio server /home/shared
+	// sudo docker run -p 9122:9122  jackdoe/judoc:0.6
 
-	store, err := file.NewStore("localhost:9000", "aaa", "bbbbbbbb", true)
+	store, err := file.NewStore("http://localhost:9122")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = store.MakeBucket("baxx")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestFileQuota(t *testing.T) {
 	if err := db.Save(user).Error; err != nil {
 		t.Fatal(err)
 	}
-	_, err = helpers.CreateToken(db, false, user, "baxx", 7, "some-name", 10000, 10000, CONFIG.MaxTokens)
+	_, err = helpers.CreateToken(db, false, user, 7, "some-name", 10000, 10000, CONFIG.MaxTokens)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +103,7 @@ func TestFileQuota(t *testing.T) {
 			t.Fatal(err)
 		}
 		log.Printf("sha %s", fv.SHA256)
-		reader, err := store.DownloadFile(token.Salt, token.Bucket, fv.StoreID)
+		reader, err := store.DownloadFile(token.Salt, token.UUID, fv.StoreID)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -219,13 +219,13 @@ func TestFileQuota(t *testing.T) {
 	CONFIG.MaxTokens = 10
 	created := []*file.Token{}
 	for i := 0; i < 9; i++ {
-		to, err := helpers.CreateToken(db, false, user, "baxx", 1, "some-name", 10000, 10000, CONFIG.MaxTokens)
+		to, err := helpers.CreateToken(db, false, user, 1, "some-name", 10000, 10000, CONFIG.MaxTokens)
 		if err != nil {
 			t.Fatal(err)
 		}
 		created = append(created, to)
 	}
-	_, err = helpers.CreateToken(db, false, user, "baxx", 1, "some-other-name", 10000, 10000, CONFIG.MaxTokens)
+	_, err = helpers.CreateToken(db, false, user, 1, "some-other-name", 10000, 10000, CONFIG.MaxTokens)
 	if err.Error() != "max tokens created (max=10)" {
 		t.Fatalf("expected max tokens created (max=10) got %s", err.Error())
 	}
@@ -248,22 +248,6 @@ func TestFileQuota(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-
-	list := listSync(store, token.Bucket)
-	if len(list) != 0 {
-		t.Fatalf("items in the store: %v", list)
-	}
-}
-
-func listSync(s *file.Store, tokenID string) []string {
-	out := make(chan string)
-	e := make(chan error)
-	go s.ListObjects(tokenID, e, out)
-	res := []string{}
-	for v := range out {
-		res = append(res, v)
-	}
-	return res
 }
 
 func getUsed(t *testing.T, db *gorm.DB, user *user.User) uint64 {

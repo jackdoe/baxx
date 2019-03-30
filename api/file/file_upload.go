@@ -12,7 +12,7 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, fullpath string, body io.Reader) 
 
 	// upload the file to s3
 	storeID := GetStoreId(t.ID)
-	sha, size, err := s.UploadFile(t.Salt, t.Bucket, storeID, body)
+	sha, size, err := s.UploadFile(t.Salt, t.UUID, storeID, body)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -21,7 +21,7 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, fullpath string, body io.Reader) 
 	defer func() {
 		for id := range removeBeforeExit {
 			log.Infof("on save removing %d %s %s", t.ID, fullpath, id)
-			err := s.DeleteFile(t.Bucket, id)
+			err := s.DeleteFile(t.UUID, id)
 			if err != nil {
 				log.Warnf("error removing %s: %s", id, err.Error())
 			}

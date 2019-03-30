@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	. "github.com/jackdoe/baxx/common"
 	"io/ioutil"
 	"net/http"
 	"strings"
+
+	. "github.com/jackdoe/baxx/common"
 )
 
 type Client struct {

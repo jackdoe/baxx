@@ -1,12 +1,13 @@
-package notification
+package message
 
 import (
 	"time"
 
-	"github.com/jackdoe/baxx/common"
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/gomail.v2"
+
+	"github.com/jackdoe/baxx/common"
 )
 
 type Message struct {

@@ -1,12 +1,12 @@
-package notification
+package notification_rules
 
 import (
 	"math"
 	"regexp"
 	"time"
 
+	"github.com/jackdoe/baxx/api/file"
 	"github.com/jackdoe/baxx/common"
-	"github.com/jackdoe/baxx/file"
 )
 
 type NotificationRule struct {

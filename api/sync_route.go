@@ -8,9 +8,10 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackdoe/baxx/file"
-	"github.com/jackdoe/baxx/help"
 	"github.com/jinzhu/gorm"
+
+	"github.com/jackdoe/baxx/api/file"
+	"github.com/jackdoe/baxx/help"
 )
 
 func ShaDiff(db *gorm.DB, t *file.Token, body io.Reader) ([]string, error) {

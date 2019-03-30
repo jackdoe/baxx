@@ -8,9 +8,10 @@ import (
 
 	"github.com/badoux/checkmail"
 	"github.com/gin-gonic/gin"
-	"github.com/jackdoe/baxx/notification"
-	"github.com/jackdoe/baxx/user"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/jackdoe/baxx/api/user"
+	"github.com/jackdoe/baxx/message"
 )
 
 func ValidateEmail(email string) error {
@@ -58,6 +59,6 @@ func warnErr(c *gin.Context, err error) {
 	}
 	_, fn, line, _ := runtime.Caller(1)
 	msg := fmt.Sprintf("uid: %d, uri: %s, err: >> %s << [%s:%d]", u.ID, c.Request.RequestURI, err.Error(), fn, line)
-	notification.SendSlackDefault("warning", msg)
+	message.SendSlackDefault("warning", msg)
 	log.Warn(msg)
 }

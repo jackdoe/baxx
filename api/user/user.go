@@ -3,9 +3,10 @@ package user
 import (
 	"time"
 
-	"github.com/jackdoe/baxx/common"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/jackdoe/baxx/common"
 )
 
 func hashAndSalt(pwd string) string {

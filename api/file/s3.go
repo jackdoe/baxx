@@ -9,23 +9,21 @@ import (
 
 	"time"
 
-	"github.com/minio/minio-go"
+	judoc "github.com/jackdoe/judoc/client"
 	"github.com/minio/sio"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
 
 type Store struct {
-	s3 *minio.Client
+	judoc *judoc.Client
 }
 
-func NewStore(endpoint, key, secret string, disableSSL bool) (*Store, error) {
-	svc, err := minio.New(endpoint, key, secret, !disableSSL)
-	if err != nil {
-		return nil, err
-	}
+// make sure judoc is listening on localhost
+// otherwise we have to do ssl
+func NewStore(j string) (*Store, error) {
 	return &Store{
-		s3: svc,
+		judoc: judoc.NewClient(j, nil),
 	}, nil
 }
 
@@ -34,10 +32,10 @@ func GetStoreId(prefix uint64) string {
 }
 
 // this leak of FileVersion here is not needed, but it is nice for logging
-func (s *Store) RemoveMany(bucket string, remove []FileVersion) error {
+func (s *Store) RemoveMany(namespace string, remove []FileVersion) error {
 	for _, rm := range remove {
 		log.Infof("removing %d %d %d %s", rm.ID, rm.TokenID, rm.FileMetadataID, rm.StoreID)
-		err := s.DeleteFile(bucket, rm.StoreID)
+		err := s.DeleteFile(namespace, rm.StoreID)
 		if err != nil {
 			log.Warnf("error deleting %s: %s", rm.StoreID, err.Error())
 			return err
@@ -46,8 +44,8 @@ func (s *Store) RemoveMany(bucket string, remove []FileVersion) error {
 	return nil
 }
 
-func (s *Store) DownloadFile(key string, bucket, id string) (io.Reader, error) {
-	obj, err := s.s3.GetObject(bucket, id, minio.GetObjectOptions{})
+func (s *Store) DownloadFile(key string, namespace, id string) (io.Reader, error) {
+	obj, err := s.judoc.Get(namespace, id)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +73,7 @@ func (s *StreamByteCounter) Write(p []byte) (nn int, err error) {
 	return len(p), err
 }
 
-func (s *Store) UploadFile(key string, bucket string, id string, body io.Reader) (string, int64, error) {
+func (s *Store) UploadFile(key string, namespace string, id string, body io.Reader) (string, int64, error) {
 	counter := &StreamByteCounter{
 		sha256: sha256.New(),
 	}
@@ -85,33 +83,12 @@ func (s *Store) UploadFile(key string, bucket string, id string, body io.Reader)
 		return "", 0, err
 	}
 	t0 := time.Now()
-	_, err = s.s3.PutObject(bucket, id, reader, -1, minio.PutObjectOptions{})
+	err = s.judoc.Set(namespace, id, reader)
 	log.Infof("took: %dms to create %d sized file", time.Now().Sub(t0).Nanoseconds()/int64(1000000), counter.count)
 	// report on the actual size, not the encrypted size
 	return counter.Sum(), counter.count, err
 }
 
-func (s *Store) DeleteFile(bucket, id string) error {
-	return s.s3.RemoveObject(bucket, id)
-}
-
-func (s *Store) MakeBucket(tokenBucket string) error {
-	err := s.s3.MakeBucket(tokenBucket, "")
-	return err
-}
-
-func (s *Store) ListObjects(tokenBucket string, err chan error, out chan string) {
-	doneCh := make(chan struct{})
-	defer close(doneCh)
-	defer close(out)
-	defer close(err)
-
-	objectCh := s.s3.ListObjects(tokenBucket, "", false, doneCh)
-	for object := range objectCh {
-		if object.Err != nil {
-			err <- object.Err
-			return
-		}
-		out <- object.Key
-	}
+func (s *Store) DeleteFile(namespace, id string) error {
+	return s.judoc.Delete(namespace, id)
 }

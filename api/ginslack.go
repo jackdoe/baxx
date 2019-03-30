@@ -7,8 +7,9 @@ import (
 	"runtime/debug"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackdoe/baxx/notification"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/jackdoe/baxx/message"
 )
 
 func SlackRecovery() gin.HandlerFunc {
@@ -21,7 +22,7 @@ func SlackRecovery() gin.HandlerFunc {
 				log.Warnf("[Recovery] panic recovered:\n%s\n%s\n%s", string(httprequest), err, stack)
 				if c.Request.RequestURI != "/digitalocean" {
 					m := fmt.Sprintf("%s%s ```%s```", httprequest, err, stack)
-					notification.SendSlackDefault("panic", m)
+					message.SendSlackDefault("panic", m)
 				}
 				c.AbortWithStatus(500)
 			}
