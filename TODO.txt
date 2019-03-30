@@ -1,5 +1,53 @@
-postgres master slave
-move baxx to the machines
+# infra weekend 30/03/2019
+the cost of digital ocean is already 60E
+(10 + 15 + 5 + 5 + 5 + 5 + 5) * 1.2 = 60
+lb + postgres + a.baxx.dev b.baxx.dev ui.baxx.dev notify.baxx.dev spaces + vat
+so 60E for 4gb ram 4 cpus and 250gb s3
+
+the 2 machines in finland cost 40E each (vat included)
+so 80E for 128gb ram, 16 cpus, 2tb ssd disk
+
+and since i am having so much fun with it i decided to move it to finland
+
+infra night [Fri 30/03/2019]:
+* buy 2 machines
+* setup 2 machines in Finland
+  + config docker and firewall on them  [ done Sat 30 Mar 02:25:10 CET 2019 ]
+    fucking thing took me 2 hours because of the ufw + docker fuckery
+    fuck
+  + setup scylla cluster
+    + basic [ done Sat 30 Mar 02:25:10 CET 2019 ]
+    + ssl [ done Sat 30 Mar 10:02:11 CET 2019 ]
+  + start https://github.com/jackdoe/judoc
+    + basic [ done Sat 30 Mar 02:25:10 CET 2019 ]
+    + ssl [ done Sat 30 Mar 10:02:11 CET 2019 ]
+
+infra day [Sat 30/03/2019]:
+
+* setup postgres master->slave
+  + basic
+  + ssl
+* setup nginx with letsencrypt
+  + nginx
+  + letsencrypt
+
+* setup auth for scylla
+* baxx to use https://github.com/jackdoe/judoc
+* add 2fa on the host machines
+* add psad https://github.com/imthenachoman/How-To-Secure-A-Linux-Server#psad-iptables-intrusion-detection-and-prevention
+* run docker ui.baxx.dev to use port 22 and move normal ssh on port 2222
+
+notify.baxx.dev overhaul:
+at the moment in digitalocean it is only one droplet
+* run the notification check in both machines
+* run mail sender from both machines and use select for update
+* run a healthckeck that checks when was the last time mail sender was ran and send slack message
+
+
+infra day [Sun 31/03/2019]:
+* move baxx.dev to the new setup from digitalocean
+* shutdown digitalocean
+
 
 --
 
