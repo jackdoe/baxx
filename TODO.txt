@@ -40,8 +40,16 @@ infra day [Sat 30/03/2019]:
 notify.baxx.dev overhaul:
 at the moment in digitalocean it is only one droplet
 * run the notification check in both machines
-* run mail sender from both machines and use select for update [ done Sat 30 Mar 22:35:59 CET 2019 ]
-* run a healthckeck that checks when was the last time mail sender was ran and send slack message
+* run mail sender from both machines
+* use select for update [ done Sat 30 Mar 22:35:59 CET 2019 ]
+* run a healthckeck that checks when was the last time mail sender was ran and send slack message [ done Sun 31 Mar 00:07:23 CET 2019 ]
+
+* monitoring watcher
+
+* alerts for disk/mem
+  + disk 80% for more than 5 mins
+  + mem  80% for more than 5 mins
+  + add nice asciigraphs with the stats
 
 
 infra day [Sun 31/03/2019]:
