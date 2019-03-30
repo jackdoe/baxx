@@ -10,7 +10,7 @@ so 80E for 128gb ram, 16 cpus, 2tb ssd disk
 and since i am having so much fun with it i decided to move it to finland
 
 infra night [Fri 30/03/2019]:
-* buy 2 machines
+* buy 2 machines [ done Fri 29 Mar 17:20:12 CET 2019 ]
 * setup 2 machines in Finland
   + config docker and firewall on them  [ done Sat 30 Mar 02:25:10 CET 2019 ]
     fucking thing took me 2 hours because of the ufw + docker fuckery
