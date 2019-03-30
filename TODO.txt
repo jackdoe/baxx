@@ -1,3 +1,8 @@
+postgres master slave
+move baxx to the machines
+
+--
+
 next:
  + gui to manage the tokens and notifications
  + move the todo list to somewhere elsex

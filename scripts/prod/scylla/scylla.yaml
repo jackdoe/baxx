@@ -14,6 +14,9 @@ seed_provider:
       parameters:
           - seeds: "95.217.32.97,95.217.32.98"
 
+#authenticator: PasswordAuthenticator
+#authorizer: ScyllaAuthorizer
+
 listen_address: 0.0.0.0
 rpc_address: 0.0.0.0
 native_transport_port: 9042
@@ -25,3 +28,9 @@ api_port: 10000
 api_address: 127.0.0.1
 batch_size_warn_threshold_in_kb: 5
 batch_size_fail_threshold_in_kb: 50
+
+client_encryption_options:
+    enabled: true
+    certificate: /etc/scylla/db.crt
+    keyfile: /etc/scylla/db.key
+    truststore: /etc/scylla/cadb.pem

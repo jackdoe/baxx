@@ -10,6 +10,9 @@ docker run \
        --restart on-failure \
        -v $data:/var/lib/scylla \
        -v $dir/scylla.yaml:/etc/scylla/scylla.yaml \
+       -v /root/cert/db.crt:/etc/scylla/db.crt \
+       -v /root/cert/db.key:/etc/scylla/db.key \
+       -v /root/cert/cadb.pem:/etc/scylla/cadb.pem \
        -dit scylladb/scylla \
        --smp 4 \
        --memory 16G \
