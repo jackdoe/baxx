@@ -22,6 +22,7 @@ import (
 	"github.com/jackdoe/baxx/api/user"
 	"github.com/jackdoe/baxx/help"
 	"github.com/jackdoe/baxx/message"
+	"github.com/jackdoe/baxx/monitoring"
 )
 
 func initDatabase(db *gorm.DB) {
@@ -36,6 +37,7 @@ func initDatabase(db *gorm.DB) {
 		&notification.NotificationRule{},
 		&notification.NotificationForFileVersion{},
 		&notification.NotificationForQuota{},
+		&monitoring.MonitoringPerNode{},
 		&message.EmailQueueItem{},
 	).Error; err != nil {
 		log.Panic(err)
@@ -46,6 +48,10 @@ func initDatabase(db *gorm.DB) {
 	}
 
 	if err := db.Model(&user.VerificationLink{}).AddUniqueIndex("idx_user_sent_at", "user_id", "sent_at").Error; err != nil {
+		log.Panic(err)
+	}
+
+	if err := db.Model(&monitoring.MonitoringPerNode{}).AddUniqueIndex("idx_monitoring_kind_node_id", "kind", "node_id").Error; err != nil {
 		log.Panic(err)
 	}
 

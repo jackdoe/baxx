@@ -51,10 +51,7 @@ func EnqueueVerificationMail(db *gorm.DB, userID uint64, subj string, text strin
 		EmailText:             text,
 	}
 
-	if err := db.Save(n).Error; err != nil {
-		return err
-	}
-	return nil
+	return db.Save(n).Error
 }
 
 func EnqueueMail(db *gorm.DB, userID uint64, subj string, text string) error {
