@@ -8,6 +8,7 @@ add-apt-repository  "deb [arch=amd64] https://download.docker.com/linux/ubuntu $
 apt-get update
 apt-get install docker-ce
 
+
 ufw default deny outgoing comment 'deny all outgoing traffic'
 ufw default deny incoming comment 'deny all incoming traffic'
 
@@ -22,11 +23,13 @@ ufw allow out 123 comment 'allow NTP out'
 ufw allow out http comment 'allow HTTP traffic out'
 ufw allow out https comment 'allow HTTPS traffic out'
 
-
-ufw allow from 95.217.32.97/32 to 95.217.32.98/32 port 7000 comment 'allow scylla IPC from 95.217.32.97->98'
-ufw allow from 95.217.32.98/32 to 95.217.32.97/32 port 7000 comment 'allow scylla IPC from 95.217.32.98->97'
+# XXX: make it stricter, port by port
+ufw allow in from 95.217.32.98/32
+ufw allow in from 95.217.32.97/32
+ufw allow out to 95.217.32.98/32
+ufw allow out to 95.217.32.97/32
 
 ufw enable
 
-# otherwise docker hijacks it and allows traffic
-echo 'DOCKER_OPTS="--iptables=false"' >> /etc/default/docker
+# fuck
+echo '{"iptables":false}' > /etc/docker/daemon.json
