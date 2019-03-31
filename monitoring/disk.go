@@ -7,7 +7,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jinzhu/gorm"
 	"github.com/mackerelio/go-osstat/disk"
 	"github.com/mackerelio/go-osstat/memory"
 	log "github.com/sirupsen/logrus"
@@ -155,14 +154,4 @@ func GetMemoryStats() MemStatsPerNode {
 		MemorySwapCached: m.SwapCached,
 		MemorySwapFree:   m.SwapFree,
 	}
-}
-
-func WriteStatsAndAlert(db *gorm.DB) error {
-
-	//	d := GetDiskIOStats("md2")
-	//	du := GetDiskUsageStats("/")
-	//	m := GetMemoryStats()
-
-	//	db.Save(n).Error
-	return nil
 }
