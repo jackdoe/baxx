@@ -42,6 +42,7 @@ func Hostname() string {
 	}
 	return name
 }
+
 func MustInitNode(db *gorm.DB, kind string, text string, schedule float64) {
 	err := InitNode(db, kind, text, schedule)
 	if err != nil {

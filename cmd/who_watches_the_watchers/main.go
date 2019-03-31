@@ -27,6 +27,7 @@ const KIND = "who_watches_the_watchers"
 
 func main() {
 	message.MustHavePanic()
+	message.MustHaveMonitoring()
 	defer message.SlackPanic("who_watches_the_watchers")
 	var pdebug = flag.Bool("debug", false, "debug")
 	var pprintIdAndExit = flag.Bool("id", false, "print id and exit")
@@ -34,11 +35,6 @@ func main() {
 	if *pprintIdAndExit {
 		fmt.Println(monitoring.Hostname())
 		os.Exit(0)
-	}
-
-	slackMonitoring := os.Getenv("BAXX_SLACK_MONITORING")
-	if slackMonitoring == "" {
-		log.Fatalf("empty BAXX_SLACK_MONITORING")
 	}
 
 	db, err := gorm.Open("postgres", os.Getenv("BAXX_POSTGRES"))
@@ -53,7 +49,7 @@ func main() {
 		items, err := monitoring.Watch(db)
 		if err != nil {
 			if time.Since(lastError).Seconds() > 60 {
-				send(slackMonitoring, "error watching", err.Error())
+				message.SendSlackMonitoring("error watching", fmt.Sprintf("monitoring\n```%s```", err.Error()))
 				lastError = time.Now()
 			}
 		}
@@ -63,7 +59,7 @@ func main() {
 			for _, item := range items {
 				m = fmt.Sprintf("%s%s\n", m, item.String())
 			}
-			send(slackMonitoring, "monitoring", fmt.Sprintf("```%s```", m))
+			message.SendSlackMonitoring("monitoring", fmt.Sprintf("monitoring\n```%s```", m))
 			for _, item := range items {
 				t := time.Now()
 				item.NotifiedAt = &t

@@ -10,6 +10,7 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -47,6 +48,14 @@ func SendSlack(webhook string, title string, body string) error {
 		return errors.New("slack request timed out")
 	}
 }
+
+func MustHaveMonitoring() {
+	hook := os.Getenv("BAXX_SLACK_MONITORING")
+	if hook == "" {
+		log.Panic("must have BAXX_SLACK_MONITORING")
+	}
+}
+
 func MustHavePanic() {
 	hook := os.Getenv("BAXX_SLACK_PANIC")
 	if hook == "" {
@@ -66,11 +75,32 @@ func SendSlackDefault(title, body string) {
 	}
 }
 
+func SendSlackMonitoring(title, body string) {
+	hook := os.Getenv("BAXX_SLACK_MONITORING")
+	if hook != "" {
+		err := SendSlack(hook, title, body)
+		if err != nil {
+			log.Warnf("error sending to slack: %s", err.Error())
+		}
+	} else {
+		log.Warnf("not sending to slack: %s/%s", title, body)
+	}
+}
+
 func SlackPanic(topic string) {
 	if r := recover(); r != nil {
 		stack := debug.Stack()
-		m := fmt.Sprintf("%s: %s ```%s```", topic, r, stack)
-
+		m := ""
+		if l, ok := r.(*logrus.Entry); ok {
+			s, err := l.String()
+			if err != nil {
+				m = fmt.Sprintf("%s: %s\n```%s```\n```%s```", topic, r, os.Args, stack)
+			} else {
+				m = fmt.Sprintf("%s: %s\n```%s```\n```%s```", topic, s, os.Args, stack)
+			}
+		} else {
+			m = fmt.Sprintf("%s: %s\n```%s```\n```%s```", topic, r, os.Args, stack)
+		}
 		SendSlackDefault(topic, m)
 		panic(r)
 	}

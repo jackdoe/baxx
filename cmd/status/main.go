@@ -16,24 +16,13 @@ import (
 
 const KIND = "node_status"
 
-func send(key, title, text string) {
-	err := message.SendSlack(key, title, text)
-	if err != nil {
-		log.Warnf("error sending to slack: title: %s, text: %s, error: %s", title, text, err)
-	}
-}
-
 func main() {
 	message.MustHavePanic()
+	message.MustHaveMonitoring()
 
 	defer message.SlackPanic("node status")
 	var pdebug = flag.Bool("debug", false, "debug")
 	flag.Parse()
-
-	slackMonitoring := os.Getenv("BAXX_SLACK_MONITORING")
-	if slackMonitoring == "" {
-		log.Fatalf("empty BAXX_SLACK_MONITORING")
-	}
 
 	db, err := gorm.Open("postgres", os.Getenv("BAXX_POSTGRES"))
 	if err != nil {
@@ -57,14 +46,14 @@ func main() {
 		errorSent := false
 		if md.ExitCode != 0 {
 			if time.Since(lastError).Seconds() > 3600 {
-				send(slackMonitoring, "disk "+diskName+" md error", fmt.Sprintf("```%s\n%s```", diskName, md.MDADM))
+				message.SendSlackMonitoring("disk "+diskName+" md error", fmt.Sprintf("```%s\n%s```", diskName, md.MDADM))
 				errorSent = true
 			}
 		}
 
 		if free > 0 {
 			if time.Since(lastError).Seconds() > 3600 {
-				send(slackMonitoring, "disk "+diskName+" full", fmt.Sprintf("```%s\nused: %f%%, allB: %d, usedB: %d```", diskName, 100-(free*100), du.DiskAll, du.DiskUsed))
+				message.SendSlackMonitoring("disk "+diskName+" full", fmt.Sprintf("```%s\nused: %f%%, allB: %d, usedB: %d```", diskName, 100-(free*100), du.DiskAll, du.DiskUsed))
 				errorSent = true
 			}
 		}
