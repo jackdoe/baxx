@@ -22,6 +22,7 @@ func main() {
 
 	defer message.SlackPanic("node status")
 	var pdebug = flag.Bool("debug", false, "debug")
+	var pdisk = flag.String("disk", "md2", "disk for mdadm")
 	flag.Parse()
 
 	db, err := gorm.Open("postgres", os.Getenv("BAXX_POSTGRES"))
@@ -31,13 +32,9 @@ func main() {
 	db.LogMode(*pdebug)
 	defer db.Close()
 	monitoring.MustInitNode(db, KIND, "node status not working working for 75 seconds", (65 * time.Second).Seconds())
-	diskName := os.Getenv("BAXX_MAIN_DISK")
-	if diskName == "" {
-		diskName = "md2"
-	}
+	diskName := *pdisk
 	lastError := time.Unix(0, 0)
 	for {
-
 		du := monitoring.GetDiskUsage("/")
 		md := monitoring.GetMDADM(diskName)
 		dio := monitoring.GetDiskIOStats(diskName)
