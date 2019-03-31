@@ -22,7 +22,6 @@ type DiskUsagePerNode struct {
 	DiskFree uint64
 
 	CreatedAt time.Time
-	UpdatedAt time.Time
 }
 
 type DiskIOPerNode struct {
@@ -111,17 +110,19 @@ func GetDiskIOStats(diskName string) DiskIOPerNode {
 	out.Kind = diskName
 
 	disksStats, err := disk.Get()
-	var diskIO *disk.Stats
+	var diskIO disk.Stats
 	if err != nil {
 		log.Panic(err)
 	} else {
+		found := false
 		for _, d := range disksStats {
 			if d.Name == diskName {
-				diskIO = &d
+				diskIO = d
+				found = true
 				break
 			}
 		}
-		if diskIO == nil {
+		if !found {
 			log.Panicf("missing disk %s", diskName)
 		}
 	}

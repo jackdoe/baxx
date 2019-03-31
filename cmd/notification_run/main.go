@@ -18,9 +18,13 @@ import (
 	"github.com/jackdoe/baxx/common"
 	"github.com/jackdoe/baxx/help"
 	"github.com/jackdoe/baxx/message"
+	"github.com/jackdoe/baxx/monitoring"
 )
 
+const KIND = "notification_run"
+
 func main() {
+	message.MustHavePanic()
 	defer message.SlackPanic("notification rules")
 	var pdebug = flag.Bool("debug", false, "debug")
 	flag.Parse()
@@ -30,10 +34,11 @@ func main() {
 	}
 	db.LogMode(*pdebug)
 	defer db.Close()
-
+	monitoring.MustInitNode(db, KIND, "notification run not working for 1+Minute", (2 * time.Minute).Seconds())
 	for {
 		runRules(db)
-		time.Sleep(1 * time.Hour)
+		monitoring.MustTick(db, KIND)
+		time.Sleep(1 * time.Minute)
 	}
 }
 
@@ -51,6 +56,7 @@ func runRules(db *gorm.DB) {
 			tx.Rollback()
 			log.Panic(err)
 		}
+
 		tokens := []*file.Token{}
 		if err := tx.Where("user_id = ?", u.ID).Find(&tokens).Error; err != nil {
 			tx.Rollback()

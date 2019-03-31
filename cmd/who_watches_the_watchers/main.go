@@ -17,12 +17,17 @@ import (
 func send(key, title, text string) {
 	err := message.SendSlack(key, title, text)
 	if err != nil {
+		// XXX: send sms at this point
 		log.Warnf("error sending to slack: title: %s, text: %s, error: %s", title, text, err)
 	}
 
 }
+
+const KIND = "who_watches_the_watchers"
+
 func main() {
-	defer message.SlackPanic("monitoring")
+	message.MustHavePanic()
+	defer message.SlackPanic("who_watches_the_watchers")
 	var pdebug = flag.Bool("debug", false, "debug")
 	var pprintIdAndExit = flag.Bool("id", false, "print id and exit")
 	flag.Parse()
@@ -30,16 +35,19 @@ func main() {
 		fmt.Println(monitoring.Hostname())
 		os.Exit(0)
 	}
+
 	slackMonitoring := os.Getenv("BAXX_SLACK_MONITORING")
 	if slackMonitoring == "" {
 		log.Fatalf("empty BAXX_SLACK_MONITORING")
 	}
+
 	db, err := gorm.Open("postgres", os.Getenv("BAXX_POSTGRES"))
 	if err != nil {
 		log.Panic(err)
 	}
 	db.LogMode(*pdebug)
 	defer db.Close()
+	monitoring.MustInitNode(db, KIND, "monitoring not working for more than 5 seconds", (5 * time.Second).Seconds())
 	lastError := time.Now()
 	for {
 		items, err := monitoring.Watch(db)
@@ -64,6 +72,8 @@ func main() {
 				}
 			}
 		}
+
+		monitoring.MustTick(db, KIND)
 		time.Sleep(1 * time.Second)
 	}
 }

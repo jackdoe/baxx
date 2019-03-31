@@ -38,6 +38,10 @@ func initDatabase(db *gorm.DB) {
 		&notification.NotificationForFileVersion{},
 		&notification.NotificationForQuota{},
 		&monitoring.MonitoringPerNode{},
+		&monitoring.DiskUsagePerNode{},
+		&monitoring.DiskIOPerNode{},
+		&monitoring.DiskMDPerNode{},
+		&monitoring.MemStatsPerNode{},
 		&message.EmailQueueItem{},
 	).Error; err != nil {
 		log.Panic(err)
@@ -48,6 +52,22 @@ func initDatabase(db *gorm.DB) {
 	}
 
 	if err := db.Model(&user.VerificationLink{}).AddUniqueIndex("idx_user_sent_at", "user_id", "sent_at").Error; err != nil {
+		log.Panic(err)
+	}
+
+	if err := db.Model(&monitoring.DiskUsagePerNode{}).AddIndex("idx_monitoring_du_node_kind_time", "node_id", "kind", "created_at").Error; err != nil {
+		log.Panic(err)
+	}
+
+	if err := db.Model(&monitoring.DiskIOPerNode{}).AddIndex("idx_monitoring_io_node_kind_time", "node_id", "kind", "created_at").Error; err != nil {
+		log.Panic(err)
+	}
+
+	if err := db.Model(&monitoring.DiskMDPerNode{}).AddIndex("idx_monitoring_md_node_kind_time", "node_id", "kind", "created_at").Error; err != nil {
+		log.Panic(err)
+	}
+
+	if err := db.Model(&monitoring.MemStatsPerNode{}).AddIndex("idx_monitoring_mem_node_time", "node_id", "created_at").Error; err != nil {
 		log.Panic(err)
 	}
 
@@ -230,6 +250,7 @@ func setupAPI(db *gorm.DB, bind string) {
 }
 
 func main() {
+	message.MustHavePanic()
 	defer message.SlackPanic("main api")
 
 	var pbind = flag.String("bind", ":9123", "bind")

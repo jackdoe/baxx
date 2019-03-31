@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
+	log "github.com/sirupsen/logrus"
 )
 
 type MonitoringPerNode struct {
@@ -41,10 +42,34 @@ func Hostname() string {
 	}
 	return name
 }
+func MustInitNode(db *gorm.DB, kind string, text string, schedule float64) {
+	err := InitNode(db, kind, text, schedule)
+	if err != nil {
+		log.Panic(err)
+	}
+}
 
-func Tick(db *gorm.DB, kind string, text string) error {
+func InitNode(db *gorm.DB, kind string, text string, schedule float64) error {
 	n := &MonitoringPerNode{}
 	if err := db.FirstOrCreate(&n, MonitoringPerNode{Kind: kind, NodeID: Hostname()}).Error; err != nil {
+		return err
+	}
+
+	n.Schedule = schedule
+	n.AlertText = text
+	n.Tick = time.Now()
+	return db.Save(n).Error
+}
+func MustTick(db *gorm.DB, kind string) {
+	err := Tick(db, kind)
+	if err != nil {
+		log.Panic(err)
+	}
+
+}
+func Tick(db *gorm.DB, kind string) error {
+	n := &MonitoringPerNode{}
+	if err := db.First(&n, MonitoringPerNode{Kind: kind, NodeID: Hostname()}).Error; err != nil {
 		return err
 	}
 

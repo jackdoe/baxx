@@ -47,6 +47,12 @@ func SendSlack(webhook string, title string, body string) error {
 		return errors.New("slack request timed out")
 	}
 }
+func MustHavePanic() {
+	hook := os.Getenv("BAXX_SLACK_PANIC")
+	if hook == "" {
+		log.Panic("must have BAXX_SLACK_PANIC")
+	}
+}
 
 func SendSlackDefault(title, body string) {
 	hook := os.Getenv("BAXX_SLACK_PANIC")

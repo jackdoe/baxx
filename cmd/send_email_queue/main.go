@@ -9,12 +9,16 @@ import (
 
 	"github.com/jackdoe/baxx/api/user"
 	"github.com/jackdoe/baxx/message"
+	"github.com/jackdoe/baxx/monitoring"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	log "github.com/sirupsen/logrus"
 )
 
+const KIND = "send_email_queue"
+
 func main() {
+	message.MustHavePanic()
 	defer message.SlackPanic("email send")
 	var pdebug = flag.Bool("debug", false, "debug")
 	flag.Parse()
@@ -29,7 +33,7 @@ func main() {
 	}
 	db.LogMode(*pdebug)
 	defer db.Close()
-
+	monitoring.MustInitNode(db, KIND, "send email queue run not working for 5 seconds", (5 * time.Second).Seconds())
 	for {
 
 		for {
@@ -38,6 +42,7 @@ func main() {
 				break
 			}
 		}
+		monitoring.MustTick(db, KIND)
 		time.Sleep(1 * time.Second)
 	}
 }
