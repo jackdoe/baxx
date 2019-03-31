@@ -70,7 +70,7 @@ func GetMDADM(md string) DiskMDPerNode {
 	out.NodeID = Hostname()
 	out.Kind = md
 
-	cmd := exec.Command("mdadm", "-D", md)
+	cmd := exec.Command("mdadm", "-D", "/dev/"+md)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
