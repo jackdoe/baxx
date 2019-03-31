@@ -24,7 +24,7 @@ func SendSlack(webhook string, title string, body string) error {
 	log.Infof("sending slack message %s %s", title, body)
 	encoded, err := json.Marshal(Slack{
 		Title:    title,
-		Text:     body,
+		Text:     title + "\n" + body,
 		MrkdwnIn: []string{"text"},
 	})
 	if err != nil {
@@ -94,12 +94,12 @@ func SlackPanic(topic string) {
 		if l, ok := r.(*logrus.Entry); ok {
 			s, err := l.String()
 			if err != nil {
-				m = fmt.Sprintf("%s: %s\n```%s```\n```%s```", topic, r, os.Args, stack)
+				m = fmt.Sprintf("%s\n```%s```\n```%s```", r, os.Args, stack)
 			} else {
-				m = fmt.Sprintf("%s: %s\n```%s```\n```%s```", topic, s, os.Args, stack)
+				m = fmt.Sprintf("%s\n```%s```\n```%s```", s, os.Args, stack)
 			}
 		} else {
-			m = fmt.Sprintf("%s: %s\n```%s```\n```%s```", topic, r, os.Args, stack)
+			m = fmt.Sprintf("%s\n```%s```\n```%s```", r, os.Args, stack)
 		}
 		SendSlackDefault(topic, m)
 		panic(r)

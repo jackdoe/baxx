@@ -49,7 +49,7 @@ func main() {
 		items, err := monitoring.Watch(db)
 		if err != nil {
 			if time.Since(lastError).Seconds() > 60 {
-				message.SendSlackMonitoring("error watching", fmt.Sprintf("monitoring\n```%s```", err.Error()))
+				message.SendSlackMonitoring("error watching", fmt.Sprintf("```%s```", err.Error()))
 				lastError = time.Now()
 			}
 		}
@@ -59,7 +59,7 @@ func main() {
 			for _, item := range items {
 				m = fmt.Sprintf("%s%s\n", m, item.String())
 			}
-			message.SendSlackMonitoring("monitoring", fmt.Sprintf("monitoring\n```%s```", m))
+			message.SendSlackMonitoring("monitoring", fmt.Sprintf("```%s```", m))
 			for _, item := range items {
 				t := time.Now()
 				item.NotifiedAt = &t

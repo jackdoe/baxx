@@ -65,6 +65,7 @@ func sendSingleEmail(db *gorm.DB, sendgrid string) bool {
                             LIMIT 1
                             FOR UPDATE NOWAIT`).Row().Scan(&id); err != nil {
 		if err == sql.ErrNoRows {
+			tx.Rollback()
 			return false
 		}
 		tx.Rollback()
@@ -78,6 +79,7 @@ func sendSingleEmail(db *gorm.DB, sendgrid string) bool {
 	}
 	u := &user.User{}
 	if err := tx.Where("id = ?", m.UserID).Take(&u).Error; err != nil {
+		tx.Rollback()
 		log.Panic(err)
 	}
 
@@ -88,10 +90,12 @@ func sendSingleEmail(db *gorm.DB, sendgrid string) bool {
 		Body:    m.EmailText,
 	})
 	if err != nil {
+		tx.Rollback()
 		log.Panic(err)
 	}
 
 	if err := tx.Where("id = ?", id).Update(&message.EmailQueueItem{Sent: true, SentAt: time.Now()}).Error; err != nil {
+		tx.Rollback()
 		log.Panic(err)
 	}
 

@@ -13,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	al "github.com/jackdoe/baxx/api/action_log"
 	"github.com/jackdoe/baxx/api/file"
 	"github.com/jackdoe/baxx/api/helpers"
 	"github.com/jackdoe/baxx/api/user"
@@ -146,7 +147,7 @@ func setupIO(srv *server) {
 
 		// check if over quota
 
-		actionLog(db, t.UserID, "file", "upload", c.Request, fmt.Sprintf("FileVersion: %d/%d", fv.ID, fv.FileMetadataID))
+		al.Log(db, t.UserID, "file", "upload", c.Request, fmt.Sprintf("FileVersion: %d/%d", fv.ID, fv.FileMetadataID))
 		if wantJson(c) {
 			c.IndentedJSON(http.StatusOK, fv)
 			return
@@ -199,7 +200,7 @@ func setupIO(srv *server) {
 			n = 1
 		}
 
-		actionLog(db, t.UserID, "file", "delete", c.Request, "")
+		al.Log(db, t.UserID, "file", "delete", c.Request, "")
 		c.IndentedJSON(http.StatusOK, &common.DeleteSuccess{Success: true, Count: n})
 	}
 

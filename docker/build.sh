@@ -17,6 +17,11 @@ cd $dir/../cmd/status/
 go build -o $dir/bin/status
 cd -
 
+
+cd $dir/../cmd/dbinit/
+go build -o $dir/bin/dbinit
+cd -
+
 cd $dir/../cmd/send_email_queue/
 go build -o $dir/bin/send_email_queue
 cd -

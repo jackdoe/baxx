@@ -103,7 +103,7 @@ Thanks again!
    ██║   ██║   ██║██╔═██╗ ██╔══╝  ██║╚██╗██║╚════██║
    ██║   ╚██████╔╝██║  ██╗███████╗██║ ╚████║███████║
    ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═══╝╚══════╝
-                                                    
+
 
 Tokens are like backup namespaces, you can have the same file in
 different tokens and it won't conflict.
@@ -126,7 +126,7 @@ TOKEN: TOKEN-UUID-A
      Notify If:
         - size delta is irrelevant
         + last version is older than 1 days
-        
+
   Alert:
      Name: database file is 50% different
      Matching on Regexp: "\.sql"
@@ -134,7 +134,7 @@ TOKEN: TOKEN-UUID-A
      Notify If:
         + size delta between version is bigger than: 50%
         - time delta is irrelevant
-        
+
 TOKEN: TOKEN-UUID-B
   Name: content-example-b
   Write Only: false
@@ -146,7 +146,7 @@ TOKEN: TOKEN-UUID-B
      Notify If:
         - size delta is irrelevant
         + last version is older than 1 days
-        
+
   Alert:
      Name: file is 90% different
      Matching on Regexp: ".*"
@@ -154,7 +154,7 @@ TOKEN: TOKEN-UUID-B
      Notify If:
         + size delta between version is bigger than: 90%
         - time delta is irrelevant
-        
+
 
 
 ## Create Token
@@ -194,13 +194,13 @@ this will delete:
   * all notifications attached to it
 
 
-██╗    ██╗ ██████╗ 
+██╗    ██╗ ██████╗
 ██║   ██╔╝██╔═══██╗
 ██║  ██╔╝ ██║   ██║
 ██║ ██╔╝  ██║   ██║
 ██║██╔╝   ╚██████╔╝
-╚═╝╚═╝     ╚═════╝ 
-                   
+╚═╝╚═╝     ╚═════╝
+
 ## File Upload
 
 cat path/to/file | encrypt | curl --data-binary @- \
@@ -253,11 +253,11 @@ curl -u your.email@example.com https://baxx.dev/ls/$TOKEN/path/
 
 ███████╗██╗   ██╗███╗   ██╗ ██████╗
 ██╔════╝╚██╗ ██╔╝████╗  ██║██╔════╝
-███████╗ ╚████╔╝ ██╔██╗ ██║██║     
-╚════██║  ╚██╔╝  ██║╚██╗██║██║     
+███████╗ ╚████╔╝ ██╔██╗ ██║██║
+╚════██║  ╚██╔╝  ██║╚██╗██║██║
 ███████║   ██║   ██║ ╚████║╚██████╗
 ╚══════╝   ╚═╝   ╚═╝  ╚═══╝ ╚═════╝
-                                   
+
 ## GET: https://baxx.dev/sync/sha256/$BAXX_TOKEN/$sha
 
 Returns non 200 status code if the sha does not exist
@@ -315,11 +315,11 @@ the missing ones
 
 ███╗   ██╗ ██████╗ ████████╗██╗███████╗██╗   ██╗
 ████╗  ██║██╔═══██╗╚══██╔══╝██║██╔════╝╚██╗ ██╔╝
-██╔██╗ ██║██║   ██║   ██║   ██║█████╗   ╚████╔╝ 
-██║╚██╗██║██║   ██║   ██║   ██║██╔══╝    ╚██╔╝  
-██║ ╚████║╚██████╔╝   ██║   ██║██║        ██║   
-╚═╝  ╚═══╝ ╚═════╝    ╚═╝   ╚═╝╚═╝        ╚═╝   
-                                                
+██╔██╗ ██║██║   ██║   ██║   ██║█████╗   ╚████╔╝
+██║╚██╗██║██║   ██║   ██║   ██║██╔══╝    ╚██╔╝
+██║ ╚████║╚██████╔╝   ██║   ██║██║        ██║
+╚═╝  ╚═══╝ ╚═════╝    ╚═╝   ╚═╝╚═╝        ╚═╝
+
 ## Create Notification
 
 curl -u your.email@example.com  -d '{
@@ -345,7 +345,7 @@ curl -u your.email@example.com  -d '{
    current version: example.txt - 10 bytes
 
   the alert will trigger and you will be notified
-  
+
 ## Change Notification
 
 curl -u your.email@example.com  -d '{
@@ -371,8 +371,8 @@ curl -u your.email@example.com https://baxx.dev/protected/status
 
 ██████╗ ██████╗  ██████╗ ███████╗██╗██╗     ███████╗
 ██╔══██╗██╔══██╗██╔═══██╗██╔════╝██║██║     ██╔════╝
-██████╔╝██████╔╝██║   ██║█████╗  ██║██║     █████╗  
-██╔═══╝ ██╔══██╗██║   ██║██╔══╝  ██║██║     ██╔══╝  
+██████╔╝██████╔╝██║   ██║█████╗  ██║██║     █████╗
+██╔═══╝ ██╔══██╗██║   ██║██╔══╝  ██║██║     ██╔══╝
 ██║     ██║  ██║╚██████╔╝██║     ██║███████╗███████╗
 ╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝╚══════╝
 
@@ -411,11 +411,11 @@ curl -d '{"email":"your.email@example.com", "password":"mickey mouse"}' \
 
 ███████╗██╗  ██╗ █████╗ ███╗   ███╗██████╗ ██╗     ███████╗
 ██╔════╝╚██╗██╔╝██╔══██╗████╗ ████║██╔══██╗██║     ██╔════╝
-█████╗   ╚███╔╝ ███████║██╔████╔██║██████╔╝██║     █████╗  
-██╔══╝   ██╔██╗ ██╔══██║██║╚██╔╝██║██╔═══╝ ██║     ██╔══╝  
+█████╗   ╚███╔╝ ███████║██╔████╔██║██████╔╝██║     █████╗
+██╔══╝   ██╔██╗ ██╔══██║██║╚██╔╝██║██╔═══╝ ██║     ██╔══╝
 ███████╗██╔╝ ██╗██║  ██║██║ ╚═╝ ██║██║     ███████╗███████╗
 ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝     ╚══════╝╚══════╝
-                                                           
+
 
 
 
@@ -538,11 +538,11 @@ then simply do
 
 ███████╗███╗   ██╗ ██████╗██████╗ ██╗   ██╗██████╗ ████████╗
 ██╔════╝████╗  ██║██╔════╝██╔══██╗╚██╗ ██╔╝██╔══██╗╚══██╔══╝
-█████╗  ██╔██╗ ██║██║     ██████╔╝ ╚████╔╝ ██████╔╝   ██║   
-██╔══╝  ██║╚██╗██║██║     ██╔══██╗  ╚██╔╝  ██╔═══╝    ██║   
-███████╗██║ ╚████║╚██████╗██║  ██║   ██║   ██║        ██║   
-╚══════╝╚═╝  ╚═══╝ ╚═════╝╚═╝  ╚═╝   ╚═╝   ╚═╝        ╚═╝   
-                                                            
+█████╗  ██╔██╗ ██║██║     ██████╔╝ ╚████╔╝ ██████╔╝   ██║
+██╔══╝  ██║╚██╗██║██║     ██╔══██╗  ╚██╔╝  ██╔═══╝    ██║
+███████╗██║ ╚████║╚██████╗██║  ██║   ██║   ██║        ██║
+╚══════╝╚═╝  ╚═══╝ ╚═════╝╚═╝  ╚═╝   ╚═╝   ╚═╝        ╚═╝
+
 
 WE DO NOT ENCRYPT YOUR DATA
 WE DO NOT ENCRYPT YOUR DATA
@@ -554,22 +554,22 @@ WE DO NOT ENCRYPT YOUR DATA
 Always use encryption when sending data.
 
 
-██╗   ██╗██████╗ ██╗      ██████╗  █████╗ ██████╗                           
-██║   ██║██╔══██╗██║     ██╔═══██╗██╔══██╗██╔══██╗                          
-██║   ██║██████╔╝██║     ██║   ██║███████║██║  ██║                          
-██║   ██║██╔═══╝ ██║     ██║   ██║██╔══██║██║  ██║                          
-╚██████╔╝██║     ███████╗╚██████╔╝██║  ██║██████╔╝                          
- ╚═════╝ ╚═╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═════╝                           
-                                                                            
-███████╗███╗   ██╗ ██████╗██████╗ ██╗   ██╗██████╗ ████████╗███████╗██████╗ 
+██╗   ██╗██████╗ ██╗      ██████╗  █████╗ ██████╗
+██║   ██║██╔══██╗██║     ██╔═══██╗██╔══██╗██╔══██╗
+██║   ██║██████╔╝██║     ██║   ██║███████║██║  ██║
+██║   ██║██╔═══╝ ██║     ██║   ██║██╔══██║██║  ██║
+╚██████╔╝██║     ███████╗╚██████╔╝██║  ██║██████╔╝
+ ╚═════╝ ╚═╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═════╝
+
+███████╗███╗   ██╗ ██████╗██████╗ ██╗   ██╗██████╗ ████████╗███████╗██████╗
 ██╔════╝████╗  ██║██╔════╝██╔══██╗╚██╗ ██╔╝██╔══██╗╚══██╔══╝██╔════╝██╔══██╗
 █████╗  ██╔██╗ ██║██║     ██████╔╝ ╚████╔╝ ██████╔╝   ██║   █████╗  ██║  ██║
 ██╔══╝  ██║╚██╗██║██║     ██╔══██╗  ╚██╔╝  ██╔═══╝    ██║   ██╔══╝  ██║  ██║
 ███████╗██║ ╚████║╚██████╗██║  ██║   ██║   ██║        ██║   ███████╗██████╔╝
-╚══════╝╚═╝  ╚═══╝ ╚═════╝╚═╝  ╚═╝   ╚═╝   ╚═╝        ╚═╝   ╚══════╝╚═════╝ 
+╚══════╝╚═╝  ╚═══╝ ╚═════╝╚═╝  ╚═╝   ╚═╝   ╚═╝        ╚═╝   ╚══════╝╚═════╝
 
 
-                                                                            
+
 
 
 --
@@ -577,3 +577,104 @@ baxx.dev
 
 
 ```
+
+
+# who watches the watchers
+
+the current baxx infra is:
+
+2 machines, each running only docker and ssh
+
+[ b.baxx.dev ]
+* ssh
+* docker
+  + postgres-master
+  + who watches the watchers [job]
+  + run notification rules [job]
+  + process email queue [job]
+  + collect memory/disk/mdadam stats [privileged] [job]
+  + baxx-api
+  + judoc [localhost]
+  + scylla [privileged]
+
+[ a.baxx.dev ]
+* ssh
+* docker
+  + postgres-slave
+  + nginx + letsencrypt
+  + who watches the watchers [job]
+  + process email queue [job]
+  + collect memory/disk/mdadam stats [privileged] [job]
+  + baxx-api
+  + judoc [localhost]
+  + scylla [privileged]
+
+as you can see both machines are in the scylla cluster, and both of
+them are sending the notification emails (using select for update locks)
+
+I have built quite simple yet effective monitoring system for baxx.
+
+Deach process with [job] tag is something like:
+  for {
+      work
+      sleep X
+  }
+
+What I did is:
+
+  setup("monitoring key", X+5)
+  for {
+      work
+      tick("monitoring key")
+      sleep X
+  }
+
+Then the 'who watches the watchers' programs check if "monitoring key"
+is executed at within X+5 seconds per node(), and if not they send
+slack message
+
+The who watches the watchers then sends notifications (both watchers
+send notifications on their own, so i receive the notification twice
+but that is ok)
+
+The watchers themselves also use the system, so if one of them dies,
+the other one will send notification.
+
+# testing
+
+## shut down postgres
+✓ * shutdown postgres and see if notifications are sent
+
+## mdadm
+
+✓ * make it fail
+  mdadm -f /dev/md2 /dev/nvme1n1p3
+
+✓ * wait for panic message
+
+✓ * remove the disk
+  mdadm --remove /dev/md2 /dev/nvme1n1p3
+
+✓ * add the disk back
+  mdadm --add /dev/md2 /dev/nvme1n1p3
+
+✓ * wait to see it is acknowledged
+
+works really nice
+
+## test disk thresh
+
+✓ * start the status tool with with 1% disk threshold
+    and wait for alert
+
+## test memory thresh
+
+* start the status tool with with 1% memory threshold
+  and wait for alert
+
+
+## test health of baxx api
+
+* query /status which should
+  + query postgres
+  + query judoc

@@ -22,7 +22,9 @@ func main() {
 
 	defer message.SlackPanic("node status")
 	var pdebug = flag.Bool("debug", false, "debug")
+	var pdiskThresh = flag.Float64("disk-used", 0.8, "alert if disk is more than 0.8 used")
 	var pdisk = flag.String("disk", "md2", "disk for mdadm")
+	var pinterval = flag.Int("interval", 60, "interval in seconds")
 	flag.Parse()
 
 	db, err := gorm.Open("postgres", os.Getenv("BAXX_POSTGRES"))
@@ -31,7 +33,8 @@ func main() {
 	}
 	db.LogMode(*pdebug)
 	defer db.Close()
-	monitoring.MustInitNode(db, KIND, "node status not working working for 75 seconds", (65 * time.Second).Seconds())
+	wait := (time.Duration(*pinterval+10) * time.Second).Seconds()
+	monitoring.MustInitNode(db, KIND, fmt.Sprintf("node status not working working for %f seconds", wait), wait)
 	diskName := *pdisk
 	lastError := time.Unix(0, 0)
 	for {
@@ -39,7 +42,7 @@ func main() {
 		md := monitoring.GetMDADM(diskName)
 		dio := monitoring.GetDiskIOStats(diskName)
 		mem := monitoring.GetMemoryStats()
-		free := float64(du.DiskFree) / float64(du.DiskAll)
+		used := float64(du.DiskUsed) / float64(du.DiskAll)
 		errorSent := false
 		if md.ExitCode != 0 {
 			if time.Since(lastError).Seconds() > 3600 {
@@ -48,9 +51,9 @@ func main() {
 			}
 		}
 
-		if free > 0 {
+		if used > *pdiskThresh {
 			if time.Since(lastError).Seconds() > 3600 {
-				message.SendSlackMonitoring("disk "+diskName+" full", fmt.Sprintf("```%s\nused: %f%%, allB: %d, usedB: %d```", diskName, 100-(free*100), du.DiskAll, du.DiskUsed))
+				message.SendSlackMonitoring("disk "+diskName+" full", fmt.Sprintf("```used: %f%%, allB: %d, usedB: %d```", (used*100), du.DiskAll, du.DiskUsed))
 				errorSent = true
 			}
 		}
@@ -75,6 +78,6 @@ func main() {
 		}
 
 		monitoring.MustTick(db, KIND)
-		time.Sleep(1 * time.Minute)
+		time.Sleep(time.Duration(*pinterval) * time.Second)
 	}
 }

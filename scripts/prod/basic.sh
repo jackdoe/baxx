@@ -32,4 +32,21 @@ ufw allow out to 95.217.32.97/32
 ufw enable
 
 # fuck
-echo '{"iptables":false}' > /etc/docker/daemon.json
+# disable iptables
+# limit the logs
+# make logging non blocking
+
+cat > /etc/docker/daemon.json <<EOL
+{
+  "iptables":false,
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3",
+    "mode": "non-blocking",
+    "labels": "production_status",
+    "env": "os,customer"
+  }
+}
+EOL
+

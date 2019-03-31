@@ -1,4 +1,4 @@
-package main
+package action_log
 
 import (
 	"fmt"
@@ -20,7 +20,7 @@ type ActionLog struct {
 	UpdatedAt time.Time `json:"-"`
 }
 
-func actionLog(db *gorm.DB, user uint64, actionType, action string, req *http.Request, extra ...string) {
+func Log(db *gorm.DB, user uint64, actionType, action string, req *http.Request, extra ...string) {
 	rlog, _ := extractLogFromRequest(req)
 	al := &ActionLog{
 		UserID:     user,
