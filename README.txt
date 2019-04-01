@@ -4,45 +4,51 @@ check it out `ssh register@ui.baxx.dev`
 
 [ work in progress ]
 
-[help](https://baxx.dev/help) [todo](TODO.txt)
+* https://baxx.dev/help
+* TODO.txt
+* infra and pricing.txt
 
 # backup service
 (also i am learning how to build a product without a website haha)
 
 # screenshots
-```
-┌────────────────────────────────────────────┐
-│                                            │
-│ ██████╗  █████╗ ██╗  ██╗██╗  ██╗           │
-│ ██╔══██╗██╔══██╗╚██╗██╔╝╚██╗██╔╝           │
-│ ██████╔╝███████║ ╚███╔╝  ╚███╔╝            │
-│ ██╔══██╗██╔══██║ ██╔██╗  ██╔██╗            │
-│ ██████╔╝██║  ██║██╔╝ ██╗██╔╝ ██╗           │
-│ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝           │
-│                                            │
-│ Storage 10G                                │
-│   Trial 1 Month 0.1 EUR                    │
-│   Subscription: 5 EUR per Month            │
-│   Availability: ALPHA                      │
-│                                            │
-│ Email                                      │
-│ █                                          │
-│                                            │
-│ Password                                   │
-│                                            │
-│                                            │
-│ Confirm Password                           │
-│                                            │
-│                                            │
-│ Registering means you agree with           │
-│ the terms of service!                      │
-│                                            │
-│                 [Register]                 │
-│                                            │
-│ [Help]  [What/Why/How]  [Terms Of Service] │
-│                                            │
-│                   [Quit]                   │
-└────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────┐
+│                                               │
+│ ██████╗  █████╗ ██╗  ██╗██╗  ██╗              │
+│ ██╔══██╗██╔══██╗╚██╗██╔╝╚██╗██╔╝              │
+│ ██████╔╝███████║ ╚███╔╝  ╚███╔╝               │
+│ ██╔══██╗██╔══██║ ██╔██╗  ██╔██╗               │
+│ ██████╔╝██║  ██║██╔╝ ██╗██╔╝ ██╗              │
+│ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝              │
+│                                               │
+│ Storage 10G                                   │
+│   Trial 1 Month 0.1 EUR                       │
+│   Subscription: 5 EUR per Month               │
+│   Availability: ALPHA                         │
+│                                               │
+│ Contact Us:                                   │
+│  * Slack         https://baxx.dev/join/slack  │
+│  * Google Groups https://baxx.dev/join/groups │
+│                                               │
+│ E-mail                                        │
+│                                               │
+│ Password                                      │
+│                                               │
+│ Confirm Password                              │
+│                                               │
+│                                               │
+│ Registering means you agree with              │
+│ the terms of service!                         │
+│                                               │
+│              [Register]  [Login]              │
+│                                               │
+│   [Help]  [What/Why/How]  [Terms Of Service]  │
+│                                               │
+│                     [Quit]                    │
+└───────────────────────────────────────────────┘
+
+
 
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                                                                          │
@@ -51,7 +57,7 @@ check it out `ssh register@ui.baxx.dev`
 │ ██████╔╝███████║ ╚███╔╝  ╚███╔╝                                          │
 │ ██╔══██╗██╔══██║ ██╔██╗  ██╔██╗                                          │
 │ ██████╔╝██║  ██║██╔╝ ██╗██╔╝ ██╗                                         │
-v│ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝                                         │
+│ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝                                         │
 │                                                                          │
 │                                                                          │
 │ Email: example@example.com                                               │
@@ -72,8 +78,6 @@ v│ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  �
 the current baxx infra progress is
 
 2 machines, each running only docker and ssh
-
-```
 
 [ b.baxx.dev ]
 * ssh
@@ -100,8 +104,6 @@ the current baxx infra progress is
   + judoc [localhost]
   + scylla [privileged] (priv because of io tunning)
 
-```
-
 as you can see both machines are in the scylla cluster, and both of
 them are sending the notification emails (using select for update locks)
 and only one of them is running the notification rules.
@@ -111,23 +113,20 @@ I have built quite simple yet effective monitoring system for baxx.
 Each process with [👹job] tag is something like:
 (using 👹 because of daemon)
 
-```
-for {
-    work
-    sleep X
-}
-```
+  for {
+      work
+      sleep X
+  }
 
 What I did is:
 
-```
-setup("monitoring key", X+5)
-for {
-    work
-    tick("monitoring key")
-    sleep X
-}
-```
+  setup("monitoring key", X+5)
+  for {
+      work
+      tick("monitoring key")
+      sleep X
+  }
+
 
 Then the 'who watches the watchers' programs check if "monitoring key"
 is executed at within X+5 seconds per node(), and if not they send
@@ -155,23 +154,15 @@ really good
 ## mdadm
 
 * ✓ make it fail
-
-```
-mdadm -f /dev/md2 /dev/nvme1n1p3
-```
+  mdadm -f /dev/md2 /dev/nvme1n1p3
 
 * ✓ wait for panic message
-* ✓ remove the disk
 
-```
- mdadm --remove /dev/md2 /dev/nvme1n1p3
-```
+* ✓ remove the disk
+  mdadm --remove /dev/md2 /dev/nvme1n1p3
 
 * ✓ add the disk back
-
-```
- mdadm --add /dev/md2 /dev/nvme1n1p3
-```
+  mdadm --add /dev/md2 /dev/nvme1n1p3
 
 * ✓ wait to see it is acknowledged
 
