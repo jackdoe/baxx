@@ -1,7 +1,7 @@
 #!/bin/bash
-
+source /root/.pass
 docker stop baxx-status
-docker stop
+docker rm baxx-status
 docker run \
        --net=host \
        --privileged \
@@ -9,4 +9,4 @@ docker run \
        -e BAXX_SLACK_PANIC="$BAXX_SLACK_PANIC" \
        -e BAXX_SLACK_MONITORING="$BAXX_SLACK_MONITORING" \
        -e BAXX_POSTGRES="$BAXX_POSTGRES" \
-       jackdoe/baxx:1.2 /baxx/notification_run -debug
+       jackdoe/baxx:1.2 /baxx/status -debug
