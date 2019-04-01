@@ -104,12 +104,17 @@ func setupIO(srv *server) {
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		fv, _, err := file.FindFile(db, t, c.Param("path"))
+		fv, fm, err := file.FindFile(db, t, c.Param("path"))
 		if err != nil {
 			warnErr(c, err)
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
+		}
 
+		if err := db.Exec("UPDATE file_metadata SET read_count = read_count + 1 WHERE id = ?", fm.ID).Error; err != nil {
+			// just warn, for whatever reason this might error
+			// its better if we continue because the store might not be affected
+			warnErr(c, err)
 		}
 
 		reader, err := store.DownloadFile(t.Salt, t.UUID, fv.StoreID)

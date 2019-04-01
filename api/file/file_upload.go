@@ -50,6 +50,7 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, fullpath string, body io.Reader) 
 	}
 
 	fm.LastVersionID = fv.ID
+	fm.CountWrite++
 	t.SizeUsed += fv.Size
 
 	if err := tx.Save(fm).Error; err != nil {

@@ -71,6 +71,13 @@ func MustHavePanic() {
 	}
 }
 
+func MustHaveInfo() {
+	hook := os.Getenv("BAXX_SLACK_INFO")
+	if hook == "" {
+		log.Panic("must have BAXX_SLACK_INFO")
+	}
+}
+
 func SendSlackDefault(title, body string) {
 	hook := os.Getenv("BAXX_SLACK_PANIC")
 	if hook != "" {
@@ -85,6 +92,18 @@ func SendSlackDefault(title, body string) {
 
 func SendSlackMonitoring(title, body string) {
 	hook := os.Getenv("BAXX_SLACK_MONITORING")
+	if hook != "" {
+		err := SendSlack(hook, title, body)
+		if err != nil {
+			log.Warnf("error sending to slack: %s", err.Error())
+		}
+	} else {
+		log.Warnf("not sending to slack: %s/%s", title, body)
+	}
+}
+
+func SendSlackInfo(title, body string) {
+	hook := os.Getenv("BAXX_SLACK_INFO")
 	if hook != "" {
 		err := SendSlack(hook, title, body)
 		if err != nil {
