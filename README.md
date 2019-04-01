@@ -590,6 +590,7 @@ the current baxx infra progress is: (still not live)
 * ssh
 * docker
   + postgres-master
+  + nginx + letsencrypt
   + who watches the watchers [👹job]
   + run notification rules [👹job]
   + process email queue [👹job]
@@ -613,6 +614,7 @@ the current baxx infra progress is: (still not live)
 
 as you can see both machines are in the scylla cluster, and both of
 them are sending the notification emails (using select for update locks)
+and only one of them is running the notification rules.
 
 I have built quite simple yet effective monitoring system for baxx.
 
@@ -639,7 +641,7 @@ Then the 'who watches the watchers' programs check if "monitoring key"
 is executed at within X+5 seconds per node(), and if not they send
 slack message
 
-The who watches the watchers then sends notifications (both watchers
+The 'who watches the watchers' then sends notifications (both watchers
 send notifications on their own, so i receive the notification twice
 but that is ok)
 
@@ -649,7 +651,7 @@ the other one will send notification.
 # testing
 
 ## shut down postgres
-✓ * shutdown postgres and see if notifications are sent
+* shutdown postgres and see if notifications are sent
 
 ## mdadm
 
