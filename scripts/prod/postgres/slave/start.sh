@@ -7,7 +7,7 @@ docker rm postgres
 
 docker run \
        --net=host \
-       --name postgres-slave \
+       --name postgres \
        -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
        -e POSTGRES_USER=$POSTGRES_USER \
        -e POSTGRES_DB=$POSTGRES_DB \
