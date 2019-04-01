@@ -590,10 +590,10 @@ the current baxx infra progress is: (still not live)
 * ssh
 * docker
   + postgres-master
-  + who watches the watchers [job]
-  + run notification rules [job]
-  + process email queue [job]
-  + collect memory/disk/mdadam stats [privileged] [job] (priv because mdadm)
+  + who watches the watchers [👹job]
+  + run notification rules [👹job]
+  + process email queue [👹job]
+  + collect memory/disk/mdadam stats [privileged] [👹job] (priv because mdadm)
   + baxx-api
   + judoc [localhost]
   + scylla [privileged] (priv because of io tunning)
@@ -603,9 +603,9 @@ the current baxx infra progress is: (still not live)
 * docker
   + postgres-slave
   + nginx + letsencrypt
-  + who watches the watchers [job]
-  + process email queue [job]
-  + collect memory/disk/mdadam stats [privileged] [job] (priv because mdadm)
+  + who watches the watchers [👹job]
+  + process email queue [👹job]
+  + collect memory/disk/mdadam stats [privileged] [👹job] (priv because mdadm)
   + baxx-api
   + judoc [localhost]
   + scylla [privileged] (priv because of io tunning)
@@ -616,8 +616,8 @@ them are sending the notification emails (using select for update locks)
 
 I have built quite simple yet effective monitoring system for baxx.
 
-Deach process with [job] tag is something like:
-
+Each process with [👹job] tag is something like:
+(using 👹 because of daemon)
 ```
 for {
     work
