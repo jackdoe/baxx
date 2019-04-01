@@ -54,9 +54,9 @@ at the moment in digitalocean it is only one droplet
 
 
 infra day [Sun 31/03/2019]:
-* move baxx.dev to the new setup from digitalocean
-* shutdown digitalocean
-[ almost done .. ]
+* move baxx.dev to the new setup from digitalocean [ done Mon  1 Apr 23:36:57 CEST 2019 ]
+* shutdown digitalocean [ done Mon  1 Apr 23:36:57 CEST 2019 ]
+
 
 --
 
