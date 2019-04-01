@@ -25,11 +25,11 @@ infra night [Fri 30/03/2019]:
 infra day [Sat 30/03/2019]:
 
 * setup postgres master->slave
-  + basic
-  + ssl
+  + basic [ done Mon  1 Apr 00:20:38 CEST 2019 ]
+  + ssl [ done Mon  1 Apr 00:20:38 CEST 2019 ]
 * setup nginx with letsencrypt
-  + nginx
-  + letsencrypt
+  + nginx [ done Mon  1 Apr 00:20:38 CEST 2019 ]
+  + letsencrypt [ done Mon  1 Apr 00:20:38 CEST 2019 ]
 
 * setup auth for scylla
 * baxx to use https://github.com/jackdoe/judoc [ done Sat 30 Mar 22:35:59 CET 2019 ]
@@ -39,23 +39,24 @@ infra day [Sat 30/03/2019]:
 
 notify.baxx.dev overhaul:
 at the moment in digitalocean it is only one droplet
-* run the notification check in both machines
-* run mail sender from both machines
+* run the notification check in both machines [ done Mon  1 Apr 00:20:38 CEST 2019 ]
+* run mail sender from both machines [ done Mon  1 Apr 00:20:38 CEST 2019 ]
 * use select for update [ done Sat 30 Mar 22:35:59 CET 2019 ]
 * run a healthckeck that checks when was the last time mail sender was ran and send slack message [ done Sun 31 Mar 00:07:23 CET 2019 ]
+* move to systemd with dependencies [ done Mon  1 Apr 02:10:37 CEST 2019 ]
 
 * monitoring watcher
 
-* alerts for disk/mem
-  + disk 80% for more than 5 mins
-  + mem  80% for more than 5 mins
+* alerts for disk/mem 
+  + disk 80% [ done Sat 30 Mar 22:35:59 CET 2019 ]
+  + mem  80% [ done Sat 30 Mar 22:35:59 CET 2019 ]
   + add nice asciigraphs with the stats
 
 
 infra day [Sun 31/03/2019]:
 * move baxx.dev to the new setup from digitalocean
 * shutdown digitalocean
-
+[ almost done .. ]
 
 --
 

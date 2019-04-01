@@ -20,11 +20,19 @@ type Slack struct {
 	MrkdwnIn []string `json:"mrkdwn_in"`
 }
 
+func Hostname() string {
+	name, err := os.Hostname()
+	if err != nil {
+		panic(err)
+	}
+	return name
+}
+
 func SendSlack(webhook string, title string, body string) error {
 	log.Infof("sending slack message %s %s", title, body)
 	encoded, err := json.Marshal(Slack{
 		Title:    title,
-		Text:     title + "\n" + body,
+		Text:     Hostname() + ": " + title + "\n" + body,
 		MrkdwnIn: []string{"text"},
 	})
 	if err != nil {

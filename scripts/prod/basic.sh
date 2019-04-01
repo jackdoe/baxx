@@ -20,6 +20,8 @@ ufw allow in https comment 'allow HTTPS traffic in'
 ufw allow out 53 comment 'allow DNS calls out'
 ufw allow out 123 comment 'allow NTP out'
 
+ufw allow out 465 comment 'allow mail out' # XXX: allow only sendcrid
+
 ufw allow out http comment 'allow HTTP traffic out'
 ufw allow out https comment 'allow HTTPS traffic out'
 

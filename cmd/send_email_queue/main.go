@@ -63,7 +63,7 @@ func sendSingleEmail(db *gorm.DB, sendgrid string) bool {
                               AND e.sent = false
                               AND (e.is_verification_message = true OR u.email_verified IS NOT NULL)
                             LIMIT 1
-                            FOR UPDATE NOWAIT`).Row().Scan(&id); err != nil {
+                            FOR UPDATE`).Row().Scan(&id); err != nil {
 		if err == sql.ErrNoRows {
 			tx.Rollback()
 			return false
@@ -83,6 +83,11 @@ func sendSingleEmail(db *gorm.DB, sendgrid string) bool {
 		log.Panic(err)
 	}
 
+	if err := tx.Model(&message.EmailQueueItem{}).Where(&message.EmailQueueItem{ID: uint64(id)}).Update(&message.EmailQueueItem{Sent: true, SentAt: time.Now()}).Error; err != nil {
+		tx.Rollback()
+		log.Panic(err)
+	}
+
 	err := message.Sendmail(sendgrid, message.Message{
 		From:    "jack@baxx.dev",
 		To:      []string{u.Email},
@@ -90,11 +95,6 @@ func sendSingleEmail(db *gorm.DB, sendgrid string) bool {
 		Body:    m.EmailText,
 	})
 	if err != nil {
-		tx.Rollback()
-		log.Panic(err)
-	}
-
-	if err := tx.Where("id = ?", id).Update(&message.EmailQueueItem{Sent: true, SentAt: time.Now()}).Error; err != nil {
 		tx.Rollback()
 		log.Panic(err)
 	}
