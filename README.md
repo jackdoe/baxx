@@ -581,10 +581,11 @@ baxx.dev
 
 # who watches the watchers
 
-the current baxx infra is:
+the current baxx infra progress is: (still not live)
 
 2 machines, each running only docker and ssh
 
+```
 [ b.baxx.dev ]
 * ssh
 * docker
@@ -592,10 +593,10 @@ the current baxx infra is:
   + who watches the watchers [job]
   + run notification rules [job]
   + process email queue [job]
-  + collect memory/disk/mdadam stats [privileged] [job]
+  + collect memory/disk/mdadam stats [privileged] [job] (priv because mdadm)
   + baxx-api
   + judoc [localhost]
-  + scylla [privileged]
+  + scylla [privileged] (priv because of io tunning)
 
 [ a.baxx.dev ]
 * ssh
@@ -604,10 +605,11 @@ the current baxx infra is:
   + nginx + letsencrypt
   + who watches the watchers [job]
   + process email queue [job]
-  + collect memory/disk/mdadam stats [privileged] [job]
+  + collect memory/disk/mdadam stats [privileged] [job] (priv because mdadm)
   + baxx-api
   + judoc [localhost]
-  + scylla [privileged]
+  + scylla [privileged] (priv because of io tunning)
+```
 
 as you can see both machines are in the scylla cluster, and both of
 them are sending the notification emails (using select for update locks)
@@ -615,20 +617,24 @@ them are sending the notification emails (using select for update locks)
 I have built quite simple yet effective monitoring system for baxx.
 
 Deach process with [job] tag is something like:
-  for {
-      work
-      sleep X
-  }
+
+```
+for {
+    work
+    sleep X
+}
+```
 
 What I did is:
 
-  setup("monitoring key", X+5)
-  for {
-      work
-      tick("monitoring key")
-      sleep X
-  }
-
+```
+setup("monitoring key", X+5)
+for {
+    work
+    tick("monitoring key")
+    sleep X
+}
+```
 Then the 'who watches the watchers' programs check if "monitoring key"
 is executed at within X+5 seconds per node(), and if not they send
 slack message
