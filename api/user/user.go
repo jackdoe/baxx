@@ -42,7 +42,7 @@ type VerificationLink struct {
 type User struct {
 	ID                    uint64     `gorm:"primary_key" json:"-"`
 	PaymentID             string     `gorm:"not null" json:"-"`
-	Email                 string     `gorm:"not null" json:"-"`
+	Email                 string     `gorm:"not null;unique" json:"-"`
 	EmailVerified         *time.Time `json:"-"`
 	StartedSubscription   *time.Time `json:"-"`
 	CancelledSubscription *time.Time `json:"-"`
