@@ -74,6 +74,7 @@ the current baxx infra progress is
 2 machines, each running only docker and ssh
 
 ```
+
 [ b.baxx.dev ]
 * ssh
 * docker
@@ -98,6 +99,7 @@ the current baxx infra progress is
   + baxx-api
   + judoc [localhost]
   + scylla [privileged] (priv because of io tunning)
+
 ```
 
 as you can see both machines are in the scylla cluster, and both of
@@ -108,6 +110,7 @@ I have built quite simple yet effective monitoring system for baxx.
 
 Each process with [👹job] tag is something like:
 (using 👹 because of daemon)
+
 ```
 for {
     work
@@ -125,6 +128,7 @@ for {
     sleep X
 }
 ```
+
 Then the 'who watches the watchers' programs check if "monitoring key"
 is executed at within X+5 seconds per node(), and if not they send
 slack message
