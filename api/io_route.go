@@ -111,7 +111,7 @@ func setupIO(srv *server) {
 			return
 		}
 
-		if err := db.Exec("UPDATE file_metadata SET read_count = read_count + 1 WHERE id = ?", fm.ID).Error; err != nil {
+		if err := db.Exec("UPDATE file_metadata SET count_read = count_read + 1 WHERE id = ?", fm.ID).Error; err != nil {
 			// just warn, for whatever reason this might error
 			// its better if we continue because the store might not be affected
 			warnErr(c, err)
