@@ -10,4 +10,4 @@ docker run \
        --name=baxx-notification-rules \
        -e BAXX_SLACK_PANIC="$BAXX_SLACK_PANIC" \
        -e BAXX_POSTGRES="$BAXX_POSTGRES" \
-       jackdoe/baxx:1.4 /baxx/notification_run -debug
+       jackdoe/baxx:1.5 /baxx/notification_run -debug

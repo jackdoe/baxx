@@ -11,4 +11,4 @@ docker run \
        -e BAXX_SLACK_PANIC="$BAXX_SLACK_PANIC" \
        -e BAXX_POSTGRES="$BAXX_POSTGRES" \
        -e BAXX_JUDOC_URL="http://localhost:9122/" \
-       jackdoe/baxx:1.4 /baxx/api -debug
+       jackdoe/baxx:1.5 /baxx/api -debug
