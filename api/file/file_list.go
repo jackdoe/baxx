@@ -26,7 +26,7 @@ func ListFilesInPath(db *gorm.DB, t *Token, p string, strict bool) ([]FileMetada
 
 	for _, fm := range metadata {
 		versions := []*FileVersion{}
-		if err := db.Where("file_metadata_id = ?", fm.ID).Find(&versions).Error; err != nil {
+		if err := db.Where("file_metadata_id = ?", fm.ID).Order("id").Find(&versions).Error; err != nil {
 			return nil, err
 		}
 		out = append(out, FileMetadataAndVersion{fm, versions})

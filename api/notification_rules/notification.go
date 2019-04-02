@@ -84,7 +84,7 @@ func ExecuteRule(rule *NotificationRule, files []file.FileMetadataAndVersion) ([
 				lastVersion := version
 				previousVersion := f.Versions[len(f.Versions)-2]
 				delta := (1 + (float64(lastVersion.Size) - float64(previousVersion.Size))) / float64(1+lastVersion.Size)
-				if (math.Abs(delta) * 100) > float64(rule.AcceptableSizeDeltaPercentBetweenVersions) {
+				if (math.Abs(delta)*100) > float64(rule.AcceptableSizeDeltaPercentBetweenVersions) && lastVersion.Size != previousVersion.Size {
 					// delta trigger
 					n := &common.SizeNotification{
 						PreviousSize: previousVersion.Size,
