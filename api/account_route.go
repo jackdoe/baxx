@@ -21,17 +21,10 @@ import (
 )
 
 var DEFAULT_NOTIFICATION_OLD_AND_DIFFERENT = common.CreateNotificationInput{
-	Name:   "versions are too different or too old",
-	Regexp: ".*",
+	Name:   "archives are too different or too old",
+	Regexp: "\\.(gz|bz2|xz|zip|tar|.sql)$",
 	AcceptableSizeDeltaPercentBetweenVersions: 90,
 	AcceptableAgeDays:                         2,
-}
-
-var DEFAULT_NOTIFICATION_DIFFERENT = common.CreateNotificationInput{
-	Name:   "versions are too different",
-	Regexp: ".*",
-	AcceptableSizeDeltaPercentBetweenVersions: 90,
-	AcceptableAgeDays:                         0,
 }
 
 func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (*common.UserStatusOutput, *user.User, error) {
@@ -443,20 +436,6 @@ func setupACC(srv *server) {
 		} else if subscribe {
 			if len(status.Tokens) == 0 {
 				// in case someone re-subscribes, dont make new token for them
-				_, err := helpers.CreateTokenAndNotification(store, tx, u,
-					false,
-					7,
-					"generic-read-write-7",
-					CONFIG.DefaultQuota,
-					CONFIG.DefaultInodeQuota,
-					CONFIG.MaxTokens,
-					DEFAULT_NOTIFICATION_DIFFERENT)
-				if err != nil {
-					tx.Rollback()
-					warnErr(c, err)
-					return err
-				}
-
 				_, err = helpers.CreateTokenAndNotification(store, tx, u,
 					false,
 					7,
