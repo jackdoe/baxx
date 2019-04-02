@@ -3,10 +3,14 @@ package monitoring
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os/exec"
+	"sort"
 	"syscall"
 	"time"
 
+	"github.com/guptarohit/asciigraph"
+	"github.com/jinzhu/gorm"
 	"github.com/mackerelio/go-osstat/disk"
 	"github.com/mackerelio/go-osstat/memory"
 	log "github.com/sirupsen/logrus"
@@ -133,15 +137,13 @@ func GetDiskIOStats(diskName string) DiskIOPerNode {
 }
 
 func GetMemoryStats() MemStatsPerNode {
-	out := MemStatsPerNode{}
-	out.NodeID = Hostname()
-
 	m, err := memory.Get()
 	if err != nil {
 		log.Panic(err)
 	}
 
 	return MemStatsPerNode{
+		NodeID:           Hostname(),
 		MemoryTotal:      m.Total,
 		MemoryUsed:       m.Used,
 		MemoryBuffers:    m.Buffers,
@@ -154,5 +156,98 @@ func GetMemoryStats() MemStatsPerNode {
 		MemorySwapUsed:   m.SwapUsed,
 		MemorySwapCached: m.SwapCached,
 		MemorySwapFree:   m.SwapFree,
+	}
+}
+
+type Stats struct {
+	Mem    []MemStatsPerNode
+	DU     []DiskUsagePerNode
+	IO     []DiskIOPerNode
+	MDADM  []DiskMDPerNode
+	Watch  []MonitoringPerNode
+	NodeID string
+}
+
+func GetStats(db *gorm.DB, node_id string, n int) ([]*Stats, error) {
+	watch := []MonitoringPerNode{}
+	if err := db.Find(&watch).Order("id").Error; err != nil {
+		return nil, err
+	}
+	nm := map[string]bool{}
+
+	for _, w := range watch {
+		nm[w.NodeID] = true
+	}
+	out := []*Stats{}
+	nodes := []string{}
+	for n := range nm {
+		nodes = append(nodes, n)
+	}
+	sort.Strings(nodes)
+	for _, nodeId := range nodes {
+		mem := []MemStatsPerNode{}
+		du := []DiskUsagePerNode{}
+		dio := []DiskIOPerNode{}
+		mdadm := []DiskMDPerNode{}
+
+		if err := db.Limit(n).Where("node_id = ?", nodeId).Order("id desc").Find(&mem).Error; err != nil {
+			return nil, err
+		}
+		if err := db.Limit(n).Where("node_id = ?", nodeId).Order("id desc").Find(&du).Error; err != nil {
+			return nil, err
+		}
+		if err := db.Limit(n).Where("node_id = ?", nodeId).Order("id desc").Find(&dio).Error; err != nil {
+			return nil, err
+		}
+		if err := db.Limit(n).Where("node_id = ?", nodeId).Order("id desc").Find(&mdadm).Error; err != nil {
+			return nil, err
+		}
+
+		st := &Stats{
+			Mem:    mem,
+			DU:     du,
+			IO:     dio,
+			MDADM:  mdadm,
+			NodeID: nodeId,
+			Watch:  []MonitoringPerNode{},
+		}
+		for _, w := range watch {
+			if w.NodeID == nodeId {
+				st.Watch = append(st.Watch, w)
+			}
+		}
+		out = append(out, st)
+	}
+	return out, nil
+}
+
+func (s *Stats) ASCII(w io.Writer, height int) {
+	data := []float64{}
+
+	if len(s.Watch) > 0 {
+		fmt.Fprintf(w, "%s Who Watches The Watchers:\n", s.NodeID)
+		for _, m := range s.Watch {
+			fmt.Fprintf(w, "%s %s tick: %s (%.2fs) ago, schedule: %.0fs\n", m.NodeID, m.Kind, m.Tick.Format(time.ANSIC), time.Since(m.Tick).Seconds(), m.Schedule)
+		}
+		fmt.Fprintf(w, "\n")
+	}
+
+	for _, m := range s.Mem {
+		data = append(data, float64(m.MemoryFree)/float64(1024*1024*1024))
+	}
+	if len(data) > 0 {
+		fmt.Fprintf(w, "%s\n\n", asciigraph.Plot(data, asciigraph.Height(height), asciigraph.Caption(fmt.Sprintf("%s Free Memory: %fGB", s.NodeID, data[len(data)-1]))))
+	}
+	data = []float64{}
+	for _, m := range s.DU {
+		data = append(data, float64(m.DiskUsed)/float64(1024*1024*1024))
+	}
+
+	if len(data) > 0 {
+		fmt.Fprintf(w, "%s\n\n", asciigraph.Plot(data, asciigraph.Height(height), asciigraph.Caption(fmt.Sprintf("%s Used Disk: %fGB", s.NodeID, data[len(data)-1]))))
+	}
+
+	if len(s.MDADM) > 0 {
+		fmt.Fprintf(w, "%s:\n%s\n\n", s.NodeID, s.MDADM[len(s.MDADM)-1].MDADM)
 	}
 }

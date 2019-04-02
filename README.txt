@@ -7,7 +7,7 @@ check it out `ssh register@ui.baxx.dev`
 * https://baxx.dev/help
 * TODO.txt
 * infra and pricing.txt
-
+* stat (disk usage, mem, mdadm) https://baxx.dev/stat
 # backup service
 (also i am learning how to build a product without a website haha)
 

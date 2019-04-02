@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"flag"
 	"fmt"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/jackdoe/baxx/api/file"
 	"github.com/jackdoe/baxx/api/helpers"
+	"github.com/jackdoe/baxx/monitoring"
 
 	al "github.com/jackdoe/baxx/api/action_log"
 	"github.com/jackdoe/baxx/api/user"
@@ -138,6 +140,20 @@ func setupAPI(db *gorm.DB, bind string) {
 		c.String(200, "sign up: ssh register@ui.baxx.dev\nhelp: curl https://baxx.dev/help\nslack: https://baxx.dev/join/slack\ngoogle groups: https://baxx.dev/join/groups")
 	})
 
+	r.GET("/stat", func(c *gin.Context) {
+		s, err := monitoring.GetStats(db, monitoring.Hostname(), 60)
+		if err != nil {
+			warnErr(c, err)
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		b := new(bytes.Buffer)
+		height := 15
+		for _, st := range s {
+			st.ASCII(b, height)
+		}
+		c.String(200, b.String())
+	})
 	srv := &server{db: db, r: r, store: store, authorized: authorized}
 	setupIO(srv)
 	setupACC(srv)

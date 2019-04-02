@@ -11,4 +11,4 @@ docker run \
        -e BAXX_SLACK_PANIC="$BAXX_SLACK_PANIC" \
        -e BAXX_SLACK_MONITORING="$BAXX_SLACK_MONITORING" \
        -e BAXX_POSTGRES="$BAXX_POSTGRES" \
-       jackdoe/baxx:1.5 /baxx/who_watches_the_watchers -debug
+       jackdoe/baxx:1.7 /baxx/who_watches_the_watchers -debug

@@ -23,13 +23,7 @@ type MonitoringPerNode struct {
 }
 
 func (m *MonitoringPerNode) String() string {
-	s := fmt.Sprintf("%s on %s not working for %ds seconds - %s - last tick %s, schedule: %ds",
-		m.Kind,
-		m.NodeID,
-		int(time.Since(m.Tick).Seconds()),
-		m.AlertText,
-		m.Tick.Format(time.ANSIC),
-		m.Schedule)
+	s := fmt.Sprintf("%s %s tick: %s (%.2fs) ago, schedule: %f, %s\n", m.NodeID, m.Kind, m.Tick.Format(time.ANSIC), time.Since(m.Tick).Seconds(), m.Schedule, m.AlertText)
 	if m.NotifiedAt != nil {
 		s = fmt.Sprintf("%s, notified %ds ago", s, int(time.Since(*m.NotifiedAt).Seconds()))
 	}
