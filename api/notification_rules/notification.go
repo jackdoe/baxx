@@ -60,15 +60,16 @@ func ExecuteRule(rule *NotificationRule, files []file.FileMetadataAndVersion) ([
 
 			// both of those are super simplified
 			// FIXME(jackdoe): more work is needed!
+			version := f.Versions[len(f.Versions)-1]
 			current := common.FileNotification{
-				CreatedAt:       f.Versions[0].CreatedAt,
+				CreatedAt:       version.CreatedAt,
 				FullPath:        fullpath,
-				LastVersionSize: f.Versions[0].Size,
-				FileVersionID:   f.Versions[0].ID,
+				LastVersionSize: version.Size,
+				FileVersionID:   version.ID,
 			}
 
 			if rule.AcceptableAgeSeconds > 0 {
-				version := f.Versions[0]
+
 				acceptableAge := version.CreatedAt.Add(time.Duration(rule.AcceptableAgeSeconds) * time.Second)
 				if now.After(acceptableAge) {
 					n := &common.AgeNotification{
@@ -80,8 +81,8 @@ func ExecuteRule(rule *NotificationRule, files []file.FileMetadataAndVersion) ([
 			}
 
 			if rule.AcceptableSizeDeltaPercentBetweenVersions > 0 && len(f.Versions) > 1 {
-				lastVersion := f.Versions[0]
-				previousVersion := f.Versions[1]
+				lastVersion := version
+				previousVersion := f.Versions[len(f.Versions)-2]
 				delta := (1 + (float64(lastVersion.Size) - float64(previousVersion.Size))) / float64(1+lastVersion.Size)
 				if (math.Abs(delta) * 100) > float64(rule.AcceptableSizeDeltaPercentBetweenVersions) {
 					// delta trigger
