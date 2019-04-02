@@ -17,7 +17,7 @@ func FindFile(db *gorm.DB, t *Token, p string) (*FileVersion, *FileMetadata, err
 		return nil, nil, fmt.Errorf("file without version, probably interrupted, please reupload")
 	}
 	fv := &FileVersion{}
-	if err := db.Where("id = ?", fm.LastVersionID).First(fv).Error; err != nil {
+	if err := db.Where("id = ?", fm.LastVersionID).Last(fv).Error; err != nil {
 		return nil, nil, err
 	}
 
