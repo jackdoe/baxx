@@ -170,7 +170,7 @@ type Stats struct {
 
 func GetStats(db *gorm.DB, node_id string, n int) ([]*Stats, error) {
 	watch := []MonitoringPerNode{}
-	if err := db.Find(&watch).Order("id").Error; err != nil {
+	if err := db.Order("id").Find(&watch).Error; err != nil {
 		return nil, err
 	}
 	nm := map[string]bool{}
