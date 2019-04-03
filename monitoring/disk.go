@@ -221,6 +221,12 @@ func GetStats(db *gorm.DB, node_id string, n int) ([]*Stats, error) {
 	return out, nil
 }
 
+func reverse(numbers []float64) []float64 {
+	for i, j := 0, len(numbers)-1; i < j; i, j = i+1, j-1 {
+		numbers[i], numbers[j] = numbers[j], numbers[i]
+	}
+	return numbers
+}
 func (s *Stats) ASCII(w io.Writer, height int) {
 	data := []float64{}
 
@@ -236,18 +242,20 @@ func (s *Stats) ASCII(w io.Writer, height int) {
 		data = append(data, float64(m.MemoryFree)/float64(1024*1024*1024))
 	}
 	if len(data) > 0 {
+		data = reverse(data)
 		fmt.Fprintf(w, "%s\n\n", asciigraph.Plot(data, asciigraph.Height(height), asciigraph.Caption(fmt.Sprintf("%s Free Memory: %fGB", s.NodeID, data[len(data)-1]))))
 	}
+
 	data = []float64{}
 	for _, m := range s.DU {
 		data = append(data, float64(m.DiskUsed)/float64(1024*1024*1024))
 	}
-
 	if len(data) > 0 {
+		data = reverse(data)
 		fmt.Fprintf(w, "%s\n\n", asciigraph.Plot(data, asciigraph.Height(height), asciigraph.Caption(fmt.Sprintf("%s Used Disk: %fGB", s.NodeID, data[len(data)-1]))))
 	}
 
 	if len(s.MDADM) > 0 {
-		fmt.Fprintf(w, "%s:\n%s\n\n", s.NodeID, s.MDADM[len(s.MDADM)-1].MDADM)
+		fmt.Fprintf(w, "%s:\n%s\n\n", s.NodeID, s.MDADM[0].MDADM)
 	}
 }

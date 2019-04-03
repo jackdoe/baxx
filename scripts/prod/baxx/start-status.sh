@@ -9,4 +9,4 @@ docker run \
        -e BAXX_SLACK_PANIC="$BAXX_SLACK_PANIC" \
        -e BAXX_SLACK_MONITORING="$BAXX_SLACK_MONITORING" \
        -e BAXX_POSTGRES="$BAXX_POSTGRES" \
-       jackdoe/baxx:1.7 /baxx/status -debug
+       jackdoe/baxx:1.9.2 /baxx/status -debug
