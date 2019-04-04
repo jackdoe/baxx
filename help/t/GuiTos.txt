@@ -1,11 +1,12 @@
 By purchasing, registering for, or using the “Baxx” services (the
   “Services”) you ("referred in the document as "you", "customer",
-  "subscriber", "client") enter into a contract with Borislav Nikolov
-  Amsterdam, The Netherlands (also referred in the document as "baxx",
-  "we"),and you accept and agree to the following terms (the
-  “Contract”). The Contract shall apply to the supply of the Services,
-  use of the Services after purchase or after registering for limited
-  free use where such offer has been made available.
+  "subscriber", "client") enter into a contract with Prymr B.V. KvK:
+  68884842, Overtoom 141, 1054 HG Amsterdam, The Netherlands (also
+  referred in the document as "baxx", "we"),and you accept and agree
+  to the following terms (the “Contract”). The Contract shall apply to
+  the supply of the Services, use of the Services after purchase or
+  after registering for limited free use where such offer has been
+  made available.
 
 Services:
   We provide the service of storing your data, with specific retention
