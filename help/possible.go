@@ -22,7 +22,6 @@ const (
 	HtmlWaitPaypal
 	TokenMeta
 	Profile
-	NotificationMeta
 	AllHelp
 	EmailQuotaLeft
 )

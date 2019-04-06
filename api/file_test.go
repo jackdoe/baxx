@@ -16,6 +16,7 @@ import (
 	"github.com/jackdoe/baxx/api/file"
 	"github.com/jackdoe/baxx/api/helpers"
 	"github.com/jackdoe/baxx/api/init_db"
+	notifications "github.com/jackdoe/baxx/api/notification_rules"
 	"github.com/jackdoe/baxx/api/user"
 	"github.com/jackdoe/baxx/common"
 	. "github.com/jackdoe/baxx/common"
@@ -64,18 +65,6 @@ func setup() *file.Store {
 	return store
 }
 
-func testNotificationCreate(t *testing.T, db *gorm.DB, u *user.User, token *file.Token) {
-	n, err := helpers.CreateNotificationRule(db, u, &common.CreateNotificationInput{
-		TokenUUID:         token.UUID,
-		Regexp:            ".*",
-		Name:              "hello",
-		AcceptableAgeDays: 1,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	log.Printf("%#v", n)
-}
 func drop(db *gorm.DB) {
 	db.Exec(`
 
@@ -92,14 +81,20 @@ END $$;
  `)
 }
 
-func uploadFile(filePath string, t *testing.T, db *gorm.DB, store *file.Store, user *user.User, token *file.Token, size int) *file.FileMetadata {
+func fp(filepath string) file.FileParams {
+	seven := uint64(7)
+	return file.FileParams{FullPath: filepath, KeepN: &seven}
+}
+
+func uploadFile(param file.FileParams, t *testing.T, db *gorm.DB, store *file.Store, user *user.User, token *file.Token, size int) *file.FileMetadata {
 	s := RandStringBytesMaskImprSrcUnsafe(size)
-	_, _, err := SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(s)), filePath)
+
+	_, _, err := SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(s)), param)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	fv, fm, err := file.FindFile(db, token, filePath)
+	fv, fm, err := file.FindFile(db, token, param.FullPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +129,7 @@ func createUserAndToken(email string, t *testing.T, db *gorm.DB, store *file.Sto
 	if err := db.Save(user).Error; err != nil {
 		t.Fatal(err)
 	}
-	_, err = helpers.CreateToken(db, false, user, 7, "some-name", 10000, 10000, CONFIG.MaxTokens)
+	_, err = helpers.CreateToken(db, user, false, "some-name", CONFIG.MaxTokens)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,29 +144,119 @@ func createUserAndToken(email string, t *testing.T, db *gorm.DB, store *file.Sto
 		t.Fatal(err)
 	}
 	return user, token
-
+}
+func GetFileAndVersions(t *testing.T, db *gorm.DB, token *file.Token, fm *file.FileMetadata) file.FileMetadataAndVersion {
+	fvv, err := file.ListVersionsFile(db, token, fm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return file.FileMetadataAndVersion{FileMetadata: fm, Versions: fvv}
 }
 
-func TestFileQuota(t *testing.T) {
-	store := setup()
-	db, err := gorm.Open("postgres", "host=localhost user=baxx dbname=baxx password=baxx")
-	if err != nil {
-		log.Fatal(err)
+func FileNotif(t *testing.T, db *gorm.DB, store *file.Store) {
+	user, token := createUserAndToken(RandStringBytesMaskImprSrcUnsafe(10)+"@example.com", t, db, store)
+	f := fp("/example/example.txt")
+	v := uint64(10)
+	f.AcceptableDelta = &v
+
+	fm := uploadFile(f, t, db, store, user, token, 1000)
+	fmv := GetFileAndVersions(t, db, token, fm)
+	if len(fmv.Versions) != 1 {
+		t.Fatalf("expected 2 got %d", len(fmv.Versions))
 	}
-	db.LogMode(true)
-	drop(db)
-	init_db.InitDatabase(db)
-	defer db.Close()
+	perFile, err := notifications.IgnoreAndMarkAlreadyNotified(db, notifications.ExecuteRule([]file.FileMetadataAndVersion{fmv}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(perFile) != 0 {
+		t.Fatalf("expected 0 got %d", len(perFile))
+	}
+
+	uploadFile(f, t, db, store, user, token, 1005)
+	fmv = GetFileAndVersions(t, db, token, fm)
+	if len(fmv.Versions) != 2 {
+		t.Fatalf("expected 2 got %d", len(fmv.Versions))
+	}
+
+	perFile, err = notifications.IgnoreAndMarkAlreadyNotified(db, notifications.ExecuteRule([]file.FileMetadataAndVersion{fmv}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(perFile) != 0 {
+		t.Fatalf("expected 0 got %d", len(perFile))
+	}
+
+	uploadFile(f, t, db, store, user, token, 1120)
+	fmv = GetFileAndVersions(t, db, token, fm)
+	if len(fmv.Versions) != 3 {
+		t.Fatalf("expected 3 got %d", len(fmv.Versions))
+	}
+
+	perFile, err = notifications.IgnoreAndMarkAlreadyNotified(db, notifications.ExecuteRule([]file.FileMetadataAndVersion{fmv}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(perFile) != 1 {
+		t.Fatalf("expected 1 got %d", len(perFile))
+	}
+
+	perFile, err = notifications.IgnoreAndMarkAlreadyNotified(db, notifications.ExecuteRule([]file.FileMetadataAndVersion{fmv}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(perFile) != 0 {
+		t.Fatalf("expected 0 got %d", len(perFile))
+	}
+
+	uploadFile(f, t, db, store, user, token, 0)
+	fmv = GetFileAndVersions(t, db, token, fm)
+	if len(fmv.Versions) != 4 {
+		t.Fatalf("expected 4 got %d", len(fmv.Versions))
+	}
+	perFile, err = notifications.IgnoreAndMarkAlreadyNotified(db, notifications.ExecuteRule([]file.FileMetadataAndVersion{fmv}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(perFile) != 1 {
+		t.Fatalf("expected 1 got %d", len(perFile))
+	}
+
+	status, err := helpers.GetUserStatus(db, user)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	perFile[0].Age = &common.AgeNotification{}
+	perFile = append(perFile, perFile[0])
+	log.Printf("%s", help.Render(help.HelpObject{
+		Template:      help.EmailNotification,
+		Email:         user.Email,
+		Notifications: perFile,
+		Status:        status,
+	}))
+
+	fm, err = helpers.StopNotifications(db, user, fmv.FileMetadata.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmv = GetFileAndVersions(t, db, token, fm)
+
+	perFile = notifications.ExecuteRule([]file.FileMetadataAndVersion{fmv})
+	if len(perFile) != 0 {
+		t.Fatalf("expected 0 got %d", len(perFile))
+	}
+
+}
+func FileIO(t *testing.T, db *gorm.DB, store *file.Store) {
 	for k := 0; k < 10; k++ {
 		user, token := createUserAndToken(RandStringBytesMaskImprSrcUnsafe(10)+"@example.com", t, db, store)
-		testNotificationCreate(t, db, user, token)
 		filePath := "/example/example.txt"
 		var fmFirst *file.FileMetadata
 		for i := 0; i < 20; i++ {
-			fmFirst = uploadFile(filePath, t, db, store, user, token, i)
+			fmFirst = uploadFile(fp(filePath), t, db, store, user, token, i)
 		}
 
-		fmSecond := uploadFile(filePath+"second", t, db, store, user, token, 1000)
+		fmSecond := uploadFile(fp(filePath+"second"), t, db, store, user, token, 1000)
 		versions, err := file.ListVersionsFile(db, token, fmFirst)
 		if err != nil {
 			t.Fatal(err)
@@ -211,42 +296,30 @@ func TestFileQuota(t *testing.T) {
 			t.Fatalf("expected 0 got %d", used)
 		}
 
-		token.Quota = 10
-		token.QuotaInode = 2
-		if err := db.Save(token).Error; err != nil {
+		user.QuotaInode = 2
+		if err := db.Save(user).Error; err != nil {
 			t.Fatal(err)
 		}
 
-		_, _, err = SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), filePath+"second")
+		_, _, err = SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d"))), fp(filePath+"second"))
 		if err != nil {
 			t.Fatal(err)
 		}
-		left, inodeLeft, _ := file.GetQuotaLeft(db, token)
-		log.Printf("left: %d inodes: %d", left, inodeLeft)
-		if inodeLeft != 1 {
-			t.Fatalf("expected 1 got %d", inodeLeft)
-		}
-
-		_, inodeLeft, _ = file.GetQuotaLeft(db, token)
-		if inodeLeft != 1 {
-			t.Fatalf("(after error) expected 1 got %d", inodeLeft)
-		}
-
-		token.Quota = 500
-		if err := db.Save(token).Error; err != nil {
+		status, err := helpers.GetUserStatus(db, user)
+		if err != nil {
 			t.Fatal(err)
 		}
-		_, _, err = SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), filePath+"second")
+		log.Printf("%#v", status)
+		if status.QuotaInodeUsed != 1 {
+			t.Fatalf("expected 1 got %d", status.QuotaInodeUsed)
+		}
+
+		_, _, err = SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), fp(filePath+"second"))
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		left, inodeLeft, _ = file.GetQuotaLeft(db, token)
-		if inodeLeft != 0 {
-			t.Fatalf("expected 1 got %d", inodeLeft)
-		}
-		log.Printf("left: %d inodes: %d", left, inodeLeft)
-		_, _, err = SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), filePath+"second")
+		_, _, err = SaveFileProcess(store, db, user, token, bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), fp(filePath+"second"))
 		if err.Error() != "inode quota limit reached" {
 			t.Fatalf("expected inode quota limit reached got %s", err.Error())
 		}
@@ -254,24 +327,34 @@ func TestFileQuota(t *testing.T) {
 		CONFIG.MaxTokens = 10
 		created := []*file.Token{}
 		for i := 0; i < 9; i++ {
-			to, err := helpers.CreateToken(db, false, user, 1, "some-name", 10000, 10000, CONFIG.MaxTokens)
+			to, err := helpers.CreateToken(db, user, false, "some-name", CONFIG.MaxTokens)
 			if err != nil {
 				t.Fatal(err)
 			}
 			created = append(created, to)
 		}
-		_, err = helpers.CreateToken(db, false, user, 1, "some-other-name", 10000, 10000, CONFIG.MaxTokens)
+		_, err = helpers.CreateToken(db, user, false, "some-other-name", CONFIG.MaxTokens)
 		if err.Error() != "max tokens created (max=10)" {
 			t.Fatalf("expected max tokens created (max=10) got %s", err.Error())
 		}
-		CONFIG.MaxUserQuota = 1
-		_, _, err = SaveFileProcess(store, db, user, created[0], bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), filePath+"secondz")
+		user.QuotaInode = 200
+		user.Quota = 1
+		if err := db.Save(user).Error; err != nil {
+			t.Fatal(err)
+		}
+
+		_, _, err = SaveFileProcess(store, db, user, created[0], bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), file.FileParams{FullPath: filePath + "secondz"})
 		if err.Error() != "quota limit reached" {
 			t.Fatalf("expected quota limit reached got %s", err.Error())
 		}
 
-		CONFIG.MaxUserQuota = 10000
-		_, _, err = SaveFileProcess(store, db, user, created[0], bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), filePath+"secondz")
+		user.QuotaInode = 200
+		user.Quota = 1000
+		if err := db.Save(user).Error; err != nil {
+			t.Fatal(err)
+		}
+
+		_, _, err = SaveFileProcess(store, db, user, created[0], bytes.NewBuffer([]byte(fmt.Sprintf("a b c d e"))), file.FileParams{FullPath: filePath + "secondz"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -284,47 +367,27 @@ func TestFileQuota(t *testing.T) {
 			}
 		}
 	}
+
+}
+
+func TestEverything(t *testing.T) {
+	store := setup()
+	db, err := gorm.Open("postgres", "host=localhost user=baxx dbname=baxx password=baxx")
+	if err != nil {
+		log.Fatal(err)
+	}
+	db.LogMode(true)
+	drop(db)
+	init_db.InitDatabase(db)
+	defer db.Close()
+	FileNotif(t, db, store)
+	//	FileIO(t, db, store)
 }
 
 func getUsed(t *testing.T, db *gorm.DB, user *user.User) uint64 {
-	tokens, err := helpers.ListTokens(db, user)
+	status, err := helpers.GetUserStatus(db, user)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	used := uint64(0)
-	for _, t := range tokens {
-		used += t.SizeUsed
-	}
-	return used
-}
-
-func testShaDiff(t *testing.T, db *gorm.DB, token *file.Token) {
-	_, err := ShaDiff(db, token, bytes.NewBuffer([]byte("abc")))
-	if err == nil {
-		t.Fatalf("expected error")
-	}
-
-	_, err = ShaDiff(db, token, bytes.NewBuffer([]byte("e8fb44fdcd108c238ea4a809bc758ffa5ebe636a  mail.go")))
-	if err == nil {
-		t.Fatalf("expected error")
-	}
-	diff, err := ShaDiff(db, token, bytes.NewBuffer([]byte(`21d551e4428872a077c6e76d8d9eda8d9b4714ae8ac1e98e084d1f1d48f1eb67  action_log.go
-2997f66d71b5c0f2f396872536beed30835add1e1de8740b3136c9d550b1eb7c  api
-2997f66d71b5c0f2f396872536beed30835add1e1de8740b3136c9d550b1eb7c  api2
-8719d1dc6f98ebb5c04f8c1768342e865156b1582806b6c7d26e3fbdc99b8762  file_test.go
-8d0a34b05558ad54c4a5949cc42636165b6449cf3324406d62e923bc060478dc  file_test.go.dl
-c7c2c1d3c83afbc522ae08779cd661546e578b2dfc6a398467d293bd63e03290  mail.go
-16c20b5cc3f937d49d6e003db609b4a8872eea9a4cb41028dad5cae6bd551e1b  mail.go2
-16c20b5cc3f937d49d6e003db609b4a8872eea9a4cb41028dad5cae6bd551e1b  main.go
-16c20b5cc3f937d49d6e003db609b4a8872eea9a4cb41028dad5cae6bd551e1b  main.go.dl
-fc29fe749e8c62050094724e2bed50b65a508e18101eb7d6fdea11be77b2515b  util.go`)))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(diff) != 7 {
-		t.Fatalf("expected 10 got %d, diff: %q", len(diff), diff)
-	}
-	log.Printf("diff: %s", diff)
+	return status.QuotaUsed
 }

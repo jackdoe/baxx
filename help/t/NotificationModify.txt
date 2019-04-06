@@ -1,9 +1,0 @@
-## Change Notification Rule
-
-curl -u {{ template "partial_email_extract.txt" . }}  -d '{
-  "name":"example name",
-  "notification_uuid":"NOTIFICATION-UUID",
-  "regexp":".*",
-  "age_days": 1,
-  "size_delta_percent": 50
-}' https://baxx.dev/protected/change/notification

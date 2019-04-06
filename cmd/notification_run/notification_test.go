@@ -1,10 +1,11 @@
-package notification_rules
+package main
 
 import (
 	"testing"
 	"time"
 
 	"github.com/jackdoe/baxx/api/file"
+	"github.com/jackdoe/baxx/api/notification_rules"
 )
 
 func secondsAgo(s int) time.Time {
@@ -12,18 +13,13 @@ func secondsAgo(s int) time.Time {
 }
 
 func TestAge(t *testing.T) {
-	rule := &NotificationRule{
-		Name:                                      "age",
-		Regexp:                                    "\\.sql",
-		AcceptableAgeSeconds:                      10,
-		AcceptableSizeDeltaPercentBetweenVersions: 10,
-	}
-
 	files := []file.FileMetadataAndVersion{
 		file.FileMetadataAndVersion{
 			FileMetadata: &file.FileMetadata{
-				Path:     "/backup",
-				Filename: "backup.sql",
+				Path:            "/backup",
+				Filename:        "backup.sql",
+				AcceptableAge:   10,
+				AcceptableDelta: 10,
 			},
 			Versions: []*file.FileVersion{
 				&file.FileVersion{
@@ -38,8 +34,10 @@ func TestAge(t *testing.T) {
 		},
 		file.FileMetadataAndVersion{
 			FileMetadata: &file.FileMetadata{
-				Path:     "/backup",
-				Filename: "backup2.sql",
+				Path:            "/backup",
+				Filename:        "backup2.sql",
+				AcceptableAge:   10,
+				AcceptableDelta: 10,
 			},
 			Versions: []*file.FileVersion{
 				&file.FileVersion{
@@ -54,8 +52,10 @@ func TestAge(t *testing.T) {
 		},
 		file.FileMetadataAndVersion{
 			FileMetadata: &file.FileMetadata{
-				Path:     "/backup",
-				Filename: "backup3.sql",
+				Path:            "/backup",
+				Filename:        "backup3.sql",
+				AcceptableAge:   10,
+				AcceptableDelta: 10,
 			},
 			Versions: []*file.FileVersion{
 				&file.FileVersion{
@@ -69,7 +69,7 @@ func TestAge(t *testing.T) {
 			},
 		},
 	}
-	n, _ := ExecuteRule(rule, files)
+	n := notification_rules.ExecuteRule(files)
 	if len(n) != 3 {
 		t.Fatalf("expected 3 notifications got %d", len(n))
 	}

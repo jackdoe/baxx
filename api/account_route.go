@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -11,7 +12,6 @@ import (
 	"github.com/jackdoe/baxx/api/file"
 	"github.com/jackdoe/baxx/api/helpers"
 	"github.com/jackdoe/baxx/api/ipn"
-	notification "github.com/jackdoe/baxx/api/notification_rules"
 	"github.com/jackdoe/baxx/api/user"
 	"github.com/jackdoe/baxx/common"
 	"github.com/jackdoe/baxx/help"
@@ -19,13 +19,6 @@ import (
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
 )
-
-var DEFAULT_NOTIFICATION_OLD_AND_DIFFERENT = common.CreateNotificationInput{
-	Name:   "archives are too different or too old",
-	Regexp: "\\.(gz|bz2|xz|zip|tar|.sql)$",
-	AcceptableSizeDeltaPercentBetweenVersions: 90,
-	AcceptableAgeDays:                         2,
-}
 
 func registerUser(store *file.Store, db *gorm.DB, json common.CreateUserInput) (*common.UserStatusOutput, *user.User, error) {
 	if err := ValidatePassword(json.Password); err != nil {
@@ -213,66 +206,6 @@ func setupACC(srv *server) {
 		c.IndentedJSON(http.StatusOK, &common.Success{Success: true})
 	})
 
-	authorized.POST("/create/notification", func(c *gin.Context) {
-		u := c.MustGet("user").(*user.User)
-		var json *common.CreateNotificationInput
-		if err := c.ShouldBindJSON(&json); err != nil {
-			warnErr(c, err)
-			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		n, err := helpers.CreateNotificationRule(db, u, json)
-		if err != nil {
-			warnErr(c, err)
-			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		c.IndentedJSON(http.StatusOK, notification.TransformRuleToOutput(n))
-	})
-
-	authorized.POST("/delete/notification", func(c *gin.Context) {
-		u := c.MustGet("user").(*user.User)
-		var json *common.DeleteNotificationInput
-		if err := c.ShouldBindJSON(&json); err != nil {
-			warnErr(c, err)
-			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		n := &notification.NotificationRule{}
-		if err := db.Where("uuid = ? AND user_id = ?", json.UUID, u.ID).Error; err != nil {
-			warnErr(c, err)
-			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		if err := db.Delete(n).Error; err != nil {
-			warnErr(c, err)
-			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-
-		}
-		c.IndentedJSON(http.StatusOK, &common.Success{Success: true})
-	})
-
-	authorized.POST("/change/notification", func(c *gin.Context) {
-		u := c.MustGet("user").(*user.User)
-		var json *common.ModifyNotificationInput
-		if err := c.ShouldBindJSON(&json); err != nil {
-			warnErr(c, err)
-			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		n, err := helpers.ChangeNotificationRule(db, u, json)
-		if err != nil {
-			warnErr(c, err)
-			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		c.IndentedJSON(http.StatusOK, notification.TransformRuleToOutput(n))
-	})
-
 	authorized.POST("/create/token", func(c *gin.Context) {
 		u := c.MustGet("user").(*user.User)
 		var json common.CreateTokenInput
@@ -282,7 +215,7 @@ func setupACC(srv *server) {
 			return
 		}
 
-		token, err := helpers.CreateTokenAndNotification(store, db, u, json.WriteOnly, json.NumberOfArchives, json.Name, CONFIG.DefaultQuota, CONFIG.DefaultInodeQuota, CONFIG.MaxTokens, DEFAULT_NOTIFICATION_OLD_AND_DIFFERENT)
+		token, err := helpers.CreateToken(db, u, json.WriteOnly, json.Name, CONFIG.MaxTokens)
 
 		if err != nil {
 			warnErr(c, err)
@@ -290,15 +223,7 @@ func setupACC(srv *server) {
 			return
 		}
 
-		rules, err := helpers.ListNotifications(db, token)
-		if err != nil {
-			warnErr(c, err)
-			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-
-		}
-
-		c.IndentedJSON(http.StatusOK, helpers.TransformTokenForSending(token, 0, 0, rules))
+		c.IndentedJSON(http.StatusOK, helpers.TransformTokenForSending(token))
 	})
 
 	authorized.POST("/change/token", func(c *gin.Context) {
@@ -315,9 +240,6 @@ func setupACC(srv *server) {
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		if json.NumberOfArchives > 0 {
-			token.NumberOfArchives = json.NumberOfArchives
-		}
 		if json.WriteOnly != nil {
 			token.WriteOnly = *json.WriteOnly
 		}
@@ -327,14 +249,7 @@ func setupACC(srv *server) {
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		rules, err := helpers.ListNotifications(db, token)
-		if err != nil {
-			warnErr(c, err)
-			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		c.IndentedJSON(http.StatusOK, helpers.TransformTokenForSending(token, 0, 0, rules))
+		c.IndentedJSON(http.StatusOK, helpers.TransformTokenForSending(token))
 	})
 
 	authorized.POST("/delete/token", func(c *gin.Context) {
@@ -353,6 +268,24 @@ func setupACC(srv *server) {
 		}
 
 		if err := file.DeleteToken(store, db, token); err != nil {
+			warnErr(c, err)
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.IndentedJSON(http.StatusOK, &common.Success{Success: true})
+	})
+
+	authorized.POST("/stop/:file_metadata_id", func(c *gin.Context) {
+		u := c.MustGet("user").(*user.User)
+		id, err := strconv.ParseInt(c.Param("file_metadata_id"), 10, 64)
+		if err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+
+		}
+		_, err = helpers.StopNotifications(db, u, uint64(id))
+		if err != nil {
 			warnErr(c, err)
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -436,14 +369,10 @@ func setupACC(srv *server) {
 		} else if subscribe {
 			if len(status.Tokens) == 0 {
 				// in case someone re-subscribes, dont make new token for them
-				_, err = helpers.CreateTokenAndNotification(store, tx, u,
+				_, err = helpers.CreateToken(tx, u,
 					false,
-					7,
-					"generic-daily-backup-7",
-					CONFIG.DefaultQuota,
-					CONFIG.DefaultInodeQuota,
-					CONFIG.MaxTokens,
-					DEFAULT_NOTIFICATION_OLD_AND_DIFFERENT)
+					"generic",
+					CONFIG.MaxTokens)
 				if err != nil {
 					tx.Rollback()
 					warnErr(c, err)
@@ -575,5 +504,4 @@ func setupACC(srv *server) {
 	srv.registerHelp(false, help.HelpObject{Template: help.Profile, Status: common.EMPTY_STATUS}, "/register")
 	srv.registerHelp(false, help.HelpObject{Template: help.GuiTos, Status: common.EMPTY_STATUS}, "/register/tos")
 	srv.registerHelp(false, help.HelpObject{Template: help.TokenMeta, Status: common.EMPTY_STATUS}, "/protected/token", "/protected/token/*path", "/token", "/tokens")
-	srv.registerHelp(false, help.HelpObject{Template: help.NotificationMeta, Status: common.EMPTY_STATUS}, "/protected/notification", "/protected/notification/*path", "/notification", "/notifications")
 }

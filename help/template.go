@@ -17,7 +17,7 @@ type HelpObject struct {
 	Template      TextTemplate
 	Err           error
 	Status        *common.UserStatusOutput
-	Notifications []common.PerRuleGroup
+	Notifications []common.FileNotification
 	FilePath      string
 	Protected     bool
 	Method        string

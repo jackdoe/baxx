@@ -6,5 +6,27 @@ cat path/to/file | encrypt | curl --data-binary @- \
 or (no encryption, strongly discouraged)
 curl -T path/to/file https://baxx.dev/io/$BAXX_TOKEN/path/to/file
 
-Same filepath can have up to #N Versions depending on the token
-configuration.
+Query Parameters:
+  keep_n: how many versions you want of this file
+  age: notify if there is no new version in N sec (0 means disable)
+  delta: notify if the new version is n% different (0 means disable)
+
+Example:
+  cat f | encrypt | curl --data-binary @- \
+   'https://baxx.dev/io/$BAXX_TOKEN/f?keep_n=10&age=3600&delta=10'
+  
+  It will keep 10 versions of the file, when you upload 11th version
+  it will delete the first one.
+  
+  If no new file for path 'f' is sent within 1 hour, or the new file
+  is 10% too different, you will receive notification
+
+to change the settings you can upload new file with
+  cat f | encrypt | curl --data-binary @- \
+   'https://baxx.dev/io/$BAXX_TOKEN/f?keep_n=1&age=3600&delta=0'
+
+You will receive only 1 notification per file version per file.
+Meaning that if you receive an email that a file is too old,
+until new version is uploaded you wont receive more notifications
+for this file.
+

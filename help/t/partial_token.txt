@@ -1,9 +1,5 @@
 TOKEN: {{.UUID}}
   {{ if .Name }}Name: {{ .Name }}{{ end }}
   Write Only: {{ .WriteOnly }}
-  Keep N Versions: {{ .NumberOfArchives }} (per file)
-  Quota Size: {{prettySize .QuotaUsed}}/{{prettySize  .Quota}}
-  QUota Inodes: {{ .QuotaInodeUsed}}/{{.QuotaInode}}
-{{- range .NotificationRules }}
-{{ template "partial_notification_info.txt" . -}}
-{{ end }}
+  Used Size: {{prettySize .SizeUsed}}
+  Files Count: {{ .InodesUsed}}

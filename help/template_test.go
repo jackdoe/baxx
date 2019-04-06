@@ -29,76 +29,55 @@ func TestAll(t *testing.T) {
 	fmt.Println(Render(HelpObject{Template: TokenMeta, Email: status.Email, Status: status}))
 	fmt.Println(Render(HelpObject{Template: SyncMeta, Email: status.Email, Status: status}))
 
-	fmt.Println(Render(HelpObject{Template: EmailNotification, Email: status.Email, Status: status, Notifications: []common.PerRuleGroup{
-		common.PerRuleGroup{
-			PerFile: []common.FileNotification{
-				common.FileNotification{
-					Age:             &common.AgeNotification{Overdue: 1 * time.Second, ActualAge: 1 * time.Second},
-					Size:            &common.SizeNotification{PreviousSize: 5555, Delta: 0.123123},
-					CreatedAt:       time.Now(),
-					FullPath:        "/tmp/example.txt",
-					LastVersionSize: 1,
-				},
-				common.FileNotification{
-					Age:             &common.AgeNotification{Overdue: 1 * time.Second, ActualAge: 1 * time.Second},
-					Size:            &common.SizeNotification{PreviousSize: 5555, Delta: 0.123123},
-					CreatedAt:       time.Now(),
-					FullPath:        "/tmp/example.txt",
-					LastVersionSize: 1,
-				},
-				common.FileNotification{
-					Age:             &common.AgeNotification{Overdue: 1 * time.Second, ActualAge: 1 * time.Second},
-					Size:            &common.SizeNotification{PreviousSize: 5555, Delta: 0.123123},
-					CreatedAt:       time.Now(),
-					FullPath:        "/tmp/example.txt",
-					LastVersionSize: 1,
-				},
-			},
-			Rule: common.NotificationRuleOutput{
-				Name:              "more than 1 day old database backup",
-				Regexp:            "\\.sql",
-				AcceptableAgeDays: 1,
-				UUID:              "NOTIFICATION-UUID",
-			},
+	fmt.Println(Render(HelpObject{Template: EmailNotification, Email: status.Email, Status: status, Notifications: []common.FileNotification{
+		common.FileNotification{
+			Age:             &common.AgeNotification{Overdue: 1 * time.Second, ActualAge: 1 * time.Second},
+			Size:            &common.SizeNotification{PreviousSize: 5555, Delta: 0.123123},
+			CreatedAt:       time.Now(),
+			FullPath:        "/tmp/example.txt",
+			LastVersionSize: 1,
 		},
-
-		common.PerRuleGroup{
-			PerFile: []common.FileNotification{
-				common.FileNotification{
-					Age:             &common.AgeNotification{Overdue: 1 * time.Second, ActualAge: 1 * time.Second},
-					Size:            &common.SizeNotification{PreviousSize: 5555, Delta: 0.123123},
-					CreatedAt:       time.Now(),
-					FullPath:        "/tmp/example.txt",
-					LastVersionSize: 1,
-				},
-				common.FileNotification{
-					Age:             &common.AgeNotification{Overdue: 1 * time.Second, ActualAge: 1 * time.Second},
-					Size:            &common.SizeNotification{PreviousSize: 5555, Delta: 0.123123},
-					CreatedAt:       time.Now(),
-					FullPath:        "/tmp/example.txt",
-					LastVersionSize: 1,
-				},
-				common.FileNotification{
-					Age:             &common.AgeNotification{Overdue: 1 * time.Second, ActualAge: 1 * time.Second},
-					Size:            &common.SizeNotification{PreviousSize: 5555, Delta: 0.123123},
-					CreatedAt:       time.Now(),
-					FullPath:        "/tmp/example.txt",
-					LastVersionSize: 1,
-				},
-				common.FileNotification{
-					Age:             &common.AgeNotification{Overdue: 1 * time.Second, ActualAge: 1 * time.Second},
-					Size:            &common.SizeNotification{PreviousSize: 5555, Delta: 0.123123},
-					CreatedAt:       time.Now(),
-					FullPath:        "/tmp/example.txt",
-					LastVersionSize: 1,
-				},
-			},
-			Rule: common.NotificationRuleOutput{
-				Name:              "more than 1 day old database backup",
-				Regexp:            "\\.sql",
-				AcceptableAgeDays: 1,
-				UUID:              "NOTIFICATION-UUID",
-			},
+		common.FileNotification{
+			Age:             &common.AgeNotification{Overdue: 1 * time.Second, ActualAge: 1 * time.Second},
+			Size:            &common.SizeNotification{PreviousSize: 5555, Delta: 0.123123},
+			CreatedAt:       time.Now(),
+			FullPath:        "/tmp/example.txt",
+			LastVersionSize: 1,
+		},
+		common.FileNotification{
+			Age:             &common.AgeNotification{Overdue: 1 * time.Second, ActualAge: 1 * time.Second},
+			Size:            &common.SizeNotification{PreviousSize: 5555, Delta: 0.123123},
+			CreatedAt:       time.Now(),
+			FullPath:        "/tmp/example.txt",
+			LastVersionSize: 1,
+		},
+		common.FileNotification{
+			Age:             &common.AgeNotification{Overdue: 1 * time.Second, ActualAge: 1 * time.Second},
+			Size:            &common.SizeNotification{PreviousSize: 5555, Delta: 0.123123},
+			CreatedAt:       time.Now(),
+			FullPath:        "/tmp/example.txt",
+			LastVersionSize: 1,
+		},
+		common.FileNotification{
+			Age:             &common.AgeNotification{Overdue: 1 * time.Second, ActualAge: 1 * time.Second},
+			Size:            &common.SizeNotification{PreviousSize: 5555, Delta: 0.123123},
+			CreatedAt:       time.Now(),
+			FullPath:        "/tmp/example.txt",
+			LastVersionSize: 1,
+		},
+		common.FileNotification{
+			Age:             &common.AgeNotification{Overdue: 1 * time.Second, ActualAge: 1 * time.Second},
+			Size:            &common.SizeNotification{PreviousSize: 5555, Delta: 0.123123},
+			CreatedAt:       time.Now(),
+			FullPath:        "/tmp/example.txt",
+			LastVersionSize: 1,
+		},
+		common.FileNotification{
+			Age:             &common.AgeNotification{Overdue: 1 * time.Second, ActualAge: 1 * time.Second},
+			Size:            &common.SizeNotification{PreviousSize: 5555, Delta: 0.123123},
+			CreatedAt:       time.Now(),
+			FullPath:        "/tmp/example.txt",
+			LastVersionSize: 1,
 		},
 	}}))
 

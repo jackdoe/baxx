@@ -24,37 +24,24 @@ import (
 )
 
 func FileLine(fm *file.FileMetadata, fv *file.FileVersion) string {
-	isCurrent := ""
-	if fm.LastVersionID == fv.ID {
-		isCurrent = "*"
-	}
-	return fmt.Sprintf("%d\t%s\t%s@v%d%s\t%s\n", fv.Size, fv.CreatedAt.Format(time.ANSIC), fm.FullPath(), fv.ID, isCurrent, fv.SHA256)
+	return fmt.Sprintf("%s %s %d %s\n", fm.FullPath(), fv.SHA256, fv.Size, fv.CreatedAt.Format(time.ANSIC))
 }
 
-func SaveFileProcess(s *file.Store, db *gorm.DB, u *user.User, t *file.Token, body io.Reader, p string) (*file.FileVersion, *file.FileMetadata, error) {
+func SaveFileProcess(s *file.Store, db *gorm.DB, u *user.User, t *file.Token, body io.Reader, fp file.FileParams) (*file.FileVersion, *file.FileMetadata, error) {
 	status, err := helpers.GetUserStatus(db, u)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if status.UsedSize > CONFIG.MaxUserQuota {
+	if status.QuotaUsed >= u.Quota {
 		return nil, nil, errors.New("quota limit reached")
 	}
 
-	leftSize, leftInodes, err := file.GetQuotaLeft(db, t)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if leftSize < 0 {
-		return nil, nil, errors.New("quota limit reached")
-	}
-
-	if leftInodes < 1 {
+	if status.QuotaInodeUsed >= u.QuotaInode {
 		return nil, nil, errors.New("inode quota limit reached")
 	}
 
-	return file.SaveFile(s, db, t, p, body)
+	return file.SaveFile(s, db, t, body, fp)
 }
 
 func LSAL(files []file.FileMetadataAndVersion) string {
@@ -83,8 +70,8 @@ func LSAL(files []file.FileMetadataAndVersion) string {
 		}
 		fmt.Fprintf(buf, "%s: total size: %d (%s)\n", k, size, common.PrettySize(size))
 		for _, f := range files {
-			for _, v := range f.Versions {
-				buf.WriteString(FileLine(f.FileMetadata, v))
+			if len(f.Versions) > 0 {
+				buf.WriteString(FileLine(f.FileMetadata, f.Versions[len(f.Versions)-1]))
 			}
 		}
 		fmt.Fprintf(buf, "\n")
@@ -143,7 +130,13 @@ func setupIO(srv *server) {
 			return
 		}
 		p := c.Param("path")
-		fv, fm, err := SaveFileProcess(store, db, u, t, body, p)
+		var fileParams file.FileParams
+		if err := c.Bind(&fileParams); err != nil {
+			warnErr(c, err)
+		}
+
+		fileParams.FullPath = p
+		fv, fm, err := SaveFileProcess(store, db, u, t, body, fileParams)
 		if err != nil {
 			warnErr(c, err)
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})

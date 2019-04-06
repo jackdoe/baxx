@@ -13,6 +13,7 @@ import (
 
 	"github.com/jackdoe/baxx/api/file"
 	"github.com/jackdoe/baxx/api/helpers"
+	"github.com/jackdoe/baxx/api/notification_rules"
 	notification "github.com/jackdoe/baxx/api/notification_rules"
 	"github.com/jackdoe/baxx/api/user"
 	"github.com/jackdoe/baxx/common"
@@ -57,34 +58,20 @@ func runRules(db *gorm.DB) {
 			log.Panic(err)
 		}
 
-		tokens := []*file.Token{}
-		if err := tx.Where("user_id = ?", u.ID).Find(&tokens).Error; err != nil {
-			tx.Rollback()
-			log.Panic(err)
-		}
 		sendQuotaNotification := false
-		for _, t := range tokens {
-			// if the quota is over, just send an email about it
-			leftSize, leftInodes, err := file.GetQuotaLeft(tx, t)
-			if err != nil {
-				tx.Rollback()
-				log.Panic(err)
-			}
-
-			if leftInodes < 1 || leftSize <= 0 {
-				alreadySentForToken := &notification.NotificationForQuota{}
-				if tx.Where("token_id = ?", t.ID).First(&alreadySentForToken).RecordNotFound() {
-					sendQuotaNotification = true
-					if err := tx.Create(&notification.NotificationForQuota{TokenID: t.ID}).Error; err != nil {
-						tx.Rollback()
-						log.Panic(err)
-					}
+		if status.QuotaUsed >= uint64(float64(u.Quota)*0.9) || status.QuotaInodeUsed >= uint64(float64(u.QuotaInode)*0.9) {
+			alreadySentForToken := &notification.NotificationForUserQuota{}
+			if tx.Where("user_id = ?", u.ID).First(&alreadySentForToken).RecordNotFound() {
+				sendQuotaNotification = true
+				if err := tx.Create(&notification.NotificationForUserQuota{UserID: u.ID}).Error; err != nil {
+					tx.Rollback()
+					log.Panic(err)
 				}
-			} else {
-				// always delete the fact that we sent
-				// so we can send again if space gets cleared and then full again
-				tx.Where("token_id = ?", t.ID).Delete(&notification.NotificationForQuota{})
 			}
+		} else {
+			// always delete the fact that we sent
+			// so we can send again if space gets cleared and then full again
+			tx.Where("user_id = ?", u.ID).Delete(&notification.NotificationForUserQuota{})
 		}
 
 		if sendQuotaNotification {
@@ -104,67 +91,28 @@ func runRules(db *gorm.DB) {
 		}
 
 		count := 0
-		grouped := []common.PerRuleGroup{}
-	TOKEN:
+		grouped := []common.FileNotification{}
+
+		tokens := []*file.Token{}
+		if err := tx.Where("user_id = ?", u.ID).Find(&tokens).Error; err != nil {
+			tx.Rollback()
+			log.Panic(err)
+		}
+
 		for _, t := range tokens {
-			rules := []*notification.NotificationRule{}
-			if err := tx.Where("user_id = ? AND token_id = ?", u.ID, t.ID).Find(&rules).Error; err != nil {
-				tx.Rollback()
-				log.Panic(err)
-			}
-			if len(rules) == 0 {
-				continue TOKEN
-			}
 			files, err := file.ListFilesInPath(tx, t, "", false)
 			if err != nil {
 				tx.Rollback()
 				log.Panic(err)
 			}
 
-			for _, rule := range rules {
-				// get all files in token
-				t := &file.Token{}
-				if err := tx.First(&t, rule.TokenID).Error; err != nil {
-					tx.Rollback()
-					log.Panic(err)
-				}
-
-				u := &user.User{}
-				if err := tx.First(&u, rule.UserID).Error; err != nil {
-					tx.Rollback()
-					log.Panic(err)
-				}
-
-				pf, err := notification.ExecuteRule(rule, files)
-				if err != nil {
-					tx.Rollback()
-					log.Panic(err)
-				}
-				unseen := []common.FileNotification{}
-				for _, p := range pf {
-					nfv := &notification.NotificationForFileVersion{
-						NotificationRuleID: rule.ID,
-						FileVersionID:      p.FileVersionID,
-					}
-					res := tx.Where(nfv).First(&nfv)
-					if res.RecordNotFound() {
-						unseen = append(unseen, p)
-					}
-					count++
-					nfv.Count++
-					if err := tx.Save(nfv).Error; err != nil {
-						tx.Rollback()
-						log.Panic(err)
-					}
-				}
-
-				if len(unseen) > 0 {
-					grouped = append(grouped, common.PerRuleGroup{
-						Rule:    notification.TransformRuleToOutput(rule),
-						PerFile: unseen,
-					})
-				}
+			pf := notification_rules.ExecuteRule(files)
+			unseen, err := notification_rules.IgnoreAndMarkAlreadyNotified(db, pf)
+			if err != nil {
+				tx.Rollback()
+				log.Panic(err)
 			}
+			grouped = append(grouped, unseen...)
 		}
 
 		if len(grouped) != 0 {

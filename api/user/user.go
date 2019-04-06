@@ -46,6 +46,8 @@ type User struct {
 	EmailVerified         *time.Time `json:"-"`
 	StartedSubscription   *time.Time `json:"-"`
 	CancelledSubscription *time.Time `json:"-"`
+	Quota                 uint64     `gorm:"not null;default:10737418240" json:"quota"`
+	QuotaInode            uint64     `gorm:"not null;default:1000" json:"quota_inode"`
 	HashedPassword        string     `gorm:"not null" json:"-"`
 	CreatedAt             time.Time  `json:"-"`
 	UpdatedAt             time.Time  `json:"-"`

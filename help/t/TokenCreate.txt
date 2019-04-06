@@ -2,16 +2,9 @@
 
 curl -u {{ template "partial_email_extract.txt" . }}  -d '{
   "write_only":false,
-  "keep_n_versions":7,
   "name": "example"
 }' https://baxx.dev/protected/create/token
 
 
 Write Only:
  tokens can only add but not download/list files (without password)
-
-Keep #N Versions:
- How many versions per file to keep.  Useful for database or modified
- files archives like, e.g:
-
- mysqldump | curl --data-binary @- https://baxx.dev/io/$BAXX_TOKEN/mysql.gz

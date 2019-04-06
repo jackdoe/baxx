@@ -6,30 +6,32 @@ import (
 )
 
 type Token struct {
-	ID               uint64 `gorm:"primary_key"`
-	UUID             string `gorm:"not null;type:varchar(255) unique"`
-	Salt             string `gorm:"not null;type:varchar(32)"`
-	Name             string `gorm:"null;type:varchar(255)"`
-	UserID           uint64 `gorm:"type:bigint not null REFERENCES users(id)"`
-	Quota            uint64 `gorm:"not null;default:10737418240" json:"quota"`
-	QuotaInode       uint64 `gorm:"not null;default:1000" json:"quota_inode"`
-	WriteOnly        bool   `gorm:"not null"`
-	NumberOfArchives uint64 `gorm:"not null"`
-	SizeUsed         uint64 `gorm:"not null;default:0"`
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
+	ID         uint64 `gorm:"primary_key"`
+	UUID       string `gorm:"not null;type:varchar(255) unique"`
+	Salt       string `gorm:"not null;type:varchar(32)"`
+	Name       string `gorm:"null;type:varchar(255)"`
+	UserID     uint64 `gorm:"type:bigint not null REFERENCES users(id)"`
+	WriteOnly  bool   `gorm:"not null"`
+	SizeUsed   uint64 `gorm:"not null;default:0"`
+	CountFiles uint64 `gorm:"not null;default:0"`
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 type FileMetadata struct {
-	ID            uint64    `gorm:"primary_key" json:"-"`
-	TokenID       uint64    `gorm:"type:bigint not null REFERENCES tokens(id)" json:"-"`
-	LastVersionID uint64    `gorm:"type:bigint" json:"-"`
-	CountRead     uint64    `gorm:"not null;default:0" json:"count_read"`
-	CountWrite    uint64    `gorm:"not null;default:0" json:"count_write"`
-	Path          string    `gorm:"not null" json:"path"`
-	Filename      string    `gorm:"not null" json:"filename"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	ID              uint64    `gorm:"primary_key" json:"-"`
+	TokenID         uint64    `gorm:"type:bigint not null REFERENCES tokens(id)" json:"-"`
+	LastVersionID   uint64    `gorm:"type:bigint" json:"-"`
+	CountRead       uint64    `gorm:"not null;default:0" json:"count_read"`
+	CountWrite      uint64    `gorm:"not null;default:0" json:"count_write"`
+	Path            string    `gorm:"not null" json:"path"`
+	Filename        string    `gorm:"not null" json:"filename"`
+	KeepN           uint64    `gorm:"not null;default:1" json:"keep_n_versions"`
+	AcceptableAge   uint64    `gorm:"not null;default:0" json:"acceptable_age"`
+	AcceptableDelta uint64    `gorm:"not null;default:0" json:"acceptable_delta"`
+	NotifiedAt      time.Time `json:"notified_at"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
 }
 
 func (fm *FileMetadata) FullPath() string {

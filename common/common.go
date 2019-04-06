@@ -6,9 +6,8 @@ import (
 )
 
 type CreateTokenInput struct {
-	WriteOnly        bool   `json:"write_only"`
-	Name             string `json:"name"`
-	NumberOfArchives uint64 `json:"keep_n_versions"`
+	WriteOnly bool   `json:"write_only"`
+	Name      string `json:"name"`
 }
 
 type CreateUserInput struct {
@@ -34,30 +33,9 @@ type Force struct {
 }
 
 type ModifyTokenInput struct {
-	WriteOnly        *bool  `json:"write_only"`
-	Name             string `json:"name"`
-	NumberOfArchives uint64 `json:"keep_n_versions"`
-	UUID             string `binding:"required" json:"token"`
-}
-
-type CreateNotificationInput struct {
-	AcceptableAgeDays                         int64  `json:"age_days"`
-	AcceptableSizeDeltaPercentBetweenVersions int64  `json:"size_delta_percent"`
-	TokenUUID                                 string `binding:"required" json:"token"`
-	Regexp                                    string `binding:"required" json:"regexp"`
-	Name                                      string `binding:"required" json:"name"`
-}
-
-type ModifyNotificationInput struct {
-	AcceptableAgeDays                         *int64  `json:"age_days"`
-	AcceptableSizeDeltaPercentBetweenVersions *int64  `json:"size_delta_percent"`
-	UUID                                      string  `binding:"required" json:"notification_uuid"`
-	Regexp                                    *string `json:"regexp"`
-	Name                                      *string `json:"name"`
-}
-
-type DeleteNotificationInput struct {
-	UUID string `binding:"required" json:"notification_uuid"`
+	WriteOnly *bool  `json:"write_only"`
+	Name      string `json:"name"`
+	UUID      string `binding:"required" json:"token"`
 }
 
 type Success struct {
@@ -69,26 +47,14 @@ type DeleteSuccess struct {
 	Count   int  `json:"deleted"`
 }
 
-type NotificationRuleOutput struct {
-	AcceptableAgeDays                         uint64 `json:"age_days"`
-	AcceptableSizeDeltaPercentBetweenVersions uint64 `json:"size_delta_percent"`
-	UUID                                      string `json:"notification_uuid"`
-	Regexp                                    string `json:"regexp"`
-	Name                                      string `json:"name"`
-}
-
 type TokenOutput struct {
-	UUID              string                   `json:"token"`
-	ID                uint64                   `json:"id"`
-	WriteOnly         bool                     `json:"write_only"`
-	Name              string                   `json:"name"`
-	NumberOfArchives  uint64                   `json:"keep_n_versions"`
-	CreatedAt         time.Time                `json:"created_at"`
-	Quota             uint64                   `json:"quota"`
-	QuotaUsed         uint64                   `json:"quota_used"`
-	QuotaInode        uint64                   `json:"quota_inodes"`
-	QuotaInodeUsed    uint64                   `json:"quota_inodes_used"`
-	NotificationRules []NotificationRuleOutput `json:"notification_rules"`
+	UUID       string    `json:"token"`
+	ID         uint64    `json:"id"`
+	WriteOnly  bool      `json:"write_only"`
+	Name       string    `json:"name"`
+	CreatedAt  time.Time `json:"created_at"`
+	SizeUsed   uint64    `json:"size_used"`
+	InodesUsed uint64    `json:"inodes_used"`
 }
 
 type UserStatusOutput struct {
@@ -96,7 +62,6 @@ type UserStatusOutput struct {
 	Paid                  bool           `json:"paid"`
 	StartedSubscription   *time.Time     `json:"started_subscription"`
 	CancelledSubscription *time.Time     `json:"cancelled_subscription"`
-	UsedSize              uint64         `json:"-"`
 	PaymentID             string         `json:"payment_id"`
 	SubscribeURL          string         `json:"subscribe_url"`
 	CancelSubscriptionURL string         `json:"cancel_subscription_url"`
@@ -104,6 +69,10 @@ type UserStatusOutput struct {
 	UserID                uint64         `json:"-"`
 	Tokens                []*TokenOutput `json:"tokens"`
 	Email                 string         `json:"email"`
+	Quota                 uint64         `json:"quota"`
+	QuotaUsed             uint64         `json:"quota_used"`
+	QuotaInode            uint64         `json:"quota_inodes"`
+	QuotaInodeUsed        uint64         `json:"quota_inodes_used"`
 }
 
 type QueryError struct {
@@ -115,54 +84,16 @@ var EMPTY_STATUS = &UserStatusOutput{
 	Email:     "your.email@example.com",
 	Tokens: []*TokenOutput{
 		&TokenOutput{
-			ID:               0,
-			UUID:             "TOKEN-UUID-A",
-			WriteOnly:        false,
-			NumberOfArchives: 3,
-			Quota:            10 * 1024 * 1024 * 1024,
-			QuotaUsed:        1024 * 10,
-			QuotaInode:       1000,
-			QuotaInodeUsed:   5,
-			Name:             "db-example-a",
-			NotificationRules: []NotificationRuleOutput{
-				NotificationRuleOutput{
-					Name:              "more than 1 day old database backup",
-					Regexp:            "\\.sql",
-					AcceptableAgeDays: 1,
-					UUID:              "NOTIFICATION-UUID",
-				},
-				NotificationRuleOutput{
-					Name:   "database file is 50% different",
-					Regexp: "\\.sql",
-					UUID:   "NOTIFICATION-UUID",
-					AcceptableSizeDeltaPercentBetweenVersions: 50,
-				},
-			},
+			ID:        0,
+			UUID:      "TOKEN-UUID-A",
+			WriteOnly: false,
+			Name:      "db-example-a",
 		},
 		&TokenOutput{
-			ID:               0,
-			UUID:             "TOKEN-UUID-B",
-			WriteOnly:        false,
-			NumberOfArchives: 3,
-			Name:             "content-example-b",
-			Quota:            10 * 1024 * 1024 * 1024,
-			QuotaUsed:        1024 * 10,
-			QuotaInode:       1000,
-			QuotaInodeUsed:   5,
-			NotificationRules: []NotificationRuleOutput{
-				NotificationRuleOutput{
-					Name:              "more than 1 day old config backup",
-					Regexp:            "etc\\.\\.tar\\.gz",
-					UUID:              "NOTIFICATION-UUID",
-					AcceptableAgeDays: 1,
-				},
-				NotificationRuleOutput{
-					Name:   "file is 90% different",
-					Regexp: ".*",
-					UUID:   "NOTIFICATION-UUID",
-					AcceptableSizeDeltaPercentBetweenVersions: 90,
-				},
-			},
+			ID:        0,
+			UUID:      "TOKEN-UUID-B",
+			WriteOnly: false,
+			Name:      "content-example-b",
 		},
 	},
 }
@@ -191,11 +122,6 @@ type FileNotification struct {
 	FullPath        string
 	LastVersionSize uint64
 	FileVersionID   uint64
+	FileMetadataID  uint64
 	CreatedAt       time.Time
-}
-
-type PerRuleGroup struct {
-	PerFile        []FileNotification
-	Rule           NotificationRuleOutput
-	AlertCreatedAt time.Time
 }

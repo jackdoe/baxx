@@ -2,11 +2,9 @@ package helpers
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/jackdoe/baxx/api/file"
-	notification "github.com/jackdoe/baxx/api/notification_rules"
 	"github.com/jackdoe/baxx/api/user"
 	"github.com/jackdoe/baxx/common"
 
@@ -20,21 +18,14 @@ func GetUserStatus(db *gorm.DB, u *user.User) (*common.UserStatusOutput, error) 
 	}
 	tokensTransformed := []*common.TokenOutput{}
 	for _, t := range tokens {
-		usedSize, usedInodes, err := file.GetQuotaUsed(db, t)
-		if err != nil {
-			return nil, err
-		}
-		rules, err := ListNotifications(db, t)
-		if err != nil {
-			return nil, err
-		}
-
-		tokensTransformed = append(tokensTransformed, TransformTokenForSending(t, usedSize, usedInodes, rules))
+		tokensTransformed = append(tokensTransformed, TransformTokenForSending(t))
 	}
 
-	used := uint64(0)
+	usedSize := uint64(0)
+	usedInodes := uint64(0)
 	for _, t := range tokens {
-		used += t.SizeUsed
+		usedSize += t.SizeUsed
+		usedInodes += t.CountFiles
 	}
 
 	vl := &user.VerificationLink{}
@@ -42,7 +33,6 @@ func GetUserStatus(db *gorm.DB, u *user.User) (*common.UserStatusOutput, error) 
 
 	return &common.UserStatusOutput{
 		UserID:                u.ID,
-		UsedSize:              used,
 		EmailVerified:         u.EmailVerified,
 		StartedSubscription:   u.StartedSubscription,
 		CancelledSubscription: u.CancelledSubscription,
@@ -53,26 +43,22 @@ func GetUserStatus(db *gorm.DB, u *user.User) (*common.UserStatusOutput, error) 
 		Paid:                  u.Paid(),
 		PaymentID:             u.PaymentID,
 		Email:                 u.Email,
+		QuotaUsed:             uint64(usedSize),
+		QuotaInodeUsed:        uint64(usedInodes),
+		Quota:                 u.Quota,
+		QuotaInode:            u.QuotaInode,
 	}, nil
 }
 
-func TransformTokenForSending(t *file.Token, usedSize, usedInodes int64, rules []*notification.NotificationRule) *common.TokenOutput {
-	ru := []common.NotificationRuleOutput{}
-	for _, r := range rules {
-		ru = append(ru, notification.TransformRuleToOutput(r))
-	}
+func TransformTokenForSending(t *file.Token) *common.TokenOutput {
 	return &common.TokenOutput{
-		ID:                t.ID,
-		UUID:              t.UUID,
-		Name:              t.Name,
-		WriteOnly:         t.WriteOnly,
-		NumberOfArchives:  t.NumberOfArchives,
-		CreatedAt:         t.CreatedAt,
-		QuotaUsed:         uint64(usedSize),
-		QuotaInodeUsed:    uint64(usedInodes),
-		Quota:             t.Quota,
-		QuotaInode:        t.QuotaInode,
-		NotificationRules: ru,
+		ID:         t.ID,
+		UUID:       t.UUID,
+		Name:       t.Name,
+		WriteOnly:  t.WriteOnly,
+		CreatedAt:  t.CreatedAt,
+		SizeUsed:   t.SizeUsed,
+		InodesUsed: t.CountFiles,
 	}
 }
 
@@ -96,16 +82,31 @@ func FindTokenForUser(db *gorm.DB, token string, u *user.User) (*file.Token, err
 	return t, nil
 }
 
-func CreateToken(db *gorm.DB, writeOnly bool, u *user.User, numOfArchives uint64, name string, quota uint64, quotaInode uint64, maxTokens uint64) (*file.Token, error) {
+func StopNotifications(db *gorm.DB, u *user.User, fmid uint64) (*file.FileMetadata, error) {
+	var fm file.FileMetadata
+	if err := db.Where("id = ?", fmid).Take(&fm).Error; err != nil {
+		return nil, err
+	}
+	var t file.Token
+	if err := db.Where("id = ? AND user_id = ?", fm.TokenID, u.ID).Take(&t).Error; err != nil {
+		return nil, err
+	}
+
+	fm.AcceptableAge = 0
+	fm.AcceptableDelta = 0
+	if err := db.Save(fm).Error; err != nil {
+		return nil, err
+	}
+	return &fm, nil
+}
+
+func CreateToken(db *gorm.DB, u *user.User, writeOnly bool, name string, maxTokens uint64) (*file.Token, error) {
 	t := &file.Token{
-		UUID:             common.GetUUID(),
-		Salt:             strings.Replace(common.GetUUID(), "-", "", -1),
-		UserID:           u.ID,
-		WriteOnly:        writeOnly,
-		NumberOfArchives: numOfArchives,
-		Name:             name,
-		Quota:            quota,
-		QuotaInode:       quotaInode,
+		UUID:      common.GetUUID(),
+		Salt:      strings.Replace(common.GetUUID(), "-", "", -1),
+		UserID:    u.ID,
+		WriteOnly: writeOnly,
+		Name:      name,
 	}
 
 	tokens, err := ListTokens(db, u)
@@ -139,104 +140,4 @@ func FindTokenAndUser(db *gorm.DB, token string) (*file.Token, *user.User, error
 	}
 
 	return t, u, nil
-}
-
-func CreateTokenAndNotification(s *file.Store, db *gorm.DB, u *user.User, writeOnly bool, numOfArchives uint64, name string, quota uint64, quotaInode uint64, maxTokens uint64, notif ...common.CreateNotificationInput) (*file.Token, error) {
-	t, err := CreateToken(db, writeOnly, u, numOfArchives, name, quota, quotaInode, maxTokens)
-	if err != nil {
-		return nil, err
-	}
-	for _, n := range notif {
-		n.TokenUUID = t.UUID
-		_, err = CreateNotificationRule(db, u, &n)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return t, nil
-}
-
-func CreateNotificationRule(db *gorm.DB, u *user.User, json *common.CreateNotificationInput) (*notification.NotificationRule, error) {
-	token, err := FindTokenForUser(db, json.TokenUUID, u)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = regexp.Compile(json.Regexp)
-	if err != nil {
-		return nil, err
-	}
-
-	if json.AcceptableAgeDays < 0 {
-		return nil, fmt.Errorf("age_days must be >= 0 (0 is disabled), got: %d", json.AcceptableAgeDays)
-	}
-
-	if json.AcceptableSizeDeltaPercentBetweenVersions < 0 {
-		return nil, fmt.Errorf("delta_percent must be >= 0 (0 is disabled), got: %d", json.AcceptableSizeDeltaPercentBetweenVersions)
-	}
-
-	if json.AcceptableSizeDeltaPercentBetweenVersions == 0 && json.AcceptableAgeDays == 0 {
-		return nil, fmt.Errorf("both ")
-	}
-	n := &notification.NotificationRule{
-		TokenID:                                   token.ID,
-		UserID:                                    u.ID,
-		Regexp:                                    json.Regexp,
-		Name:                                      json.Name,
-		UUID:                                      common.GetUUID(),
-		AcceptableAgeSeconds:                      uint64(json.AcceptableAgeDays) * 86400,
-		AcceptableSizeDeltaPercentBetweenVersions: uint64(json.AcceptableSizeDeltaPercentBetweenVersions),
-	}
-
-	if err := db.Create(n).Error; err != nil {
-		return nil, err
-	}
-	return n, nil
-}
-
-func ChangeNotificationRule(db *gorm.DB, u *user.User, json *common.ModifyNotificationInput) (*notification.NotificationRule, error) {
-	n := &notification.NotificationRule{}
-	if err := db.Where("uuid = ? AND user_id = ?", json.UUID, u.ID).First(&n).Error; err != nil {
-		return nil, err
-	}
-
-	if json.Name != nil {
-		n.Name = *json.Name
-	}
-	if json.AcceptableSizeDeltaPercentBetweenVersions != nil {
-		if *json.AcceptableSizeDeltaPercentBetweenVersions < 0 {
-			return nil, fmt.Errorf("delta_percent must be >= 0 (0 is disabled), got: %d", *json.AcceptableSizeDeltaPercentBetweenVersions)
-		}
-
-		n.AcceptableSizeDeltaPercentBetweenVersions = uint64(*json.AcceptableSizeDeltaPercentBetweenVersions)
-	}
-	if json.AcceptableAgeDays != nil {
-		if *json.AcceptableAgeDays < 0 {
-			return nil, fmt.Errorf("age_days must be >= 0 (0 is disabled), got: %d", *json.AcceptableAgeDays)
-		}
-
-		n.AcceptableAgeSeconds = uint64(*json.AcceptableAgeDays) * 86400
-	}
-	if json.Regexp != nil {
-		n.Regexp = *json.Regexp
-	}
-
-	_, err := regexp.Compile(n.Regexp)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := db.Save(n).Error; err != nil {
-		return nil, err
-	}
-	return n, nil
-}
-
-func ListNotifications(db *gorm.DB, t *file.Token) ([]*notification.NotificationRule, error) {
-	rules := []*notification.NotificationRule{}
-	if err := db.Where("token_id = ?", t.ID).Find(&rules).Error; err != nil {
-		return nil, err
-	}
-
-	return rules, nil
 }

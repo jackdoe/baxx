@@ -1,5 +1,8 @@
 ## Current Tokens
 
+Quota Size: {{prettySize .Status.QuotaUsed}}/{{prettySize  .Status.Quota}}
+Quota Inodes: {{ .Status.QuotaInodeUsed}}/{{.Status.QuotaInode}}
+
 {{ range .Status.Tokens -}}
 {{ template "partial_token.txt" . -}}
 {{end -}}

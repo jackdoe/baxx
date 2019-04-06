@@ -2,49 +2,24 @@ Hi,
 There are some (possible) issues with your backups.
 {{- $email := .Email -}}
 {{ range .Notifications }}
+  {{ .FullPath }}
+  Created: {{ .CreatedAt.Format "Mon Jan 2 15:04:05 MST 2006" }}
+  Size: {{ prettySize .LastVersionSize }}
 
-  #######################
-
-  {{ template "partial_notification_info.txt" .Rule }}
-  {{ range .PerFile }}
-    {{ .FullPath }}
-    Created: {{ .CreatedAt.Format "Mon Jan 2 15:04:05 MST 2006" }}
-    Size: {{ prettySize .LastVersionSize }}
-    {{- if .Age }}
-      Older than expected:
-        age: {{ .Age.ActualAge }} 
-        overdue: {{ .Age.Overdue }}
-    {{ end -}}
-    {{- if .Size }}
-      Weird size delta:
-        current size {{ prettySize .LastVersionSize }}
-        previous size {{ prettySize .Size.PreviousSize }}
-        delta {{ prettyFloat .Size.Delta }}%
-    {{ end }}
-  {{ end }}
-
-  Alert is too strict?
-  {{- if .Rule.AcceptableAgeDays }}
-  increase expected age +1 day '{{ .Rule.Name }}':
-  curl -u {{ $email }} \
-    -XPOST \
-    -d '{
-      "age_days": {{ add .Rule.AcceptableAgeDays 1 }},
-      "notification_uuid": "{{.Rule.UUID }}"
-     }' https://baxx.dev/protected/change/notification
+  {{- if .Age }}
+    Older than expected:
+      age: {{ .Age.ActualAge }} 
+      overdue: {{ .Age.Overdue }}
   {{ end -}}
-  {{- if .Rule.AcceptableSizeDeltaPercentBetweenVersions }}
-  increase to delta% +10 for '{{ .Rule.Name }}':
-  curl -u {{ $email }} -XPOST \
-  -d '{
-    "size_delta_percent": {{ add .Rule.AcceptableSizeDeltaPercentBetweenVersions 10 }},
-    "notification_uuid": "{{.Rule.UUID }}"
-  }' https://baxx.dev/protected/change/notification
-  {{end}}
-  to delete this notification rule:
-  curl -u {{ $email }} -d '{"notification_uuid": "{{.Rule.UUID}}"}' https://baxx.dev/protected/delete/notification
+  {{- if .Size }}
+    Weird size delta:
+      current size {{ prettySize .LastVersionSize }}
+      previous size {{ prettySize .Size.PreviousSize }}
+      delta {{ prettyFloat .Size.Delta }}%
+  {{ end }}
+  Disable all notifications for {{.FullPath}}:
+  curl -XPOST -u {{ $email }} https://baxx.dev/protected/stop/{{ .FileMetadataID }}
 
-  #######################
 {{end }}
 
 Help:

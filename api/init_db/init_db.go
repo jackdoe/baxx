@@ -23,9 +23,8 @@ func InitDatabase(db *gorm.DB) {
 		&file.FileVersion{},
 		&al.ActionLog{},
 		&user.PaymentHistory{},
-		&notification.NotificationRule{},
 		&notification.NotificationForFileVersion{},
-		&notification.NotificationForQuota{},
+		&notification.NotificationForUserQuota{},
 		&monitoring.MonitoringPerNode{},
 		&monitoring.DiskUsagePerNode{},
 		&monitoring.DiskIOPerNode{},
@@ -84,16 +83,11 @@ func InitDatabase(db *gorm.DB) {
 	if err := db.Model(&file.FileMetadata{}).AddUniqueIndex("idx_fm_token_id_path_2", "token_id", "path", "filename").Error; err != nil {
 		log.Panic(err)
 	}
-
-	if err := db.Model(&notification.NotificationRule{}).AddIndex("idx_n_user_id_token_id", "user_id", "token_id").Error; err != nil {
+	if err := db.Model(&notification.NotificationForFileVersion{}).AddUniqueIndex("idx_nfv_fv_fm", "file_version_id", "file_metadata_id").Error; err != nil {
 		log.Panic(err)
 	}
 
-	if err := db.Model(&notification.NotificationForFileVersion{}).AddUniqueIndex("idx_nfv_rule_fv", "file_version_id", "notification_rule_id").Error; err != nil {
-		log.Panic(err)
-	}
-
-	if err := db.Model(&notification.NotificationForQuota{}).AddUniqueIndex("idx_nfq_token", "token_id").Error; err != nil {
+	if err := db.Model(&notification.NotificationForUserQuota{}).AddUniqueIndex("idx_nfq_user", "user_id").Error; err != nil {
 		log.Panic(err)
 	}
 }

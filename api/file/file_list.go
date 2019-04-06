@@ -17,8 +17,16 @@ func ListFilesInPath(db *gorm.DB, t *Token, p string, strict bool) ([]FileMetada
 			return nil, err
 		}
 	} else {
-		if err := db.Where("token_id = ? AND path like ?", t.ID, p+"%").Order("id").Find(&metadata).Error; err != nil {
-			return nil, err
+
+		if p == "/" {
+			// list all files: not strict and path is /
+			if err := db.Where("token_id = ?", t.ID).Order("id").Find(&metadata).Error; err != nil {
+				return nil, err
+			}
+		} else {
+			if err := db.Where("token_id = ? AND path like ?", t.ID, p+"%").Order("id").Find(&metadata).Error; err != nil {
+				return nil, err
+			}
 		}
 	}
 

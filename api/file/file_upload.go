@@ -7,9 +7,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func SaveFile(s *Store, db *gorm.DB, t *Token, fullpath string, body io.Reader) (*FileVersion, *FileMetadata, error) {
-	// get the metadata
+type FileParams struct {
+	KeepN           *uint64 `form:"keep_n" json:"keep_n"`
+	AcceptableAge   *uint64 `form:"age" json:"age"`
+	AcceptableDelta *uint64 `form:"delta" json:"delta"`
+	FullPath        string
+}
 
+func SaveFile(s *Store, db *gorm.DB, t *Token, body io.Reader, fp FileParams) (*FileVersion, *FileMetadata, error) {
+	fullpath := fp.FullPath
 	// upload the file to s3
 	storeID := GetStoreId(t.ID)
 	sha, size, err := s.UploadFile(t.Salt, t.UUID, storeID, body)
@@ -51,7 +57,21 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, fullpath string, body io.Reader) 
 
 	fm.LastVersionID = fv.ID
 	fm.CountWrite++
+
+	if fp.KeepN != nil && *fp.KeepN >= 1 {
+		fm.KeepN = *fp.KeepN
+	}
+
+	if fp.AcceptableAge != nil && *fp.AcceptableAge >= 0 {
+		fm.AcceptableAge = *fp.AcceptableAge
+	}
+
+	if fp.AcceptableDelta != nil && *fp.AcceptableDelta >= 0 {
+		fm.AcceptableDelta = *fp.AcceptableDelta
+	}
+
 	t.SizeUsed += fv.Size
+	t.CountFiles++
 
 	if err := tx.Save(fm).Error; err != nil {
 		tx.Rollback()
@@ -63,7 +83,7 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, fullpath string, body io.Reader) 
 		return nil, nil, err
 	}
 
-	limit := int(t.NumberOfArchives)
+	limit := int(fm.KeepN)
 	if len(versions) > limit {
 		needToDelete := len(versions) - limit
 	DELETE:
@@ -73,6 +93,7 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, fullpath string, body io.Reader) 
 			}
 
 			t.SizeUsed -= rm.Size
+			t.CountFiles--
 			removeBeforeExit[rm.StoreID] = true
 			if err := tx.Delete(rm).Error; err != nil {
 				tx.Rollback()

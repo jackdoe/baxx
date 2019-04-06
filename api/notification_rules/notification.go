@@ -2,113 +2,116 @@ package notification_rules
 
 import (
 	"math"
-	"regexp"
 	"time"
 
 	"github.com/jackdoe/baxx/api/file"
 	"github.com/jackdoe/baxx/common"
+	"github.com/jinzhu/gorm"
 )
 
-type NotificationRule struct {
-	ID                                        uint64 `gorm:"primary_key"`
-	UserID                                    uint64 `gorm:"type:bigint not null REFERENCES users(id) ON DELETE CASCADE"`
-	TokenID                                   uint64 `gorm:"type:bigint not null REFERENCES tokens(id) ON DELETE CASCADE"`
-	UUID                                      string `gorm:"type:varchar(255) not null unique"`
-	Name                                      string `gorm:"type:varchar(255) not null"`
-	Regexp                                    string `gorm:"type:varchar(255) not null"`
-	AcceptableAgeSeconds                      uint64
-	AcceptableSizeDeltaPercentBetweenVersions uint64
-	CreatedAt                                 time.Time `json:"created_at"`
-	UpdatedAt                                 time.Time `json:"updated_at"`
-}
-
 type NotificationForFileVersion struct {
-	ID                 uint64    `gorm:"primary_key"`
-	NotificationRuleID uint64    `gorm:"type:bigint not null REFERENCES notification_rules(id) ON DELETE CASCADE"`
-	FileVersionID      uint64    `gorm:"type:bigint not null REFERENCES file_versions(id) ON DELETE CASCADE"`
-	Count              uint64    `gorm:"type:bigint not null"`
-	CreatedAt          time.Time `json:"created_at"`
-	UpdatedAt          time.Time `json:"updated_at"`
+	ID             uint64    `gorm:"primary_key"`
+	FileMetadataID uint64    `gorm:"type:bigint not null REFERENCES file_metadata(id) ON DELETE CASCADE"`
+	FileVersionID  uint64    `gorm:"type:bigint not null REFERENCES file_versions(id) ON DELETE CASCADE"`
+	Count          uint64    `gorm:"type:bigint not null"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
-type NotificationForQuota struct {
+type NotificationForUserQuota struct {
 	ID        uint64    `gorm:"primary_key"`
-	TokenID   uint64    `gorm:"type:bigint not null REFERENCES tokens(id) ON DELETE CASCADE"`
+	UserID    uint64    `gorm:"type:bigint not null REFERENCES users(id) ON DELETE CASCADE"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-func ExecuteRule(rule *NotificationRule, files []file.FileMetadataAndVersion) ([]common.FileNotification, error) {
+func IgnoreAndMarkAlreadyNotified(db *gorm.DB, n []common.FileNotification) ([]common.FileNotification, error) {
+	out := []common.FileNotification{}
+	for _, current := range n {
+		nfv := &NotificationForFileVersion{
+			FileMetadataID: current.FileMetadataID,
+			FileVersionID:  current.FileVersionID,
+		}
+		res := db.Where(nfv).First(&nfv)
+		if err := res.Error; err != nil {
+			if res.RecordNotFound() {
+				nfv.Count++
+				if err := db.Save(nfv).Error; err != nil {
+					return nil, err
+				}
+				out = append(out, current)
+			} else {
+				return nil, err
+			}
+
+		}
+	}
+	return out, nil
+}
+
+func ExecuteRule(files []file.FileMetadataAndVersion) []common.FileNotification {
 	// super bad implementation
 	// just checking the flow
-	re, err := regexp.Compile(rule.Regexp)
-	if err != nil {
-		return nil, err
-	}
 
 	out := []common.FileNotification{}
 
 	for _, f := range files {
 		fullpath := f.FileMetadata.FullPath()
 		now := time.Now()
+		if f.FileMetadata.AcceptableAge == 0 && f.FileMetadata.AcceptableDelta == 0 {
+			continue
+		}
 
-		if re.MatchString(fullpath) {
-			if len(f.Versions) == 0 {
-				// this is possible if the file is being uploaded now
-				continue
-			}
+		if len(f.Versions) == 0 {
+			// this is possible if the file is being uploaded now
+			continue
+		}
 
-			// both of those are super simplified
-			// FIXME(jackdoe): more work is needed!
-			version := f.Versions[len(f.Versions)-1]
-			current := common.FileNotification{
-				CreatedAt:       version.CreatedAt,
-				FullPath:        fullpath,
-				LastVersionSize: version.Size,
-				FileVersionID:   version.ID,
-			}
+		// both of those are super simplified
+		// FIXME(jackdoe): more work is needed!
+		version := f.Versions[len(f.Versions)-1]
+		current := common.FileNotification{
+			CreatedAt:       version.CreatedAt,
+			FullPath:        fullpath,
+			LastVersionSize: version.Size,
+			FileVersionID:   version.ID,
+			FileMetadataID:  f.FileMetadata.ID,
+		}
 
-			if rule.AcceptableAgeSeconds > 0 {
-
-				acceptableAge := version.CreatedAt.Add(time.Duration(rule.AcceptableAgeSeconds) * time.Second)
-				if now.After(acceptableAge) {
-					n := &common.AgeNotification{
-						ActualAge: now.Sub(version.CreatedAt),
-						Overdue:   now.Sub(acceptableAge),
-					}
-					current.Age = n
+		if f.FileMetadata.AcceptableAge > 0 {
+			acceptableAge := version.CreatedAt.Add(time.Duration(f.FileMetadata.AcceptableAge) * time.Second)
+			if now.After(acceptableAge) {
+				n := &common.AgeNotification{
+					ActualAge: now.Sub(version.CreatedAt),
+					Overdue:   now.Sub(acceptableAge),
 				}
+				current.Age = n
 			}
+		}
 
-			if rule.AcceptableSizeDeltaPercentBetweenVersions > 0 && len(f.Versions) > 1 {
-				lastVersion := version
-				previousVersion := f.Versions[len(f.Versions)-2]
-				delta := (1 + (float64(lastVersion.Size) - float64(previousVersion.Size))) / float64(1+lastVersion.Size)
-				if (math.Abs(delta)*100) > float64(rule.AcceptableSizeDeltaPercentBetweenVersions) && lastVersion.Size != previousVersion.Size {
-					// delta trigger
-					n := &common.SizeNotification{
-						PreviousSize: previousVersion.Size,
-						Delta:        delta * 100,
-					}
-					current.Size = n
+		if f.FileMetadata.AcceptableDelta > 0 && len(f.Versions) > 1 {
+			lastVersion := version
+			previousVersion := f.Versions[len(f.Versions)-2]
+			deltaPercent := float64(0)
+			if lastVersion.Size == 0 {
+				deltaPercent = float64(previousVersion.Size) / float64(100)
+			} else {
+				deltaSize := float64(lastVersion.Size) - float64(previousVersion.Size)
+				deltaPercent = float64(100) * (deltaSize / float64(lastVersion.Size))
+			}
+			if (math.Abs(deltaPercent)) > float64(f.FileMetadata.AcceptableDelta) {
+				// delta trigger
+				n := &common.SizeNotification{
+					PreviousSize: previousVersion.Size,
+					Delta:        deltaPercent,
 				}
+				current.Size = n
 			}
-
-			if current.Age != nil || current.Size != nil {
-				out = append(out, current)
-			}
+		}
+		if current.Age != nil || current.Size != nil {
+			out = append(out, current)
 		}
 	}
 
-	return out, nil
-}
-
-func TransformRuleToOutput(n *NotificationRule) common.NotificationRuleOutput {
-	return common.NotificationRuleOutput{
-		AcceptableAgeDays:                         n.AcceptableAgeSeconds / 86400,
-		AcceptableSizeDeltaPercentBetweenVersions: n.AcceptableSizeDeltaPercentBetweenVersions,
-		UUID:   n.UUID,
-		Regexp: n.Regexp,
-		Name:   n.Name,
-	}
+	return out
 }
