@@ -1,5 +1,6 @@
-#!/bin/bash
-source /root/.bashrc
+#!/bin/sh
+
+. /root/.token
 
 tar -cvf - /etc/letsencrypt | \
     encrypt -k /root/.pw | \
