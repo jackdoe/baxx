@@ -68,15 +68,13 @@ func LSAL(files []file.FileMetadataAndVersion) string {
 				total += v.Size
 			}
 		}
-		fmt.Fprintf(buf, "%s: total size: %d (%s)\n", k, size, common.PrettySize(size))
+
 		for _, f := range files {
 			if len(f.Versions) > 0 {
 				buf.WriteString(FileLine(f.FileMetadata, f.Versions[len(f.Versions)-1]))
 			}
 		}
-		fmt.Fprintf(buf, "\n")
 	}
-	fmt.Fprintf(buf, "sum total size: %d (%s)\n", total, common.PrettySize(total))
 	return buf.String()
 }
 
