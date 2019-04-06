@@ -61,7 +61,7 @@ func DeleteFile(s *Store, db *gorm.DB, t *Token, fm *FileMetadata) error {
 		if t.SizeUsed >= rm.Size {
 			t.SizeUsed -= rm.Size
 		}
-		if t.CountFiles > 1 {
+		if t.CountFiles > 0 {
 			t.CountFiles--
 		}
 		remove = append(remove, *rm)
