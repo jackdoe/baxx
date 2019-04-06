@@ -6,11 +6,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/marcusolsson/tui-go"
-
 	baxx "github.com/jackdoe/baxx/client"
 	bcommon "github.com/jackdoe/baxx/common"
 	. "github.com/jackdoe/baxx/help"
+	"github.com/marcusolsson/tui-go"
 )
 
 var logo = `██████╗  █████╗ ██╗  ██╗██╗  ██╗
