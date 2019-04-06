@@ -107,7 +107,7 @@ func runRules(db *gorm.DB) {
 			}
 
 			pf := notification_rules.ExecuteRule(files)
-			unseen, err := notification_rules.IgnoreAndMarkAlreadyNotified(db, pf)
+			unseen, err := notification_rules.IgnoreAndMarkAlreadyNotified(tx, pf)
 			if err != nil {
 				tx.Rollback()
 				log.Panic(err)
