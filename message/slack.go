@@ -43,6 +43,7 @@ func SendSlack(webhook string, title string, body string) error {
 		resp, err := http.Post(webhook, "application/json", bytes.NewReader(encoded))
 		if err != nil {
 			wait <- err
+			return
 		}
 		if resp.StatusCode != 200 {
 			wait <- errors.New(resp.Status)
