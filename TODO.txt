@@ -33,7 +33,7 @@ infra day [Sat 30/03/2019]:
 
 * setup auth for scylla
 * baxx to use https://github.com/jackdoe/judoc [ done Sat 30 Mar 22:35:59 CET 2019 ]
-* add 2fa on the host machines
+* add 2fa on the host machines [ done Sat  6 Apr 16:27:59 CEST 2019 ]
 * add psad https://github.com/imthenachoman/How-To-Secure-A-Linux-Server#psad-iptables-intrusion-detection-and-prevention
 * run docker ui.baxx.dev to use port 22 and move normal ssh on port 2222
 
