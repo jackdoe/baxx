@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/bash
+source /root/.bashrc
 
 tar -cf - /etc/letsencrypt | \
     encrypt -k /root/.pw | \
