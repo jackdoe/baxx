@@ -381,7 +381,7 @@ func TestEverything(t *testing.T) {
 	init_db.InitDatabase(db)
 	defer db.Close()
 	FileNotif(t, db, store)
-	//	FileIO(t, db, store)
+	FileIO(t, db, store)
 }
 
 func getUsed(t *testing.T, db *gorm.DB, user *user.User) uint64 {
