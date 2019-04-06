@@ -129,7 +129,7 @@ func setupIO(srv *server) {
 		}
 		p := c.Param("path")
 		var fileParams file.FileParams
-		if err := c.Bind(&fileParams); err != nil {
+		if err := c.ShouldBindQuery(&fileParams); err != nil {
 			warnErr(c, err)
 		}
 

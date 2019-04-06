@@ -26,7 +26,7 @@ type FileMetadata struct {
 	CountWrite      uint64    `gorm:"not null;default:0" json:"count_write"`
 	Path            string    `gorm:"not null" json:"path"`
 	Filename        string    `gorm:"not null" json:"filename"`
-	KeepN           uint64    `gorm:"not null;default:1" json:"keep_n_versions"`
+	KeepN           uint64    `gorm:"not null;default:7" json:"keep_n_versions"`
 	AcceptableAge   uint64    `gorm:"not null;default:0" json:"acceptable_age"`
 	AcceptableDelta uint64    `gorm:"not null;default:0" json:"acceptable_delta"`
 	NotifiedAt      time.Time `json:"notified_at"`

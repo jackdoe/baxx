@@ -90,7 +90,6 @@ func runRules(db *gorm.DB) {
 			}
 		}
 
-		count := 0
 		grouped := []common.FileNotification{}
 
 		tokens := []*file.Token{}
@@ -119,7 +118,7 @@ func runRules(db *gorm.DB) {
 			err := message.EnqueueMail(
 				tx,
 				u.ID,
-				fmt.Sprintf("[ baxx.dev ] backup issues for %d files", count),
+				fmt.Sprintf("[ baxx.dev ] backup issues for %d files", len(grouped)),
 				help.Render(help.HelpObject{
 					Template:      help.EmailNotification,
 					Email:         u.Email,

@@ -13,7 +13,7 @@ Query Parameters:
 
 Example:
   cat f | encrypt | curl --data-binary @- \
-   'https://baxx.dev/io/$BAXX_TOKEN/f?keep_n=10&age=3600&delta=10'
+   "https://baxx.dev/io/$BAXX_TOKEN/f?keep_n=10&age=3600&delta=10"
   
   It will keep 10 versions of the file, when you upload 11th version
   it will delete the first one.
@@ -23,7 +23,7 @@ Example:
 
 to change the settings you can upload new file with
   cat f | encrypt | curl --data-binary @- \
-   'https://baxx.dev/io/$BAXX_TOKEN/f?keep_n=1&age=3600&delta=0'
+   "https://baxx.dev/io/$BAXX_TOKEN/f?keep_n=1&age=3600&delta=0"
 
 You will receive only 1 notification per file version per file.
 Meaning that if you receive an email that a file is too old,

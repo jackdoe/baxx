@@ -3,7 +3,7 @@ SCRIPT=$(readlink -f "$0")
 dir=$(dirname "$SCRIPT")
 
 mkdir -p $dir/bin
-echo rm -rf $dir/t && cp -rp $dir/../help/t $dir/t
+rm -rf $dir/t && cp -rp $dir/../help/t $dir/t
 
 cd $dir/../cmd/notification_run/
 go build -o $dir/bin/notification_run

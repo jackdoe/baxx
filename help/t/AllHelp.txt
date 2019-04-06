@@ -1,7 +1,6 @@
 {{ template "TokenMeta.txt" . }}
 {{ template "FileMeta.txt" . }}
 {{ template "SyncMeta.txt" . }}
-{{ template "NotificationMeta.txt" . }}
 {{ template "Profile.txt" . }}
 {{ template "Examples.txt" . }}
 {{ template "Encryption.txt" . }}
