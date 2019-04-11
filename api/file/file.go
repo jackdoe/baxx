@@ -22,6 +22,7 @@ type FileMetadata struct {
 	ID              uint64    `gorm:"primary_key" json:"-"`
 	TokenID         uint64    `gorm:"type:bigint not null REFERENCES tokens(id)" json:"-"`
 	LastVersionID   uint64    `gorm:"type:bigint" json:"-"`
+	ShareUUID       string    `gorm:"null;type:varchar(255) unique" json:"share_uuid"`
 	CountRead       uint64    `gorm:"not null;default:0" json:"count_read"`
 	CountWrite      uint64    `gorm:"not null;default:0" json:"count_write"`
 	Path            string    `gorm:"not null" json:"path"`
@@ -29,7 +30,6 @@ type FileMetadata struct {
 	KeepN           uint64    `gorm:"not null;default:7" json:"keep_n_versions"`
 	AcceptableAge   uint64    `gorm:"not null;default:0" json:"acceptable_age"`
 	AcceptableDelta uint64    `gorm:"not null;default:0" json:"acceptable_delta"`
-	NotifiedAt      time.Time `json:"notified_at"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
 }
@@ -42,8 +42,7 @@ func (fm *FileMetadata) FullPath() string {
 }
 
 type FileVersion struct {
-	ID             uint64 `gorm:"primary_key" json:"id"`
-	DuplicatedSave uint64 `gorm:"not null" json:"duplicate_save"`
+	ID uint64 `gorm:"primary_key" json:"id"`
 
 	// denormalized for simplicity
 	TokenID        uint64 `gorm:"type:bigint not null REFERENCES tokens(id)" json:"-"`
@@ -54,7 +53,7 @@ type FileVersion struct {
 	StoreID string `gorm:"type:varchar(255) not null unique" json:"-"`
 
 	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	UpdatedAt time.Time `json:"-"`
 }
 
 type FileMetadataAndVersion struct {

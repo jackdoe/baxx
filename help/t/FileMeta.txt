@@ -13,6 +13,8 @@
 
 {{ template "FileList.txt" . }}
 
+{{ template "FileShare.txt" . }}
+
 ## Write Only Tokens
 
 Write Only tokens require BasicAuth.

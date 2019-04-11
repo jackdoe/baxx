@@ -24,7 +24,11 @@ import (
 )
 
 func FileLine(fm *file.FileMetadata, fv *file.FileVersion) string {
-	return fmt.Sprintf("%s %s %d %s\n", fm.FullPath(), fv.SHA256, fv.Size, fv.CreatedAt.Format(time.ANSIC))
+	if fm.ShareUUID != "" {
+		return fmt.Sprintf("%s %s %d %s SHARE:%s\n", fm.FullPath(), fv.SHA256, fv.Size, fv.CreatedAt.Format(time.ANSIC), fm.ShareUUID)
+	} else {
+		return fmt.Sprintf("%s %s %d %s\n", fm.FullPath(), fv.SHA256, fv.Size, fv.CreatedAt.Format(time.ANSIC))
+	}
 }
 
 func SaveFileProcess(s *file.Store, db *gorm.DB, u *user.User, t *file.Token, body io.Reader, fp file.FileParams) (*file.FileVersion, *file.FileMetadata, error) {
@@ -115,6 +119,84 @@ func setupIO(srv *server) {
 		c.Header("Content-Transfer-Encoding", "binary")
 		c.Header("Content-Type", "application/octet-stream")
 		c.DataFromReader(http.StatusOK, int64(fv.Size), "octet/stream", reader, map[string]string{})
+	}
+
+	getSharedFile := func(c *gin.Context) {
+		uuid := c.Param("uuid")
+		t, fv, fm, err := file.FindFileByShareUUID(db, uuid)
+		if err != nil {
+			warnErr(c, err)
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		reader, err := store.DownloadFile(t.Salt, t.UUID, fv.StoreID)
+		if err != nil {
+			warnErr(c, err)
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if err := db.Exec("UPDATE file_metadata SET count_read = count_read + 1 WHERE id = ?", fm.ID).Error; err != nil {
+			// just warn, for whatever reason this might error
+			// its better if we continue because the store might not be affected
+			warnErr(c, err)
+		}
+
+		// FIXME: close?
+		c.Header("Content-Length", fmt.Sprintf("%d", fv.Size))
+
+		c.Header("Content-Disposition", "attachment; filename="+fv.SHA256+".sha") // make sure people dont use it for loading js
+		c.Header("Content-Transfer-Encoding", "binary")
+		c.Header("Content-Type", "application/octet-stream")
+		c.DataFromReader(http.StatusOK, int64(fv.Size), "octet/stream", reader, map[string]string{})
+	}
+
+	unshare := func(c *gin.Context) {
+		t, _, err := getViewTokenLoggedOrNot(c)
+		if err != nil {
+			warnErr(c, err)
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		_, fm, err := file.FindFile(db, t, c.Param("path"))
+		if err != nil {
+			warnErr(c, err)
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if err := db.Exec("UPDATE file_metadata SET share_uuid = null WHERE id = ?", fm.ID).Error; err != nil {
+			warnErr(c, err)
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.IndentedJSON(http.StatusOK, gin.H{"success": true})
+	}
+
+	share := func(c *gin.Context) {
+		t, _, err := getViewTokenLoggedOrNot(c)
+		if err != nil {
+			warnErr(c, err)
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		_, fm, err := file.FindFile(db, t, c.Param("path"))
+		if err != nil {
+			warnErr(c, err)
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		uuid := common.GetUUID()
+		if err := db.Exec("UPDATE file_metadata SET share_uuid = ? WHERE id = ?", uuid, fm.ID).Error; err != nil {
+			warnErr(c, err)
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"uuid": uuid, "link": fmt.Sprintf("https://baxx.dev/s/%s", uuid)})
 	}
 
 	upload := func(c *gin.Context) {
@@ -232,6 +314,11 @@ func setupIO(srv *server) {
 	srv.r.PUT(mutateSinglePATH, upload)
 	srv.r.DELETE(mutateSinglePATH, deleteFile)
 	srv.r.GET("/ls/:token/*path", listFiles)
+
+	srv.r.POST("/share/:token/*path", share)
+	srv.r.POST("/unshare/:token/*path", unshare)
+
+	srv.r.GET("/s/:uuid", getSharedFile)
 
 	srv.registerHelp(false, help.HelpObject{Template: help.FileMeta}, "/io", "/io/*path", "/ls", "/ls/*path")
 }

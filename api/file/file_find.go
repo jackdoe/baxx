@@ -24,6 +24,28 @@ func FindFile(db *gorm.DB, t *Token, p string) (*FileVersion, *FileMetadata, err
 	return fv, fm, nil
 }
 
+func FindFileByShareUUID(db *gorm.DB, uuid string) (*Token, *FileVersion, *FileMetadata, error) {
+	fm := &FileMetadata{}
+	if err := db.Where("share_uuid = ?", uuid).Take(fm).Error; err != nil {
+		return nil, nil, nil, err
+
+	}
+	if fm.LastVersionID == 0 {
+		return nil, nil, nil, fmt.Errorf("file without version, probably interrupted, please reupload")
+	}
+	fv := &FileVersion{}
+	if err := db.Where("id = ?", fm.LastVersionID).Last(fv).Error; err != nil {
+		return nil, nil, nil, err
+	}
+
+	t := &Token{}
+	if err := db.Where("id = ?", fm.TokenID).Take(t).Error; err != nil {
+		return nil, nil, nil, err
+	}
+
+	return t, fv, fm, nil
+}
+
 func FindFileBySHA(db *gorm.DB, t *Token, sha string) (*FileVersion, *FileMetadata, error) {
 	// FIXME(jackdoe): make sure the found file is actually the latest version
 	fv := &FileVersion{}

@@ -1,0 +1,30 @@
+## File Share
+
+It is possible to generate sharable uuid for any file.
+The sharing is read only, but accessible from the whole internet, so
+be careful.
+
+To *share*:
+ curl -XPOST https://baxx.dev/share/$BAXX_TOKEN/path/to/file
+
+It will return a json object having a link you can use to download the
+file, the format is: https://baxx/dev/s/:uuid
+{
+    "link": "https://baxx.dev/s/ffd34b6f-3d14-46ba-b3c1-7527f9a7cb3a",
+    "uuid": "ffd34b6f-3d14-46ba-b3c1-7527f9a7cb3a"
+}
+
+If you run the share command again, it will generate a new link, and
+the old one will be invalid
+
+To *unshare*:
+ curl -XPOST https://baxx.dev/unshare/$BAXX_TOKEN/path/to/file
+
+To download shared file:
+ curl https://baxx.dev/s/:uuid
+
+To list all shared files:
+ curl https://baxx.dev/ls/$BAXX_TOKEN/ | grep 'SHARE:'
+
+Last column in /ls/$BAXX_TOKEN/ is SHARE:uuid.
+
