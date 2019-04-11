@@ -196,7 +196,7 @@ func setupIO(srv *server) {
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		c.IndentedJSON(http.StatusBadRequest, gin.H{"uuid": uuid, "link": fmt.Sprintf("https://baxx.dev/s/%s", uuid)})
+		c.IndentedJSON(http.StatusOK, gin.H{"uuid": uuid, "link": fmt.Sprintf("https://baxx.dev/s/%s", uuid)})
 	}
 
 	upload := func(c *gin.Context) {
