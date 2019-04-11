@@ -22,7 +22,7 @@ type FileMetadata struct {
 	ID              uint64    `gorm:"primary_key" json:"-"`
 	TokenID         uint64    `gorm:"type:bigint not null REFERENCES tokens(id)" json:"-"`
 	LastVersionID   uint64    `gorm:"type:bigint" json:"-"`
-	ShareUUID       string    `gorm:"null;type:varchar(255) unique" json:"share_uuid"`
+	ShareUUID       *string   `gorm:"null;type:varchar(255) unique" json:"share_uuid"`
 	CountRead       uint64    `gorm:"not null;default:0" json:"count_read"`
 	CountWrite      uint64    `gorm:"not null;default:0" json:"count_write"`
 	Path            string    `gorm:"not null" json:"path"`

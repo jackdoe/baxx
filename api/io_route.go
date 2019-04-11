@@ -24,8 +24,8 @@ import (
 )
 
 func FileLine(fm *file.FileMetadata, fv *file.FileVersion) string {
-	if fm.ShareUUID != "" {
-		return fmt.Sprintf("%s %s %d %s SHARE:%s\n", fm.FullPath(), fv.SHA256, fv.Size, fv.CreatedAt.Format(time.ANSIC), fm.ShareUUID)
+	if fm.ShareUUID != nil && *fm.ShareUUID != "" {
+		return fmt.Sprintf("%s %s %d %s SHARE:%s\n", fm.FullPath(), fv.SHA256, fv.Size, fv.CreatedAt.Format(time.ANSIC), *fm.ShareUUID)
 	} else {
 		return fmt.Sprintf("%s %s %d %s\n", fm.FullPath(), fv.SHA256, fv.Size, fv.CreatedAt.Format(time.ANSIC))
 	}
