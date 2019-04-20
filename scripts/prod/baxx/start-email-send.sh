@@ -11,4 +11,4 @@ docker run \
        -e BAXX_SLACK_PANIC="$BAXX_SLACK_PANIC" \
        -e BAXX_POSTGRES="$BAXX_POSTGRES" \
        -e BAXX_SENDGRID_KEY="$BAXX_SENDGRID_KEY" \
-       jackdoe/baxx:2.0.0 /baxx/send_email_queue -debug
+       jackdoe/baxx:2.0.6 /baxx/send_email_queue -debug
