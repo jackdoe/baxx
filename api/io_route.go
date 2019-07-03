@@ -143,13 +143,15 @@ func setupIO(srv *server) {
 			warnErr(c, err)
 		}
 
-		// FIXME: close?
+		// this is very useful as paste, so assume text/plain or im
 		c.Header("Content-Length", fmt.Sprintf("%d", fv.Size))
-
-		c.Header("Content-Disposition", "attachment; filename="+fv.SHA256+".sha") // make sure people dont use it for loading js
 		c.Header("Content-Transfer-Encoding", "binary")
-		c.Header("Content-Type", "application/octet-stream")
-		c.DataFromReader(http.StatusOK, int64(fv.Size), "octet/stream", reader, map[string]string{})
+		ct := "application/octet-stream"
+		if fv.ContentType != "" {
+			ct = fv.ContentType
+		}
+		c.Header("Content-Type", ct)
+		c.DataFromReader(http.StatusOK, int64(fv.Size), ct, reader, map[string]string{})
 	}
 
 	unshare := func(c *gin.Context) {
@@ -216,6 +218,8 @@ func setupIO(srv *server) {
 		}
 
 		fileParams.FullPath = p
+		fileParams.ContentType = c.Request.Header.Get("Content-Type")
+
 		fv, fm, err := SaveFileProcess(store, db, u, t, body, fileParams)
 		if err != nil {
 			warnErr(c, err)

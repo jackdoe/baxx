@@ -11,6 +11,7 @@ type FileParams struct {
 	KeepN           *uint64 `form:"keep_n" json:"keep_n"`
 	AcceptableAge   *uint64 `form:"age" json:"age"`
 	AcceptableDelta *uint64 `form:"delta" json:"delta"`
+	ContentType     string
 	FullPath        string
 }
 
@@ -49,6 +50,7 @@ func SaveFile(s *Store, db *gorm.DB, t *Token, body io.Reader, fp FileParams) (*
 		SHA256:         sha,
 		TokenID:        t.ID,
 		StoreID:        storeID,
+		ContentType:    fp.ContentType,
 	}
 	if err := tx.Create(fv).Error; err != nil {
 		tx.Rollback()

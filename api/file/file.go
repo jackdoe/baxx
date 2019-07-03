@@ -48,12 +48,12 @@ type FileVersion struct {
 	TokenID        uint64 `gorm:"type:bigint not null REFERENCES tokens(id)" json:"-"`
 	FileMetadataID uint64 `gorm:"type:bigint not null REFERENCES file_metadata(id)" json:"-"`
 
-	Size    uint64 `gorm:"not null" json:"size"`
-	SHA256  string `gorm:"not null" json:"sha"`
-	StoreID string `gorm:"type:varchar(255) not null unique" json:"-"`
-
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"-"`
+	Size        uint64    `gorm:"not null" json:"size"`
+	SHA256      string    `gorm:"not null" json:"sha"`
+	StoreID     string    `gorm:"type:varchar(255) not null unique" json:"-"`
+	ContentType string    `gorm:"null;type:varchar(255)" json:"content_type"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"-"`
 }
 
 type FileMetadataAndVersion struct {
