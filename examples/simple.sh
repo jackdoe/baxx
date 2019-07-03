@@ -69,3 +69,25 @@ baxx_sync() {
                     curl -s -T {} https://baxx.dev/io/$BAXX_TOKEN/backup/{}
     fi
 }
+
+
+baxx_share() {
+    if [ $# -lt 1 ]; then
+        echo "usage: $0 file"
+    else
+        fn=$1
+        ct=$(file --mime-type $fn | cut -f 2 -d ' ')
+        curl -H "Content-Type: $ct" -s \
+             -T $file https://baxx.dev/io/$BAXX_TOKEN/public/$fn > /dev/null && \
+            curl -s -XPOST https://baxx.dev/share/$BAXX_TOKEN/public/$fn | \
+                grep link | cut -f 4 -d '"'
+    fi
+}
+
+baxx_paste() {
+    fn=paste.$(date +%s)
+    (curl -H "Content-Type: text/plain; charset=utf-8" -XPOST -s -d@- \
+          https://baxx.dev/io/$BAXX_TOKEN/public/$fn > /dev/null && \
+         curl -s -XPOST https://baxx.dev/share/$BAXX_TOKEN/public/$fn | grep link \
+             | cut -f 4 -d '"')
+}
