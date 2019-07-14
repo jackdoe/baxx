@@ -86,7 +86,7 @@ baxx_share() {
 
 baxx_paste() {
     fn=paste.$(date +%s)
-    (curl -H "Content-Type: text/plain; charset=utf-8" -XPOST -s -d@- \
+    (curl -H "Content-Type: text/plain; charset=utf-8" -XPOST -s --data-binary @- \
           https://baxx.dev/io/$BAXX_TOKEN/public/$fn > /dev/null && \
          curl -s -XPOST https://baxx.dev/share/$BAXX_TOKEN/public/$fn | grep link \
              | cut -f 4 -d '"')
